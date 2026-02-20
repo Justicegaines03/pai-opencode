@@ -64,10 +64,13 @@ PAI-OpenCode is the complete port of **Daniel Miessler's Personal AI Infrastruct
 git clone https://github.com/Steffen025/pai-opencode.git
 cd pai-opencode
 
-# 2. Run the Installation Wizard
+# 2. Install dependencies
+bun install
+
+# 3. Run the Installation Wizard
 bun run .opencode/PAIOpenCodeWizard.ts
 
-# 3. Start OpenCode
+# 4. Start OpenCode
 opencode
 ```
 

@@ -1163,6 +1163,17 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Install project dependencies (yaml, diff, etc.)
+  print('');
+  print(`${c.bold}Installing Dependencies${c.reset}`);
+  print(`${c.gray}─────────────────────────────────────────────────${c.reset}`);
+  const depInstall = execCommand('bun install', { cwd: PROJECT_ROOT, silent: false });
+  if (depInstall.success) {
+    printSuccess('Dependencies installed');
+  } else {
+    printWarning('Dependency install failed — run "bun install" manually in the project root');
+  }
+
   // Create config symlink: .opencode/opencode.json → ../opencode.json
   setupConfigSymlink();
 
