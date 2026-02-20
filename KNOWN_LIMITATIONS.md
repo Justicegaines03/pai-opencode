@@ -32,12 +32,6 @@ These features exist in Daniel Miessler's PAI but depend on Claude Code-specific
 
 ## v2.0.0 Specific
 
-### Voice Curl Template Variables
-- **Situation:** Algorithm v1.8.0 voice curls use `{DAIDENTITY.ALGORITHMVOICEID}` template variable
-- **OpenCode behavior:** The template variable appears as literal text in the SKILL.md since OpenCode doesn't have a build system like `CreateDynamicCore.ts` in the upstream PAI
-- **Impact:** Voice phase announcements work — the AI reads the literal string and resolves it from DAIDENTITY context at runtime
-- **Note:** If you customize your fork with a build system (like jeremy-opencode does), the variable resolves at build time
-
 ### Prompt Caching
 - **Upstream:** Claude Code uses Anthropic's prompt caching natively for SKILL.md and context files
 - **OpenCode:** Zen provider has automatic similarity-based caching (70-90% hit rate, 5min TTL). Anthropic direct requires manual `cache_control` in API calls.
