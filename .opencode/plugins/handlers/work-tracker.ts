@@ -278,10 +278,14 @@ export async function appendToThread(content: string): Promise<void> {
 }
 
 /**
- * Update ISC.json
+ * Update ISC.json with criteria from the Algorithm's TaskCreate/TodoWrite.
+ *
+ * Called by algorithm-tracker.ts when ISC criteria are created/updated.
+ * Bridges the gap between the Algorithm's working memory (TodoWrite) and
+ * the persistent work session (ISC.json on disk).
  */
 export async function updateISC(
-  criteria: { description: string; status: string }[]
+  criteria: { description: string; status: string; priority?: string }[]
 ): Promise<void> {
   const sessionPath = await getCurrentWorkPath();
   if (!sessionPath) return;
@@ -289,7 +293,17 @@ export async function updateISC(
   const iscPath = path.join(sessionPath, "ISC.json");
 
   try {
-    const isc = { criteria, anti_criteria: [], updated_at: new Date().toISOString() };
+    // Separate criteria from anti-criteria based on ISC naming convention
+    const regular = criteria.filter((c) => !c.description.includes("ISC-A"));
+    const anti = criteria.filter((c) => c.description.includes("ISC-A"));
+
+    const isc = {
+      criteria: regular,
+      anti_criteria: anti,
+      total: criteria.length,
+      completed: criteria.filter((c) => c.status === "completed").length,
+      updated_at: new Date().toISOString(),
+    };
     await fs.promises.writeFile(iscPath, JSON.stringify(isc, null, 2));
   } catch (error) {
     fileLogError("Failed to update ISC.json", error);
