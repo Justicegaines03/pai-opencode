@@ -205,22 +205,29 @@ The coarse version has 3 criteria that each hide 6+ verifiable sub-requirements.
 > ℹ️ **OpenCode Note:** Voice ID is `pNInz6obpgDQGcFmaJgB` for OpenCode.
 
 **PRD stub (MANDATORY — immediately after voice curl):**
-Create the PRD directory and write a stub PRD with frontmatter only. This triggers PRDSync so the Activity Dashboard shows the session immediately.
+Create the PRD directory and write a stub PRD with canonical v1.0.0 frontmatter only. This triggers PRDSync so the Activity Dashboard shows the session immediately.
 1. `mkdir -p ~/.opencode/MEMORY/WORK/{slug}/` (slug format: `YYYYMMDD-HHMMSS_kebab-task-description`)
 2. Write `~/.opencode/MEMORY/WORK/{slug}/PRD.md` with Write tool — frontmatter only, no body sections yet:
 ```yaml
 ---
-task: [same 8 word description from console output]
-slug: [the slug]
-effort: standard
-phase: observe
-progress: 0/0
+prd: true
+id: PRD-{YYYYMMDD}-{slug}
+status: DRAFT
 mode: interactive
-started: [ISO timestamp]
-updated: [ISO timestamp]
+effort_level: Standard
+created: {ISO timestamp}
+updated: {ISO timestamp}
+iteration: 0
+maxIterations: 128
+loopStatus: null
+last_phase: null
+failing_criteria: []
+verification_summary: "0/0"
+parent: null
+children: []
 ---
 ```
-The effort level defaults to `standard` here and gets refined later in OBSERVE after reverse engineering.
+The effort level defaults to `Standard` here and gets refined later in OBSERVE after reverse engineering.
 
 **Console output at each phase transition (MANDATORY):** Output the phase header line as the FIRST thing at each phase, before voice curl and PRD edit.
 
@@ -428,8 +435,6 @@ echo '{"timestamp":"[ISO-8601 with timezone]","effort_level":"[tier]","task_desc
 ```
 
 Fill in all bracketed values from the current session. `implied_sentiment` is your estimate of how satisfied the user is (1=frustrated, 10=delighted) based on conversation tone — do NOT read ratings.jsonl. Escape double quotes in reflection text with `\"`.
-
-```
 
 
 ### Critical Rules (Zero Exceptions)
