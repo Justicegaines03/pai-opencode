@@ -473,85 +473,320 @@ interface VoiceConfig {
 
 ---
 
-## 📋 Work Packages (Revised for Synthesis)
+## 📋 Work Packages (Revised post-Research)
 
-### WP1: Core Algorithm v3.7.0 Port
-**Goal:** Port Algorithm, but OpenCode-native.
-- Port `Algorithm/v3.7.0.md` from PAI v4.0.3
-- Create `PAI/Core/` minimal context structure
-- Integrate Model Tier routing into Algorithm
+> **Critical Insight from Research:**
+> - Model Tiers: ✅ **Production-ready** (no dev needed, just use)
+> - Lazy Loading: ✅ **OpenCode-native** (use skill tool, don't build)
+> - Context Compaction: ✅ **OpenCode-native** (auto-handled, don't build)
+> - MCP Skills: ✅ **OpenCode-native** (configure, don't implement)
+> - Plugin Events: ✅ **OpenCode-native** (migrate hooks → events)
+> - Agent Swarms: ❌ **Not available** (skip entirely)
 
-**Output:** Algorithm + Dynamic Model Routing
+### WP1: Algorithm v3.7.0 Core + Model Tier Integration
+**Status:** CRITICAL PATH  
+**Effort:** 8-12 hours  
+**Dependencies:** None  
+**Branch:** `v3.0-wp1-algorithm`
+
+**Goal:** Port Algorithm v3.7.0 and integrate with EXISTING Model Tier system
+
+**Tasks:**
+1. Port `Algorithm/v3.7.0.md` from PAI v4.0.3 → `.opencode/PAI/Algorithm/v3.7.0.md`
+2. Create minimal bootstrap context (Algorithm + TELOS only = ~20KB)
+3. **Integrate Model Tier routing into Algorithm logic**
+   - Algorithm decides tier: `complexity > 0.7 ? "advanced" : complexity > 0.4 ? "standard" : "quick"`
+   - Pass tier to Task tool: `Task({ model_tier: tier })`
+   - Leverage EXISTING `~/.opencode/opencode.json` config
+4. Port core PAI system files (modular structure)
+
+**Key Insight:** Don't build Model Tiers - they're already production-ready in custom binary!
+
+**Output:** 
+- `.opencode/PAI/Algorithm/v3.7.0.md`
+- `.opencode/PAI/Core/` (minimal bootstrap)
+- Algorithm with integrated Model Tier routing
+
+**Verification:**
+- Algorithm runs 7 phases
+- Model Tier routing works (15+ agents configured)
+- Bootstrap context <25KB
 
 ---
 
-### WP2: Lazy Context System
-**Goal:** 233KB → 20KB initial context.
-- Define `MINIMAL_CONTEXT` (Algorithm + Identity + Routing)
-- Implement lazy loading via `skill` tool
-- Remove static context bloat
+### WP2: Context System Modernization (Lazy Loading)
+**Status:** HIGH PRIORITY  
+**Effort:** 6-8 hours  
+**Dependencies:** WP1 (Algorithm provides structure)  
+**Branch:** `v3.0-wp2-context`
 
-**Output:** Fast session start, on-demand skill loading
+**Goal:** Replace 233KB static context with OpenCode-native lazy loading
+
+**Tasks:**
+1. **REMOVE static context loading**
+   - Current: 233KB loaded at session start
+   - Target: ~20KB minimal bootstrap
+2. **USE OpenCode-native `skill` tool for lazy loading**
+   - Don't build custom loader!
+   - Use OpenCode's discovery: `.opencode/skills/<name>/SKILL.md`
+   - Use native `skill_find` and `skill_use`
+3. Define `MINIMAL_BOOTSTRAP`:
+   - Algorithm (5KB)
+   - TELOS/Identity (10KB)
+   - Routing/Config (5KB)
+4. Remove `context-loader.ts` and related custom code
+
+**Key Insight:** OpenCode already has lazy loading - we just need to stop fighting it!
+
+**Output:**
+- <25KB session startup
+- Native skill tool usage
+- Deleted: custom context loader
+
+**Verification:**
+- Session starts in <3 seconds
+- Skills load on-demand via `skill` tool
+- No static context bloat
 
 ---
 
-### WP3: MCP-First Skills
-**Goal:** Skills as MCP servers.
-- Port 3-5 core skills to MCP server architecture
-- Implement skill discovery
-- Create skill registry
+### WP3: Event-Driven Plugin Architecture
+**Status:** HIGH PRIORITY  
+**Effort:** 5-7 hours  
+**Dependencies:** WP2 (context system ready)  
+**Branch:** `v3.0-wp3-plugins`
 
-**Output:** Dynamic skill system
+**Goal:** Migrate PAI Hooks → OpenCode native Plugin Events
+
+**Tasks:**
+1. **Consolidate 6 existing plugins into 1 unified plugin**
+   - Current: pai-context-loader, pai-security, pai-work-tracking, etc.
+   - Target: Single `plugins/pai-core.ts`
+2. **USE OpenCode native events:**
+   - `session.created` → Load minimal bootstrap context
+   - `tool.execute.before` → Security validation (replace PreToolUse hook)
+   - `session.compacted` → Extract learnings to MEMORY
+   - `message.updated` → Work tracking / ratings
+3. **REMOVE hook emulation layer**
+   - Delete hook compatibility code
+   - Use native TypeScript events
+4. Update `plugins/pai-core.ts` with event handlers
+
+**Key Insight:** Don't emulate hooks - use native OpenCode events!
+
+**Output:**
+- `plugins/pai-core.ts` (unified, ~300 lines)
+- Deleted: 5 separate plugins, hook emulation
+
+**Verification:**
+- Security validation runs on tool calls
+- Context loads at session start
+- Learnings extracted on compaction
 
 ---
 
-### WP4: Event-Driven Plugins
-**Goal:** Simplified plugin architecture.
-- Consolidate 6 plugins into 1 event-driven plugin
-- Use OpenCode native events
-- Remove hook emulation layer
+### WP4: Hierarchical Skill Structure (PAI v4.0.3)
+**Status:** MEDIUM PRIORITY  
+**Effort:** 8-10 hours  
+**Dependencies:** None (can run parallel to WP1-3)  
+**Branch:** `v3.0-wp4-skills`
 
-**Output:** `plugins/pai-core.ts` (unified)
+**Goal:** Migrate 39 skills to PAI v4.0.3's 11-category structure
+
+**Tasks:**
+1. Create 11 category directories:
+   - Agents/, ContentAnalysis/, Investigation/, Media/, Research/, Scraping/, Security/, Telos/, Thinking/, USMetrics/, Utilities/
+2. **Migrate existing 39 skills** (reorganize, not rebuild)
+   - Move files to new structure
+   - Adapt paths: `.claude/` → `.opencode/`
+   - Update internal references
+3. **Don't change skill logic** - only structure
+4. Port any new v4.0.3 skills (if applicable)
+
+**Key Insight:** Reorganize, don't reinvent. Skills work, structure improves.
+
+**Output:**
+- 11 category directories
+- 39 skills reorganized
+- No path issues (`.claude/` fully replaced)
+
+**Verification:**
+- All skills load without errors
+- Biome check passes
+- Skill discovery works
 
 ---
 
-### WP5: Hierarchical Skill Migration
-**Goal:** Move 39 skills to PAI v4.0.3 structure.
-- Create 11 categories (Agents, Thinking, Security, etc.)
-- Migrate existing skills
-- Adapt paths (`.claude/` → `.opencode/`)
+### WP5: MCP-First Skills (Configuration, not Implementation)
+**Status:** MEDIUM PRIORITY  
+**Effort:** 4-6 hours  
+**Dependencies:** WP4 (skills organized)  
+**Branch:** `v3.0-wp5-mcp`
 
-**Output:** Organized skill hierarchy
+**Goal:** Configure 3-5 core skills as MCP servers (use OpenCode-native MCP)
+
+**Tasks:**
+1. **SELECT 3-5 core skills** for MCP conversion:
+   - Research (API-heavy)
+   - Security (tool-heavy)
+   - One more (to be decided)
+2. **CONFIGURE in `opencode.json`**:
+   ```json
+   {
+     "mcp": {
+       "research-skill": {
+         "type": "local",
+         "command": "bun ~/.opencode/mcp/research/server.ts"
+       }
+     }
+   }
+   ```
+3. **Don't build MCP server framework** - use OpenCode's native MCP!
+4. Create simple TypeScript servers for selected skills
+5. Document skill discovery via MCP
+
+**Key Insight:** OpenCode has MCP built-in - just configure, don't implement!
+
+**Output:**
+- 3-5 skills as MCP servers
+- `opencode.json` MCP configuration
+- Documentation
+
+**Verification:**
+- MCP tools appear in OpenCode
+- Skills work via MCP
+- Dynamic discovery functional
 
 ---
 
 ### WP6: Voice & Ambient AI Foundation
-**Goal:** Architecture for future voice integration.
-- Refactor VoiceServer for WebSocket-ready architecture
-- Design OMI integration hooks
-- Document Voice-to-Voice roadmap
+**Status:** LOW-MEDIUM PRIORITY  
+**Effort:** 4-6 hours  
+**Dependencies:** WP1 (core working)  
+**Branch:** `v3.0-wp6-voice`
 
-**Output:** Voice-ready foundation
+**Goal:** Architecture for future Voice-to-Voice (NOT full implementation)
+
+**Tasks:**
+1. **Refactor VoiceServer for WebSocket-ready architecture**
+   - Current: HTTP-based TTS
+   - Add WebSocket endpoints (prep for streaming)
+   - Don't implement full V2V yet!
+2. **Design OMI integration points**
+   - Document how PAI-OpenCode ↔ OMI integration works
+   - Define message formats
+3. **Create Voice-to-Voice roadmap** (document, not code)
+   - Phase 1: WebSocket TTS (immediate)
+   - Phase 2: Local TTS on M4 Macs (future)
+   - Phase 3: Full V2V (distant future)
+4. Ensure VoiceServer works with current setup
+
+**Key Insight:** Prepare architecture, don't build full V2V yet!
+
+**Output:**
+- WebSocket-ready VoiceServer
+- OMI integration design doc
+- V2V roadmap (3 phases)
+
+**Verification:**
+- Voice notifications work (existing)
+- WebSocket endpoints ready
+- Architecture documented
 
 ---
 
-### WP7: Integration & Migration
-**Goal:** Smooth upgrade from v2.x.
-- Migration script for existing users
-- Installer for new users
-- Documentation (UPGRADE.md, ARCHITECTURE.md)
+### WP7: Migration & Installer
+**Status:** MEDIUM PRIORITY  
+**Effort:** 6-8 hours  
+**Dependencies:** WP1-5 complete  
+**Branch:** `v3.0-wp7-migration`
 
-**Output:** Migration path + installer
+**Goal:** Smooth upgrade from v2.x + new installer
+
+**Tasks:**
+1. **Create migration script** `v2-to-v3.ts`:
+   - Backup existing `.opencode/`
+   - Move skills to new structure
+   - Update path references
+   - Preserve USER/ customizations
+2. **Create installer** for custom OpenCode binary:
+   - Download custom binary (with Model Tiers)
+   - Install PAI-OpenCode core
+   - Configure `opencode.json` with Model Tiers
+3. **Documentation:**
+   - `UPGRADE.md` (for existing users)
+   - `INSTALL.md` (for new users)
+   - `ARCHITECTURE.md` (technical overview)
+
+**Output:**
+- `migration-v2-to-v3.ts` script
+- Installer for custom binary
+- Complete documentation
+
+**Verification:**
+- Migration tested on 3+ environments
+- New install works clean
+- No data loss
 
 ---
 
-### WP8: Testing & Release
-**Goal:** Stable v3.0.0 release.
-- Full test suite
-- Beta testing
+### WP8: Testing & v3.0.0 Release
+**Status:** CRITICAL PATH (Final)  
+**Effort:** 6-10 hours  
+**Dependencies:** ALL WPs complete  
+**Branch:** `v3.0-rearchitecture` (integration)
+
+**Goal:** Stable release
+
+**Tasks:**
+1. **Full test suite:**
+   - Algorithm tests (all 7 phases)
+   - Model Tier routing tests
+   - Lazy loading tests
+   - Plugin event tests
+   - Skill hierarchy tests
+2. **Integration testing:**
+   - End-to-end workflows
+   - Migration testing
+   - Custom binary compatibility
+3. **Beta release:**
+   - Tag `v3.0.0-beta.1`
+   - Limited user testing
+   - Feedback collection
+4. **Final release:**
+   - Tag `v3.0.0`
+   - Release notes
+   - Announcement
+
+**Output:**
+- All tests passing
+- `v3.0.0` release
 - Release notes
 
-**Output:** PAI-OpenCode v3.0.0
+**Verification:**
+- 100% test pass rate
+- Beta feedback positive
+- CI/CD green
+
+---
+
+## 🔄 Revised Work Package Dependencies
+
+```
+WP1 (Algorithm + Model Tiers)
+    │
+    ├──► WP2 (Lazy Context) ──► WP3 (Event Plugins)
+    │                              │
+    │                              └──► WP8 (Testing/Release)
+    │
+    ├──► WP4 (Skills) ──► WP5 (MCP Config)
+    │
+    └──► WP6 (Voice) ──► WP7 (Migration) ──► WP8
+```
+
+**Critical Path:** WP1 → WP2 → WP3 → WP8  
+**Parallel Work:** WP4, WP5, WP6 (after WP1)  
+**Final Step:** WP7 → WP8
 
 ---
 
