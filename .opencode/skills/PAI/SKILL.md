@@ -118,11 +118,12 @@ These are direct, synchronous calls. Do not send to background. The voice notifi
 **The AI writes ALL PRD content directly using Write/Edit tools.** PRD.md in `~/.opencode/MEMORY/WORK/{slug}/` is the single source of truth. The AI is the sole writer — no hooks, no indirection.
 
 **What the AI writes directly:**
-- YAML frontmatter (task, slug, effort, phase, progress, mode, started, updated; optional: iteration)
+- YAML frontmatter (canonical v1.0.0 schema: `prd`, `id`, `status`, `mode`, `effort_level`, `created`, `updated`; optional: `iteration`, `maxIterations`, `loopStatus`, `last_phase`, `failing_criteria`, `verification_summary`, `parent`, `children`)
+- Legacy schema (deprecated): `task`, `slug`, `effort`, `phase`, `progress`, `mode`, `started`, `updated` — migrate to canonical on next edit
 - All prose sections (Context, Criteria, Decisions, Verification)
 - Criteria checkboxes (`- [ ] ISC-1: text` and `- [x] ISC-1: text`)
-- Progress counter in frontmatter (`progress: 3/8`)
-- Phase transitions in frontmatter (`phase: execute`)
+- Progress counter in frontmatter (`verification_summary: "3/8"`)
+- Phase transitions in frontmatter (`last_phase: execute`)
 
 **What hooks do (read-only from PRD):** A PostToolUse hook (PRDSync.hook.ts) fires on Write/Edit of PRD.md and syncs frontmatter + criteria to `work.json` for the dashboard. **Hooks never write to PRD.md — they only read it.**
 
@@ -154,14 +155,14 @@ These are direct, synchronous calls. Do not send to background. The voice notifi
 **Granularity example — same task at two decomposition depths:**
 
 Coarse (8 ISC — WRONG for Extended+):
-```
+```markdown
 - [ ] ISC-1: Blog publishing workflow handles draft to published transition
 - [ ] ISC-2: Markdown content renders correctly with all formatting
 - [ ] ISC-3: SEO metadata generated and validated for each post
 ```
 
 Atomic (showing 3 of those same areas decomposed to ~12 criteria each):
-```
+```markdown
 Draft-to-Published:
 - [ ] ISC-1: Draft status stored in frontmatter YAML field
 - [ ] ISC-2: Published status stored in frontmatter YAML field
@@ -194,7 +195,7 @@ The coarse version has 3 criteria that each hide 6+ verifiable sub-requirements.
 **ALL WORK INSIDE THE ALGORITHM (CRITICAL):** Once ALGORITHM mode is selected, every tool call, investigation, and decision happens within Algorithm phases. No work outside the phase structure until the Algorithm completes.
 
 **Entry banner was already printed by CLAUDE.md** before this file was loaded. The user has already seen:
-```
+```text
 ♻︎ Entering the PAI ALGORITHM… (v3.7.0) ═════════════
 🗒️ TASK: [8 word description]
 ```
@@ -244,7 +245,7 @@ OUTPUT:
 💪🏼 EFFORT LEVEL: [EFFORT LEVEL based on the reverse engineering step above] | [8 word reasoning]`
 
 - IDEAL STATE Criteria Generation — write criteria directly into the PRD:
-- Edit the stub PRD.md (already created at Algorithm entry) to add full content — update frontmatter `effort` field with the determined effort level, and add sections (Context, Criteria, Decisions, Verification) per `~/.opencode/skills/PAI/SYSTEM/PRDFORMAT.md`
+- Edit the stub PRD.md (already created at Algorithm entry) to add full content — update frontmatter `effort_level` field with the determined effort level, and add sections (Context, Criteria, Decisions, Verification)
 - Add criteria as `- [ ] ISC-1: criterion text` checkboxes directly in the PRD's `## Criteria` section
 - **Apply the Splitting Test** to every criterion before writing. Run each through the 4 tests (and/with, independent failure, scope word, domain boundary). Split any compound criteria into atomics.
 - Set frontmatter `progress: 0/N` where N = total criteria count
@@ -447,15 +448,19 @@ Fill in all bracketed values from the current session. `implied_sentiment` is yo
 
 If after compaction you don't know your current phase or criteria status:
 1. Read the most recent PRD from `~/.opencode/MEMORY/WORK/` (by mtime) — it has all state
-2. PRD frontmatter has phase, progress, effort, mode, task, slug, started, updated (optional: iteration)
+2. PRD frontmatter has `phase`, `progress` (legacy) or `last_phase`, `verification_summary` (v1.0.0 canonical), `effort_level`, `mode`, `task`/`id`, `slug`, `started`/`created`, `updated` (optional: `iteration`)
 3. PRD body has criteria checkboxes, decisions, verification evidence
 4. `~/.opencode/MEMORY/STATE/work.json` has the registry of all sessions (populated by read-only PRDSync + PRDStateSync hooks)
 
 ### PRD.md Format
 
-**Frontmatter:** 8 fields — `task`, `slug`, `effort`, `phase`, `progress`, `mode`, `started`, `updated`. Optional: `iteration` (for rework).
+**Frontmatter (Canonical v1.0.0):** 12 fields — `prd`, `id`, `status`, `mode`, `effort_level`, `created`, `updated`. Optional: `iteration`, `maxIterations`, `loopStatus`, `last_phase`, `failing_criteria`, `verification_summary`, `parent`, `children`.
+
+**Frontmatter (Legacy, migrate to v1.0.0):** 8 fields — `task`, `slug`, `effort`, `phase`, `progress`, `mode`, `started`, `updated`. Map to canonical: `task`→`id`, `effort`→`effort_level`, `started`→`created`, `phase`/`progress`→`last_phase`/`verification_summary`.
+
 **Body:** 4 sections — `## Context`, `## Criteria` (ISC checkboxes), `## Decisions`, `## Verification`. Sections appear only when populated.
-**Full spec:** `~/.opencode/skills/PAI/SYSTEM/PRDFORMAT.md` (read during OBSERVE if needed for field details or continuation rules).
+
+**Full spec:** See "PRD Template (v1.0.0)" below — this template IS the canonical specification.
 
 ---
 
@@ -1108,7 +1113,8 @@ Check background agent output with Read tool on the output_file path.
 7. **Format always present.** Full/Iteration/Minimal — never raw output. Algorithm runs for every input including skills.
 8. **Direct tools before agents.** Grep/Glob/Read for search and lookup. Agents ONLY for multi-step autonomous work beyond 5 files. Context recovery = direct tools, never agents.
 
-**4 red lines — immediate self-correction if violated:**
+**6 red lines — immediate self-correction if violated:**
+*(4 original + 2 v1.3.0 additions)*
 
 - **No tool calls in OBSERVE** except TaskCreate, voice curls, and CONTEXT RECOVERY (Grep/Glob/Read on memory stores only, ≤34s total). Reading code before ISC exists = premature execution. Reading your own prior work notes = understanding the problem.
 - **No agents for instant operations.** If Grep/Glob/Read can answer in <2 seconds, NEVER spawn an agent. Context recovery, file search, content lookup = direct tools only.
