@@ -26,7 +26,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import type { Plugin, Hooks } from "@opencode-ai/plugin";
-import { loadContext } from "./handlers/context-loader";
 import { validateSecurity } from "./handlers/security-validator";
 import { restoreSkillFiles } from "./handlers/skill-restore";
 import {
@@ -108,28 +107,55 @@ function extractTextContent(message: any): string {
 }
 
 /**
+ * Load minimal bootstrap context
+ *
+ * WP2: Lazy Loading - Only load ~20KB bootstrap at session start.
+ * Full skills load on-demand via OpenCode skill tool.
+ */
+async function loadMinimalBootstrap(): Promise<string> {
+	try {
+		const cwd = process.cwd();
+		const bootstrapPath = path.join(cwd, ".opencode", "PAI", "MINIMAL_BOOTSTRAP.md");
+
+		if (!fs.existsSync(bootstrapPath)) {
+			fileLog("MINIMAL_BOOTSTRAP.md not found, using fallback", "warn");
+			return "# PAI Bootstrap\nMinimal context loaded.";
+		}
+
+		const content = fs.readFileSync(bootstrapPath, "utf-8");
+		const size = Buffer.byteLength(content, "utf-8");
+		fileLog(`Bootstrap loaded: ${size} bytes`);
+
+		return `<system-reminder>\nPAI CONTEXT (Lazy Loading Bootstrap)\n\n${content}\n\n---\nSkills load on-demand via OpenCode skill tool.\n</system-reminder>`;
+	} catch (error) {
+		fileLogError("Failed to load minimal bootstrap", error);
+		return "# PAI Bootstrap\nError loading context.";
+	}
+}
+
+/**
  * Append effort level to a session's META.yaml
  *
  * Adds effort_level and effort_budget fields to the session metadata.
  * Called after work session creation (Phase 4 — Issue #24).
  */
 async function appendEffortToMeta(
-  sessionPath: string,
-  level: string,
-  budget: string
+	sessionPath: string,
+	level: string,
+	budget: string
 ): Promise<void> {
-  const metaPath = path.join(sessionPath, "META.yaml");
-  try {
-    let content = await fs.promises.readFile(metaPath, "utf-8");
-    // Only append if not already present
-    if (!content.includes("effort_level:")) {
-      content = content.trimEnd() + `\neffort_level: ${level}\neffort_budget: ${budget}\n`;
-      await fs.promises.writeFile(metaPath, content);
-    }
-  } catch (error) {
-    // Non-blocking — session continues without effort metadata
-    throw error;
-  }
+	const metaPath = path.join(sessionPath, "META.yaml");
+	try {
+		let content = await fs.promises.readFile(metaPath, "utf-8");
+		// Only append if not already present
+		if (!content.includes("effort_level:")) {
+			content = content.trimEnd() + `\neffort_level: ${level}\neffort_budget: ${budget}\n`;
+			await fs.promises.writeFile(metaPath, content);
+		}
+	} catch (error) {
+		// Non-blocking — session continues without effort metadata
+		throw error;
+	}
 }
 
 /**
@@ -150,31 +176,27 @@ export const PaiUnified: Plugin = async (ctx) => {
     /**
      * CONTEXT INJECTION (SessionStart equivalent)
      *
-     * Injects PAI skill context into the chat system.
-     * Equivalent to PAI v2.4 load-core-context.ts hook.
+     * WP2: Injects minimal bootstrap (~20KB) instead of full 233KB context.
+     * Skills load on-demand via OpenCode native skill tool.
      */
     "experimental.chat.system.transform": async (input, output) => {
       try {
-        fileLog("Injecting context...");
+        fileLog("Injecting minimal bootstrap context (WP2 lazy loading)...");
         
         // Emit session start
         emitSessionStart({ model: (input as any).model }).catch(() => {});
 
+        // WP2: Use minimal bootstrap instead of full context loader
+        const bootstrap = await loadMinimalBootstrap();
 
-        const result = await loadContext();
-
-        if (result.success && result.context) {
-          output.system.push(result.context);
-          fileLog("Context injected successfully");
+        if (bootstrap && bootstrap.length > 0) {
+          output.system.push(bootstrap);
+          fileLog(`Context injected successfully (${bootstrap.length} chars)`);
           
           // Emit context loaded
-          const contextSize = result.context.length;
-          emitContextLoaded({ files_loaded: 1, total_size: contextSize, success: true }).catch(() => {});
+          emitContextLoaded({ files_loaded: 1, total_size: bootstrap.length, success: true }).catch(() => {});
         } else {
-          fileLog(
-            `Context injection skipped: ${result.error || "unknown"}`,
-            "warn"
-          );
+          fileLog("Context injection skipped: empty bootstrap", "warn");
         }
       } catch (error) {
         fileLogError("Context injection failed", error);
