@@ -15,8 +15,45 @@
  * @version 1.0.0
  */
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { writeFileSync } from 'fs';
+
+// Allowed YouTube domains
+const ALLOWED_HOSTS = ['youtube.com', 'www.youtube.com', 'youtu.be'];
+
+/**
+ * Validate and sanitize YouTube URL
+ * Returns video ID if valid, null if invalid
+ */
+function validateYouTubeUrl(url: string): { isValid: boolean; videoId?: string; error?: string } {
+  try {
+    const parsedUrl = new URL(url);
+    
+    // Check if host is in allowlist
+    if (!ALLOWED_HOSTS.includes(parsedUrl.hostname)) {
+      return { isValid: false, error: `Invalid host: ${parsedUrl.hostname}` };
+    }
+    
+    // Extract video ID
+    let videoId: string | null = null;
+    
+    if (parsedUrl.hostname === 'youtu.be') {
+      // Short URL format: youtu.be/VIDEO_ID
+      videoId = parsedUrl.pathname.slice(1); // Remove leading /
+    } else {
+      // Standard format: youtube.com/watch?v=VIDEO_ID
+      videoId = parsedUrl.searchParams.get('v');
+    }
+    
+    if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      return { isValid: false, error: 'Invalid or missing video ID' };
+    }
+    
+    return { isValid: true, videoId };
+  } catch {
+    return { isValid: false, error: 'Invalid URL format' };
+  }
+}
 
 const HELP = `
 GetTranscript - Extract transcript from YouTube video using fabric
@@ -48,23 +85,35 @@ if (args.includes('--help') || args.length === 0) {
 }
 
 // Find URL (first arg that looks like a URL)
-const url = args.find(arg => arg.includes('youtube.com') || arg.includes('youtu.be'));
+const urlArg = args.find(arg => arg.includes('youtube.com') || arg.includes('youtu.be'));
 
-if (!url) {
+if (!urlArg) {
   console.error('❌ Error: No YouTube URL provided');
   console.log('\nUsage: bun GetTranscript.ts <youtube-url>');
   process.exit(1);
 }
 
+// Validate URL before processing
+const validation = validateYouTubeUrl(urlArg);
+if (!validation.isValid || !validation.videoId) {
+  console.error(`❌ Error: ${validation.error || 'Invalid YouTube URL'}`);
+  console.log('\nUsage: bun GetTranscript.ts <youtube-url>');
+  process.exit(1);
+}
+
+// Reconstruct clean URL for fabric
+const cleanUrl = `https://www.youtube.com/watch?v=${validation.videoId}`;
+
 // Check for --save option
 const saveIndex = args.indexOf('--save');
 const outputFile = saveIndex !== -1 ? args[saveIndex + 1] : null;
 
-// Extract transcript using fabric
-console.log(`📺 Extracting transcript from: ${url}`);
+// Extract transcript using fabric with safe args array
+console.log(`📺 Extracting transcript from: ${cleanUrl}`);
 
 try {
-  const transcript = execSync(`fabric -y "${url}"`, {
+  // Use execFileSync with array args to prevent shell injection
+  const transcript = execFileSync('fabric', ['-y', cleanUrl], {
     encoding: 'utf-8',
     timeout: 120000, // 2 minute timeout
     maxBuffer: 10 * 1024 * 1024 // 10MB buffer for long transcripts

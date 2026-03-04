@@ -75,7 +75,9 @@ function getTimestamp(): string {
 // Load versioned algorithm
 function loadAlgorithm(): string {
   const latestFile = join(ALGORITHM_DIR, "LATEST");
-  const version = readFileSync(latestFile, "utf-8").trim();
+  let version = readFileSync(latestFile, "utf-8").trim();
+  // Remove .md extension if present to avoid "v3.7.0.md.md"
+  version = version.replace(/\.md$/i, '');
   const algorithmFile = join(ALGORITHM_DIR, `${version}.md`);
   return readFileSync(algorithmFile, "utf-8");
 }

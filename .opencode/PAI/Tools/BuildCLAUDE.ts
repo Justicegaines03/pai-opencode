@@ -29,7 +29,9 @@ function getAlgorithmVersion(): string {
     console.error("⚠ PAI/Algorithm/LATEST not found, defaulting to v3.7.0");
     return "v3.7.0";
   }
-  return readFileSync(LATEST_PATH, "utf-8").trim();
+  const version = readFileSync(LATEST_PATH, "utf-8").trim();
+  // Remove .md extension if present to avoid "v3.7.0.md.md"
+  return version.replace(/\.md$/i, '');
 }
 
 // ─── Load variables from settings.json ───
