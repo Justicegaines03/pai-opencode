@@ -68,7 +68,12 @@ function getRegistryPath(project: string): string {
 function loadRegistry(project: string): FeatureRegistry | null {
   const path = getRegistryPath(project);
   if (!existsSync(path)) return null;
-  return JSON.parse(readFileSync(path, 'utf-8'));
+  try {
+    return JSON.parse(readFileSync(path, 'utf-8'));
+  } catch (error) {
+    console.error(`❌ Error parsing registry for ${project}:`, error instanceof Error ? error.message : String(error));
+    return null;
+  }
 }
 
 function saveRegistry(registry: FeatureRegistry): void {
@@ -90,8 +95,11 @@ function calculateSummary(features: Feature[]): FeatureRegistry['completion_summ
 
 function generateId(features: Feature[]): string {
   const maxId = features.reduce((max, f) => {
-    const num = parseInt(f.id.replace('feat-', ''));
-    return num > max ? num : max;
+    // Use regex to safely extract numeric ID
+    const match = f.id.match(/^feat-(\d+)$/);
+    if (!match) return max;
+    const num = parseInt(match[1], 10);
+    return !isNaN(num) && num > max ? num : max;
   }, 0);
   return `feat-${maxId + 1}`;
 }

@@ -132,10 +132,11 @@ async function main(): Promise<void> {
     showHelp();
   }
 
-  // Need at least 3 args: input, color/--brand, output
-  if (args.length < 3) {
-    console.error("❌ Missing arguments");
+  // Need exactly 3 args: input, color/--brand, output
+  if (args.length !== 3) {
+    console.error("❌ Invalid number of arguments");
     console.error("   Usage: add-bg <input> <color|--brand> <output>");
+    console.error(`   Received ${args.length} arguments, expected 3`);
     process.exit(1);
   }
 
