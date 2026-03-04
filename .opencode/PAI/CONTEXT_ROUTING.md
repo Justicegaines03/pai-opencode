@@ -5,8 +5,8 @@
 
 ## Architecture Overview
 
-**Before (WP1):** 233KB static context loaded at session start
-**After (WP2):** ~7KB bootstrap + on-demand skill loading
+**Before (WP1):** 233KB static context loaded at session start  
+**After (WP2):** ~7KB bootstrap-only + on-demand skill loading (or ~12-17KB with User Identity + System Rules)
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
