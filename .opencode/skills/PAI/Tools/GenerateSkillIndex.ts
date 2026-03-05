@@ -104,16 +104,32 @@ function parseFrontmatter(content: string): { name: string; description: string 
   const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
   const name = nameMatch ? nameMatch[1].trim() : '';
 
-  // Extract description (can be multi-line with |)
+  // Extract description (handles both single-line and multi-line YAML with | or >)
   let description = '';
-  const descMatch = frontmatter.match(/^description:\s*\|?\s*([\s\S]*?)(?=\n[a-z]+:|$)/m);
+  const descMatch = frontmatter.match(/^description:\s*([|>]?-?)\s*([\s\S]*?)(?=\n[a-zA-Z_]+:|$)/m);
   if (descMatch) {
-    description = descMatch[1]
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line)
-      .join(' ')
-      .trim();
+    const indicator = descMatch[1] || ''; // |, >, |-, >- or empty
+    let rawDesc = descMatch[2];
+    
+    if (indicator.includes('>')) {
+      // Folded style: newlines become spaces
+      description = rawDesc
+        .split('\n')
+        .map(line => line.trim())
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    } else if (indicator.includes('|')) {
+      // Literal style: preserve newlines but normalize
+      description = rawDesc
+        .split('\n')
+        .map(line => line.trim())
+        .join('\n')
+        .trim();
+    } else {
+      // Plain style
+      description = rawDesc.trim();
+    }
   }
 
   return { name, description };
@@ -194,9 +210,10 @@ async function parseSkillFile(filePath: string): Promise<SkillEntry | null> {
     const relativePath = filePath.replace(SKILLS_DIR, '').replace(/^\//, '');
     const pathParts = relativePath.split('/');
     
-    // If path is Category/Skill/SKILL.md, category is Category
-    // If path is Skill/SKILL.md (flat), category is null
-    const isHierarchical = pathParts.length >= 3;
+    // Hierarchical structure: Category/Skill/SKILL.md (exactly 3 parts)
+    // Flat structure: Skill/SKILL.md (2 parts)
+    // Deeper nesting (>3 parts) is not supported in standard structure
+    const isHierarchical = pathParts.length === 3;
     const category = isHierarchical ? pathParts[0] : null;
 
     return {
@@ -240,6 +257,14 @@ async function main() {
     const skill = await parseSkillFile(filePath);
     if (skill) {
       const key = skill.name.toLowerCase();
+      
+      // Check for duplicates - don't overwrite existing entries
+      if (index.skills[key]) {
+        console.warn(`⚠️  Duplicate skill name "${skill.name}" found at ${skill.path} (existing: ${index.skills[key].path})`);
+        // Skip adding duplicate
+        continue;
+      }
+      
       index.skills[key] = skill;
       index.totalSkills++;
 

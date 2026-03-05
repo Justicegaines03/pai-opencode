@@ -1,3 +1,12 @@
+---
+title: PAI-OpenCode v3.0 - Optimierter PR-Plan
+version: "3.0"
+status: active
+authors: [Jeremy]
+date: 2026-03-05
+tags: [architecture, migration, v3.0, PR-strategy]
+---
+
 # PAI-OpenCode v3.0 - Optimierter PR-Plan
 
 **Ziel:** Minimale sinnvolle Anzahl von PRs mit substanziellen Änderungen
@@ -44,7 +53,7 @@
 **Schätzung:** 20-25 Files, 2000+ Zeilen
 
 **Inhalt:**
-```
+```text
 PAI-Algorithm Migration:
 ├── PAI/Algorithm/v3.7.0.md (neu - 500+ Zeilen)
 ├── PAI/SKILL.md (modular, ~200 Zeilen statt 1400)
@@ -71,7 +80,7 @@ PAI-Algorithm Migration:
 **Schätzung:** 15-20 Files, 800+ Zeilen
 
 **Inhalt:**
-```
+```text
 Final Delivery:
 ├── PAI-Install/ (portiert aus v4.0.3)
 │   ├── install.sh

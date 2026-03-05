@@ -44,6 +44,7 @@ async function validateSkillStructure(): Promise<ValidationResult> {
   const issues: ValidationIssue[] = [];
   const skillNames = new Map<string, string>(); // name -> path (for duplicates)
   const categories = new Set<string>();
+  const reportedCategories = new Set<string>(); // Track reported missing category SKILL.md
   let flatSkills = 0;
   let hierarchicalSkills = 0;
 
@@ -58,8 +59,14 @@ async function validateSkillStructure(): Promise<ValidationResult> {
           try {
             const stats = await stat(fullPath);
             if (!stats.isDirectory()) continue;
-          } catch {
-            continue; // Broken symlink
+          } catch (err) {
+            // Report broken symlinks as structural errors
+            issues.push({
+              type: 'error',
+              path: fullPath,
+              message: `Broken symlink: ${err instanceof Error ? err.message : String(err)}`,
+            });
+            continue;
           }
         }
 
@@ -86,10 +93,11 @@ async function validateSkillStructure(): Promise<ValidationResult> {
               categories.add(pathParts[0]);
               await validateSkill(skillMdPath, relativePath, issues, skillNames);
               
-              // Check if category SKILL.md exists
+              // Check if category SKILL.md exists (deduplicated reporting)
               const categoryPath = join(SKILLS_DIR, pathParts[0]);
               const categorySkillPath = join(categoryPath, 'SKILL.md');
-              if (!existsSync(categorySkillPath)) {
+              if (!existsSync(categorySkillPath) && !reportedCategories.has(pathParts[0])) {
+                reportedCategories.add(pathParts[0]);
                 issues.push({
                   type: 'error',
                   path: categoryPath,
@@ -109,10 +117,11 @@ async function validateSkillStructure(): Promise<ValidationResult> {
             if (depth === 0) {
               // Could be a category (allowed at top level without SKILL.md if it has subdirs)
               await scanDirectory(fullPath, depth + 1);
+              continue; // Prevent double recursion
             }
           }
 
-          // Recurse
+          // Recurse for subdirectories (only if not already recursed above)
           await scanDirectory(fullPath, depth + 1);
         }
       }
@@ -199,20 +208,38 @@ async function validateSkill(
       }
     }
 
-    // Check description
-    const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
+    // Check description (handles both single-line and multi-line YAML with | or >)
+    const descMatch = frontmatter.match(/^description:\s*([|>]?-?)\s*([\s\S]*?)(?=\n[a-zA-Z_]+:|$)/m);
     if (!descMatch) {
       issues.push({
         type: 'warning',
         path: relativePath,
         message: 'Missing "description" in frontmatter (needed for triggers)',
       });
-    } else if (!descMatch[1].includes('USE WHEN')) {
-      issues.push({
-        type: 'warning',
-        path: relativePath,
-        message: 'Description should contain "USE WHEN" for trigger detection',
-      });
+    } else {
+      // Extract description text (handle folded/literal YAML)
+      const indicator = descMatch[1] || '';
+      let rawDesc = descMatch[2];
+      let description: string;
+      
+      if (indicator.includes('>')) {
+        // Folded style: newlines become spaces
+        description = rawDesc.split('\n').map(line => line.trim()).join(' ').replace(/\s+/g, ' ').trim();
+      } else if (indicator.includes('|')) {
+        // Literal style
+        description = rawDesc.trim();
+      } else {
+        // Plain style
+        description = rawDesc.trim();
+      }
+      
+      if (!description.includes('USE WHEN')) {
+        issues.push({
+          type: 'warning',
+          path: relativePath,
+          message: 'Description should contain "USE WHEN" for trigger detection',
+        });
+      }
     }
 
     // Check body content
