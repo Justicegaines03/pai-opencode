@@ -51,9 +51,9 @@ Correct: Fix the bug → 1-line diff.
 
 **OpenCode workdir parameter (CRITICAL).** Each `bash()` call spawns a NEW shell process. The `cd` command has NO persistent effect across separate `bash()` invocations. When working OUTSIDE Instance.directory, ALWAYS use the `workdir` parameter.
 Bad: Two separate bash() calls:
-  `bash({ command: "cd /repo" })`
-  `bash({ command: "git status" })` — cd has no effect, runs in Instance.directory!
-Correct: `bash({ command: "git status", workdir: "/repo" })` — explicit target directory.
+  bash({ command: "cd /repo" })
+  bash({ command: "git status" }) // ❌ cd has no effect, runs in Instance.directory!
+Correct: bash({ command: "git status", workdir: "/repo" }) // ✅ explicit target directory
 Note: `cd /repo && git status` inside ONE bash() call works fine. The issue is persistence across SEPARATE calls.
 See: `docs/PLATFORM-DIFFERENCES.md` for full OpenCode vs Claude Code differences.
 
