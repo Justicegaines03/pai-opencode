@@ -12,26 +12,12 @@
  * Returned by security-validator.ts to indicate what action to take
  */
 export interface SecurityResult {
-  /** Action to take: block (deny), confirm (ask), or allow */
-  action: "block" | "confirm" | "allow";
-  /** Reason for the action (for logging) */
-  reason: string;
-  /** Optional detailed message for user */
-  message?: string;
-}
-
-/**
- * Context loading result
- *
- * Returned by context-loader.ts
- */
-export interface ContextResult {
-  /** The context string to inject */
-  context: string;
-  /** Whether loading was successful */
-  success: boolean;
-  /** Error message if failed */
-  error?: string;
+	/** Action to take: block (deny), confirm (ask), or allow */
+	action: "block" | "confirm" | "allow";
+	/** Reason for the action (for logging) */
+	reason: string;
+	/** Optional detailed message for user */
+	message?: string;
 }
 
 /**
