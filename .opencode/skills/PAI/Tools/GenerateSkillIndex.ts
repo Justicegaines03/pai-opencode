@@ -105,8 +105,9 @@ function parseFrontmatter(content: string): { name: string; description: string 
   const name = nameMatch ? nameMatch[1].trim() : '';
 
   // Extract description (handles both single-line and multi-line YAML with | or >)
+  // Regex allows hyphens in field names and handles all YAML styles
   let description = '';
-  const descMatch = frontmatter.match(/^description:\s*([|>]?-?)\s*([\s\S]*?)(?=\n[a-zA-Z_]+:|$)/m);
+  const descMatch = frontmatter.match(/^description:\s*([|>]?-?)\s*([\s\S]*?)(?=\n[0-9A-Za-z_-]+:|$)/m);
   if (descMatch) {
     const indicator = descMatch[1] || ''; // |, >, |-, >- or empty
     let rawDesc = descMatch[2];
@@ -120,12 +121,8 @@ function parseFrontmatter(content: string): { name: string; description: string 
         .replace(/\s+/g, ' ')
         .trim();
     } else if (indicator.includes('|')) {
-      // Literal style: preserve newlines but normalize
-      description = rawDesc
-        .split('\n')
-        .map(line => line.trim())
-        .join('\n')
-        .trim();
+      // Literal style: preserve indentation, only remove trailing newline
+      description = rawDesc.replace(/\n$/, '');
     } else {
       // Plain style
       description = rawDesc.trim();
@@ -213,6 +210,10 @@ async function parseSkillFile(filePath: string): Promise<SkillEntry | null> {
     // Hierarchical structure: Category/Skill/SKILL.md (exactly 3 parts)
     // Flat structure: Skill/SKILL.md (2 parts)
     // Deeper nesting (>3 parts) is not supported in standard structure
+    if (pathParts.length > 3) {
+      console.warn(`⚠️  Deep nesting detected at ${filePath} (${pathParts.length} levels). Only 2 levels (Category/Skill) are supported.`);
+    }
+    
     const isHierarchical = pathParts.length === 3;
     const category = isHierarchical ? pathParts[0] : null;
 

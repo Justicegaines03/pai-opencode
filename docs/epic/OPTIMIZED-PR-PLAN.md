@@ -20,7 +20,7 @@ tags: [architecture, migration, v3.0, PR-strategy]
 | WP3 | Category Structure | 1 PR (#37) | ✅ Gut - 881 Files, substanziell |
 | WP4 | Integration | 3 PRs (#38-#40) | ⚠️ Zu granular - nur ~100 Zeilen total |
 
-**Problem:** WP4 wurde in 3 kleine PRs aufgeteilt statt 1 substantiellem.
+**Problem:** WP4 wurde in 3 kleine PRs aufgeteilt statt einem substanziellen PR.
 
 ---
 
@@ -97,6 +97,33 @@ Final Delivery:
 - Installer + Migration gehören zusammen
 - Release-Dokumentation ist logischer Abschluss
 - Angemessene Größe (800 Zeilen)
+
+<details>
+<summary>📊 PR Dependencies (Mermaid Diagram)</summary>
+
+```mermaid
+flowchart TB
+    subgraph PR3["📋 PR #3: WP5 - Algorithm v3.7.0 & Core System"]
+        A[PAI/Algorithm/v3.7.0.md]
+        B[PAI/SKILL.md]
+        C[PAI/Tools/]
+        D[Tests/validation]
+    end
+    
+    subgraph PR4["📋 PR #4: WP6 - Installer, Migration & Release"]
+        E[PAI-Install/]
+        F[Tools/migration-v2-to-v3.ts]
+        G[UPGRADE.md]
+        H[RELEASE-v3.0.0.md]
+        I[Final integration tests]
+    end
+    
+    PR3 -->|depends on| PR4
+    C --> E
+    D --> I
+```
+
+</details>
 
 ---
 

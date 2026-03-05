@@ -1,34 +1,30 @@
 {
-  "generated": "2026-03-05T13:57:53.024Z",
-  "totalSkills": 51,
-  "categories": 9,
-  "flatSkills": 15,
-  "hierarchicalSkills": 36,
+  "generated": "2026-03-05T23:04:02.241Z",
+  "totalSkills": 49,
+  "categories": 7,
+  "flatSkills": 19,
+  "hierarchicalSkills": 30,
   "alwaysLoadedCount": 2,
-  "deferredCount": 49,
+  "deferredCount": 47,
   "skills": {
     "telos": {
       "name": "Telos",
-      "path": "Telos/Telos/SKILL.md",
-      "category": "Telos",
-      "fullDescription": "\"Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch('telos') for docs.\"",
+      "path": "Telos/SKILL.md",
+      "category": null,
+      "fullDescription": "Life OS and project management. USE WHEN life goals, projects, dependencies, TELOS, books, movies, tracking.",
       "triggers": [
-        "telos",
         "life",
         "goals",
         "projects",
         "dependencies",
+        "telos",
         "books",
-        "movies"
+        "movies",
+        "tracking"
       ],
-      "workflows": [
-        "Update",
-        "InterviewExtraction",
-        "CreateNarrativePoints",
-        "WriteReport"
-      ],
+      "workflows": [],
       "tier": "deferred",
-      "isHierarchical": true
+      "isHierarchical": false
     },
     "research": {
       "name": "Research",
@@ -329,24 +325,20 @@
     },
     "usmetrics": {
       "name": "USMetrics",
-      "path": "USMetrics/USMetrics/SKILL.md",
-      "category": "USMetrics",
-      "fullDescription": "US economic indicators. USE WHEN GDP, inflation, unemployment, economic metrics, gas prices. SkillSearch('usmetrics') for docs.",
+      "path": "USMetrics/SKILL.md",
+      "category": null,
+      "fullDescription": "US metrics and data tracking. USE WHEN US metrics, American data, statistics, demographics, tracking.",
       "triggers": [
-        "gdp",
-        "inflation",
-        "unemployment",
-        "economic",
         "metrics",
-        "gas",
-        "prices"
+        "american",
+        "data",
+        "statistics",
+        "demographics",
+        "tracking"
       ],
-      "workflows": [
-        "UpdateData",
-        "GetCurrentState"
-      ],
+      "workflows": [],
       "tier": "deferred",
-      "isHierarchical": true
+      "isHierarchical": false
     },
     "agents": {
       "name": "Agents",
@@ -688,7 +680,7 @@
     "xlsx": {
       "name": "Xlsx",
       "path": "Utilities/Documents/Xlsx/SKILL.md",
-      "category": "Utilities",
+      "category": null,
       "fullDescription": "Excel file processing. USE WHEN xlsx, Excel, spreadsheet. SkillSearch('xlsx') for docs.",
       "triggers": [
         "xlsx",
@@ -697,12 +689,12 @@
       ],
       "workflows": [],
       "tier": "deferred",
-      "isHierarchical": true
+      "isHierarchical": false
     },
     "pdf": {
       "name": "Pdf",
       "path": "Utilities/Documents/Pdf/SKILL.md",
-      "category": "Utilities",
+      "category": null,
       "fullDescription": "PDF processing. USE WHEN pdf, PDF file. SkillSearch('pdf') for docs.",
       "triggers": [
         "pdf",
@@ -710,12 +702,12 @@
       ],
       "workflows": [],
       "tier": "deferred",
-      "isHierarchical": true
+      "isHierarchical": false
     },
     "pptx": {
       "name": "Pptx",
       "path": "Utilities/Documents/Pptx/SKILL.md",
-      "category": "Utilities",
+      "category": null,
       "fullDescription": "PowerPoint processing. USE WHEN pptx, PowerPoint, slides. SkillSearch('pptx') for docs.",
       "triggers": [
         "pptx",
@@ -730,12 +722,12 @@
         "WARNING"
       ],
       "tier": "deferred",
-      "isHierarchical": true
+      "isHierarchical": false
     },
     "docx": {
       "name": "Docx",
       "path": "Utilities/Documents/Docx/SKILL.md",
-      "category": "Utilities",
+      "category": null,
       "fullDescription": "Word document processing. USE WHEN docx, Word document. SkillSearch('docx') for docs.",
       "triggers": [
         "docx",
@@ -744,7 +736,7 @@
       ],
       "workflows": [],
       "tier": "deferred",
-      "isHierarchical": true
+      "isHierarchical": false
     },
     "aphorisms": {
       "name": "Aphorisms",
@@ -984,7 +976,7 @@
       "name": "WorldThreatModelHarness",
       "path": "Thinking/WorldThreatModelHarness/SKILL.md",
       "category": "Thinking",
-      "fullDescription": ">",
+      "fullDescription": "Persistent world model system across 11 time horizons (6mo→50yr) for adversarial analysis of ideas,",
       "triggers": [],
       "workflows": [
         "TestIdea",
@@ -1141,9 +1133,6 @@
     }
   },
   "categoryMap": {
-    "Telos": [
-      "Telos"
-    ],
     "Scraping": [
       "BrightData",
       "Apify"
@@ -1154,9 +1143,6 @@
       "Recon",
       "WebAssessment",
       "AnnualReports"
-    ],
-    "USMetrics": [
-      "USMetrics"
     ],
     "Investigation": [
       "PrivateInvestigator",
@@ -1173,10 +1159,6 @@
       "Browser",
       "Fabric",
       "Documents",
-      "Xlsx",
-      "Pdf",
-      "Pptx",
-      "Docx",
       "Aphorisms"
     ],
     "Thinking": [

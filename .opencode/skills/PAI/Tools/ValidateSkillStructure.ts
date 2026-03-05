@@ -209,7 +209,8 @@ async function validateSkill(
     }
 
     // Check description (handles both single-line and multi-line YAML with | or >)
-    const descMatch = frontmatter.match(/^description:\s*([|>]?-?)\s*([\s\S]*?)(?=\n[a-zA-Z_]+:|$)/m);
+    // Regex allows hyphens in field names and handles all YAML styles
+    const descMatch = frontmatter.match(/^description:\s*([|>]?-?)\s*([\s\S]*?)(?=\n[0-9A-Za-z_-]+:|$)/m);
     if (!descMatch) {
       issues.push({
         type: 'warning',
@@ -226,8 +227,8 @@ async function validateSkill(
         // Folded style: newlines become spaces
         description = rawDesc.split('\n').map(line => line.trim()).join(' ').replace(/\s+/g, ' ').trim();
       } else if (indicator.includes('|')) {
-        // Literal style
-        description = rawDesc.trim();
+        // Literal style: preserve indentation, only remove trailing newline
+        description = rawDesc.replace(/\n$/, '');
       } else {
         // Plain style
         description = rawDesc.trim();
@@ -242,8 +243,9 @@ async function validateSkill(
       }
     }
 
-    // Check body content
-    if (content.length < 50) {
+    // Check body content (excluding frontmatter)
+    const bodyContent = content.replace(/^---\n[\s\S]*?\n---\n?/, '').trim();
+    if (bodyContent.length < 50) {
       issues.push({
         type: 'warning',
         path: relativePath,
