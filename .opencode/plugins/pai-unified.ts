@@ -1310,17 +1310,53 @@ export const PaiUnified: Plugin = async (ctx) => {
 		// OpenCode Bash is STATELESS (fresh process per call) — this is the only
 		// reliable way to pass runtime context into shell commands.
 		// See docs/epic/OPENCODE-NATIVE-RESEARCH.md — Section 1.
+		// === SHELL.ENV HOOK (WP-G — OpenCode-native) ===
+		// OpenCode Bash is STATELESS — every call spawns a fresh shell process.
+		// This hook runs before EACH bash call and injects environment variables.
+		//
+		// TWO-LAYER SYSTEM:
+		// Layer 1 — .opencode/.env (loaded by Bun at startup):
+		//   All API keys are already in process.env. Plugin TypeScript code reads
+		//   them directly via process.env.GOOGLE_API_KEY etc. — no hook needed.
+		//
+		// Layer 2 — shell.env Hook (this function):
+		//   For Bash child processes that need RUNTIME context (session ID, work dir)
+		//   OR explicit passthrough of keys that may not be inherited automatically.
+		//
+		// API keys live in .env and are read via process.env in TypeScript.
+		// Do NOT duplicate all keys here — Bun already handles that via inheritance.
+		// Only add keys here if a Bash script explicitly needs them and inheritance fails.
+		//
+		// See: docs/epic/OPENCODE-NATIVE-RESEARCH.md — Section 1 (Bash Stateless)
 		"shell.env": async (input: any, output: any) => {
 			try {
 				const sessionId = input?.sessionID || "unknown";
 				const workDir = input?.cwd || "";
 
-				// Inject PAI context so scripts can detect they're running under PAI
 				output.env = output.env || {};
+
+				// PAI runtime context (not in .env — dynamically computed per call)
 				output.env["PAI_CONTEXT"] = "1";
 				output.env["PAI_SESSION_ID"] = sessionId;
 				output.env["PAI_WORK_DIR"] = workDir;
 				output.env["PAI_VERSION"] = "3.0";
+
+				// Explicit passthrough for keys that PAI scripts may need in Bash
+				// These are already in process.env via Bun .env loading, but we
+				// explicitly forward them to ensure child process inheritance.
+				const PASSTHROUGH_KEYS = [
+					"PAI_OBSERVABILITY_PORT",
+					"PAI_OBSERVABILITY_ENABLED",
+					"GOOGLE_API_KEY", // Used by transcription scripts
+					"TTS_PROVIDER", // Voice synthesis selector
+					"DA", // Agent name (Jeremy)
+					"TIME_ZONE", // Timezone for date formatting in scripts
+				];
+				for (const key of PASSTHROUGH_KEYS) {
+					if (process.env[key]) {
+						output.env[key] = process.env[key];
+					}
+				}
 
 				fileLog(
 					`[shell.env] Context injected for session ${sessionId}`,
