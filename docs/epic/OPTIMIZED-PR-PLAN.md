@@ -11,7 +11,7 @@ tags: [architecture, migration, v3.0, PR-strategy, corrected]
 # PAI-OpenCode v3.0 - Korrigierter PR-Plan
 
 **Basierend auf:** Tatsächlicher Repository-Stand nach WP1-WP4 Completion  
-**Ziel:** Korrekte Darstellung der verbleibenden Arbeit (nur noch 2 PRs!)
+**Ziel:** Korrekte Darstellung der verbleibenden Arbeit (tatsächlich 4 PRs bis v3.0)
 
 ---
 
@@ -24,7 +24,8 @@ tags: [architecture, migration, v3.0, PR-strategy, corrected]
 | **WP3** | Category Structure Part A | #37 | ⚠️ **~40% komplett** | Category Structure ja — Hooks/Plugin-Konsolidierung FEHLT |
 | **WP4** | Integration & Validation | #38, #39, #40 | ⚠️ **~70% komplett** | Funktional, aber auf unvollständigem WP3 aufgebaut |
 
-> ⚠️ **AUDIT-BEFUND 2026-03-06:** WP3 ist NICHT vollständig! Vollständige Analyse: `docs/epic/GAP-ANALYSIS-v3.0.md`
+> [!warning]
+> ⚠️ **AUDIT-BEFUND 2026-03-06:** WP3 war NICHT vollständig! WP-A (PR #42) schließt die Lücke. Vollständige Analyse: `docs/epic/GAP-ANALYSIS-v3.0.md`
 
 **Ergebnis:** WP1 + WP2 vollständig. WP3 + WP4 haben signifikante Lücken.
 
@@ -32,6 +33,7 @@ tags: [architecture, migration, v3.0, PR-strategy, corrected]
 
 ## Verbleibende Arbeit: Tatsächlich 4 PRs (nach Audit)
 
+> [!note]
 > **Aktualisiert nach vollständigem Gap-Analyse-Audit** — Details in `docs/epic/GAP-ANALYSIS-v3.0.md`
 
 ### 📋 PR #A: WP3-Completion — Plugin-System & Hooks (KRITISCH)
@@ -153,6 +155,7 @@ Final Delivery:
 
 ### 📋 PR #D Erweiterung: WP-F — DB Health & Session Archivierung (WICHTIG)
 
+> [!note]
 > **Neu hinzugefügt 2026-03-06** — Erkenntnisse aus OpenCode DB-Analyse:  
 > `opencode.db` wird 2.4 GB+ groß ohne Cleanup. Keine Auto-Retention in OpenCode.  
 > Lösung muss OpenCode-native, benutzerfreundlich und in v3.0 integriert sein.
@@ -270,6 +273,7 @@ VACUUM braucht EXKLUSIVEN DB Zugriff:
 
 ## ⚙️ Architektur-Entscheidung: Plugin-Konsolidierung
 
+> [!tip]
 > **Entschieden 2026-03-06 — Option B: Pragmatisch**
 
 **Option A (Epic-Ziel):** Alle 19 Handler auflösen, native OpenCode Events, ~300 Zeilen  

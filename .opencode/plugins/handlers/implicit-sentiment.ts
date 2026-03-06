@@ -30,33 +30,43 @@
  * @module implicit-sentiment
  */
 
-import { appendFileSync, mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
-import { inference } from '../../skills/PAI/Tools/Inference';
-import { getIdentity, getPrincipal } from '../lib/identity';
-import { getLearningCategory } from '../lib/learning-utils';
-import { getISOTimestamp, getYearMonth, getFilenameTimestamp } from '../lib/time';
-import { getLearningDir, getMemoryDir } from '../lib/paths';
-import { fileLog, fileLogError } from '../lib/file-logger';
+import {
+	appendFileSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	writeFileSync,
+} from "fs";
+import { join } from "path";
+import { inference } from "../../skills/PAI/Tools/Inference";
+import { fileLog, fileLogError } from "../lib/file-logger";
+import { getIdentity, getPrincipal } from "../lib/identity";
+import { getLearningCategory } from "../lib/learning-utils";
+import { getLearningDir, getMemoryDir } from "../lib/paths";
+import {
+	getFilenameTimestamp,
+	getISOTimestamp,
+	getYearMonth,
+} from "../lib/time";
 
 const PRINCIPAL_NAME = getPrincipal().name;
 const ASSISTANT_NAME = getIdentity().name;
 
 interface SentimentResult {
-  rating: number | null;
-  sentiment: 'positive' | 'negative' | 'neutral';
-  confidence: number;
-  summary: string;
-  detailed_context: string;
+	rating: number | null;
+	sentiment: "positive" | "negative" | "neutral";
+	confidence: number;
+	summary: string;
+	detailed_context: string;
 }
 
 interface ImplicitRatingEntry {
-  timestamp: string;
-  rating: number;
-  session_id: string;
-  source: 'implicit';
-  sentiment_summary: string;
-  confidence?: number;
+	timestamp: string;
+	rating: number;
+	session_id: string;
+	source: "implicit";
+	sentiment_summary: string;
+	confidence?: number;
 }
 
 const SENTIMENT_SYSTEM_PROMPT = `Analyze ${PRINCIPAL_NAME}'s message for emotional sentiment toward ${ASSISTANT_NAME} (the AI assistant).
@@ -128,21 +138,22 @@ const ANALYSIS_TIMEOUT = 25000;
  * Check if prompt is an explicit rating (defer to ExplicitRatingCapture)
  */
 function isExplicitRating(prompt: string): boolean {
-  const trimmed = prompt.trim();
-  const ratingPattern = /^(10|[1-9])(?:\s*[-:]\s*|\s+)?(.*)$/;
-  const match = trimmed.match(ratingPattern);
+	const trimmed = prompt.trim();
+	const ratingPattern = /^(10|[1-9])(?:\s*[-:]\s*|\s+)?(.*)$/;
+	const match = trimmed.match(ratingPattern);
 
-  if (!match) return false;
+	if (!match) return false;
 
-  const comment = match[2]?.trim();
-  if (comment) {
-    const sentenceStarters = /^(items?|things?|steps?|files?|lines?|bugs?|issues?|errors?|times?|minutes?|hours?|days?|seconds?|percent|%|th\b|st\b|nd\b|rd\b|of\b|in\b|at\b|to\b|the\b|a\b|an\b)/i;
-    if (sentenceStarters.test(comment)) {
-      return false;
-    }
-  }
+	const comment = match[2]?.trim();
+	if (comment) {
+		const sentenceStarters =
+			/^(items?|things?|steps?|files?|lines?|bugs?|issues?|errors?|times?|minutes?|hours?|days?|seconds?|percent|%|th\b|st\b|nd\b|rd\b|of\b|in\b|at\b|to\b|the\b|a\b|an\b)/i;
+		if (sentenceStarters.test(comment)) {
+			return false;
+		}
+	}
 
-  return true;
+	return true;
 }
 
 /**
@@ -155,39 +166,44 @@ function isExplicitRating(prompt: string): boolean {
  * See ADR-009 for rationale.
  */
 function formatLastResponseAsContext(lastResponse?: string): string {
-  if (!lastResponse || lastResponse.trim().length === 0) return '';
+	if (!lastResponse || lastResponse.trim().length === 0) return "";
 
-  // Extract SUMMARY line if present (most informative snippet)
-  const summaryMatch = lastResponse.match(/(?:📋\s*SUMMARY:|SUMMARY:)\s*([^\n]+)/i);
-  const snippet = summaryMatch
-    ? summaryMatch[1].trim()
-    : lastResponse.slice(0, 200).trim();
+	// Extract SUMMARY line if present (most informative snippet)
+	const summaryMatch = lastResponse.match(
+		/(?:📋\s*SUMMARY:|SUMMARY:)\s*([^\n]+)/i,
+	);
+	const snippet = summaryMatch
+		? summaryMatch[1].trim()
+		: lastResponse.slice(0, 200).trim();
 
-  return `Assistant (previous response): ${snippet}`;
+	return `Assistant (previous response): ${snippet}`;
 }
 
 /**
  * Analyze sentiment using Haiku (fast tier)
  */
-async function analyzeSentiment(prompt: string, context: string): Promise<SentimentResult | null> {
-  const userPrompt = context
-    ? `CONTEXT:\n${context}\n\nCURRENT MESSAGE:\n${prompt}`
-    : prompt;
+async function analyzeSentiment(
+	prompt: string,
+	context: string,
+): Promise<SentimentResult | null> {
+	const userPrompt = context
+		? `CONTEXT:\n${context}\n\nCURRENT MESSAGE:\n${prompt}`
+		: prompt;
 
-  const result = await inference({
-    systemPrompt: SENTIMENT_SYSTEM_PROMPT,
-    userPrompt,
-    expectJson: true,
-    timeout: 20000,
-    level: 'fast',  // fast = haiku (quick/cheap)
-  });
+	const result = await inference({
+		systemPrompt: SENTIMENT_SYSTEM_PROMPT,
+		userPrompt,
+		expectJson: true,
+		timeout: 20000,
+		level: "fast", // fast = haiku (quick/cheap)
+	});
 
-  if (!result.success || !result.parsed) {
-    fileLog(`[ImplicitSentiment] Inference failed: ${result.error}`, 'error');
-    return null;
-  }
+	if (!result.success || !result.parsed) {
+		fileLog(`[ImplicitSentiment] Inference failed: ${result.error}`, "error");
+		return null;
+	}
 
-  return result.parsed as SentimentResult;
+	return result.parsed as SentimentResult;
 }
 
 /**
@@ -195,46 +211,47 @@ async function analyzeSentiment(prompt: string, context: string): Promise<Sentim
  * NOTE: Ratings are stored in LEARNING/SIGNALS/ (consolidated from separate SIGNALS/)
  */
 function writeImplicitRating(entry: ImplicitRatingEntry): void {
-  const signalsDir = join(getLearningDir(), 'SIGNALS');
-  const ratingsFile = join(signalsDir, 'ratings.jsonl');
+	const signalsDir = join(getLearningDir(), "SIGNALS");
+	const ratingsFile = join(signalsDir, "ratings.jsonl");
 
-  if (!existsSync(signalsDir)) {
-    mkdirSync(signalsDir, { recursive: true });
-  }
+	if (!existsSync(signalsDir)) {
+		mkdirSync(signalsDir, { recursive: true });
+	}
 
-  appendFileSync(ratingsFile, JSON.stringify(entry) + '\n', 'utf-8');
-  fileLog(`[ImplicitSentiment] Wrote implicit rating ${entry.rating} to ${ratingsFile}`, 'info');
+	appendFileSync(ratingsFile, JSON.stringify(entry) + "\n", "utf-8");
+	fileLog(
+		`[ImplicitSentiment] Wrote implicit rating ${entry.rating} to ${ratingsFile}`,
+		"info",
+	);
 }
 
 /**
  * Capture low rating as learning opportunity
  */
 function captureLowRatingLearning(
-  rating: number,
-  sentimentSummary: string,
-  detailedContext: string,
-  lastResponse?: string  // OpenCode-native: direct response text (see ADR-009)
+	rating: number,
+	sentimentSummary: string,
+	detailedContext: string,
+	lastResponse?: string, // OpenCode-native: direct response text (see ADR-009)
 ): void {
-  if (rating >= 6) return;
+	if (rating >= 6) return;
 
-  const yearMonth = getYearMonth();
-  const category = getLearningCategory(detailedContext, sentimentSummary);
-  const learningsDir = join(getLearningDir(), category, yearMonth);
+	const yearMonth = getYearMonth();
+	const category = getLearningCategory(detailedContext, sentimentSummary);
+	const learningsDir = join(getLearningDir(), category, yearMonth);
 
-  if (!existsSync(learningsDir)) {
-    mkdirSync(learningsDir, { recursive: true });
-  }
+	if (!existsSync(learningsDir)) {
+		mkdirSync(learningsDir, { recursive: true });
+	}
 
-  // Use last response directly (OpenCode-native, from last-response-cache.ts)
-  const responseContext = lastResponse
-    ? lastResponse.slice(0, 500)
-    : '';
+	// Use last response directly (OpenCode-native, from last-response-cache.ts)
+	const responseContext = lastResponse ? lastResponse.slice(0, 500) : "";
 
-  const timestamp = getFilenameTimestamp();
-  const filename = `${timestamp}_LEARNING_sentiment-rating-${rating}.md`;
-  const filepath = join(learningsDir, filename);
+	const timestamp = getFilenameTimestamp();
+	const filename = `${timestamp}_LEARNING_sentiment-rating-${rating}.md`;
+	const filepath = join(learningsDir, filename);
 
-  const content = `---
+	const content = `---
 capture_type: LEARNING
 timestamp: ${getISOTimestamp()}
 rating: ${rating}
@@ -254,13 +271,13 @@ tags: [sentiment-detected, implicit-rating, improvement-opportunity]
 
 ## Detailed Analysis (for Learning System)
 
-${detailedContext || 'No detailed analysis available'}
+${detailedContext || "No detailed analysis available"}
 
 ---
 
 ## Assistant Response Context
 
-${responseContext || 'No response context available'}
+${responseContext || "No response context available"}
 
 ---
 
@@ -280,8 +297,11 @@ This response triggered a ${rating}/10 implicit rating based on detected user se
 ---
 `;
 
-  writeFileSync(filepath, content, 'utf-8');
-  fileLog(`[ImplicitSentiment] Captured low rating learning to ${filepath}`, 'info');
+	writeFileSync(filepath, content, "utf-8");
+	fileLog(
+		`[ImplicitSentiment] Captured low rating learning to ${filepath}`,
+		"info",
+	);
 }
 
 /**
@@ -296,84 +316,103 @@ This response triggered a ${rating}/10 implicit rating based on detected user se
  * @returns Sentiment analysis result or null
  */
 export async function handleImplicitSentiment(
-  prompt: string,
-  sessionId: string,
-  lastResponse?: string  // OpenCode-native (replaces transcriptPath — see ADR-009)
-): Promise<{ rating: number | null; sentiment: string; confidence: number } | null> {
-  try {
-    fileLog('[ImplicitSentiment] Handler started', 'info');
+	prompt: string,
+	sessionId: string,
+	lastResponse?: string, // OpenCode-native (replaces transcriptPath — see ADR-009)
+): Promise<{
+	rating: number | null;
+	sentiment: string;
+	confidence: number;
+} | null> {
+	try {
+		fileLog("[ImplicitSentiment] Handler started", "info");
 
-    // Skip if explicit rating (let ExplicitRatingCapture handle)
-    if (isExplicitRating(prompt)) {
-      fileLog('[ImplicitSentiment] Explicit rating detected, deferring to ExplicitRatingCapture', 'info');
-      return null;
-    }
+		// Skip if explicit rating (let ExplicitRatingCapture handle)
+		if (isExplicitRating(prompt)) {
+			fileLog(
+				"[ImplicitSentiment] Explicit rating detected, deferring to ExplicitRatingCapture",
+				"info",
+			);
+			return null;
+		}
 
-    if (prompt.length < MIN_PROMPT_LENGTH) {
-      fileLog('[ImplicitSentiment] Prompt too short, exiting', 'debug');
-      return null;
-    }
+		if (prompt.length < MIN_PROMPT_LENGTH) {
+			fileLog("[ImplicitSentiment] Prompt too short, exiting", "debug");
+			return null;
+		}
 
-    // Build context from last response (OpenCode-native, no JSONL parsing needed)
-    const context = formatLastResponseAsContext(lastResponse);
-    if (context) {
-      fileLog('[ImplicitSentiment] Using last-response context for analysis', 'debug');
-    }
+		// Build context from last response (OpenCode-native, no JSONL parsing needed)
+		const context = formatLastResponseAsContext(lastResponse);
+		if (context) {
+			fileLog(
+				"[ImplicitSentiment] Using last-response context for analysis",
+				"debug",
+			);
+		}
 
-    const analysisPromise = analyzeSentiment(prompt, context);
-    const timeoutPromise = new Promise<null>((resolve) =>
-      setTimeout(() => resolve(null), ANALYSIS_TIMEOUT)
-    );
+		const analysisPromise = analyzeSentiment(prompt, context);
+		const timeoutPromise = new Promise<null>((resolve) =>
+			setTimeout(() => resolve(null), ANALYSIS_TIMEOUT),
+		);
 
-    const sentiment = await Promise.race([analysisPromise, timeoutPromise]);
+		const sentiment = await Promise.race([analysisPromise, timeoutPromise]);
 
-    if (!sentiment) {
-      fileLog('[ImplicitSentiment] Analysis failed or timed out', 'warn');
-      return null;
-    }
+		if (!sentiment) {
+			fileLog("[ImplicitSentiment] Analysis failed or timed out", "warn");
+			return null;
+		}
 
-    // Neutral sentiment gets rating 5 (baseline for feature requests)
-    if (sentiment.rating === null) {
-      sentiment.rating = 5;
-      fileLog('[ImplicitSentiment] Neutral sentiment, assigning baseline rating 5', 'info');
-    }
+		// Neutral sentiment gets rating 5 (baseline for feature requests)
+		if (sentiment.rating === null) {
+			sentiment.rating = 5;
+			fileLog(
+				"[ImplicitSentiment] Neutral sentiment, assigning baseline rating 5",
+				"info",
+			);
+		}
 
-    if (sentiment.confidence < MIN_CONFIDENCE) {
-      fileLog(`[ImplicitSentiment] Low confidence (${sentiment.confidence}), not logging`, 'info');
-      return null;
-    }
+		if (sentiment.confidence < MIN_CONFIDENCE) {
+			fileLog(
+				`[ImplicitSentiment] Low confidence (${sentiment.confidence}), not logging`,
+				"info",
+			);
+			return null;
+		}
 
-    fileLog(`[ImplicitSentiment] Detected: ${sentiment.rating}/10 - ${sentiment.summary}`, 'info');
+		fileLog(
+			`[ImplicitSentiment] Detected: ${sentiment.rating}/10 - ${sentiment.summary}`,
+			"info",
+		);
 
-    const entry: ImplicitRatingEntry = {
-      timestamp: getISOTimestamp(),
-      rating: sentiment.rating,
-      session_id: sessionId,
-      source: 'implicit',
-      sentiment_summary: sentiment.summary,
-      confidence: sentiment.confidence,
-    };
+		const entry: ImplicitRatingEntry = {
+			timestamp: getISOTimestamp(),
+			rating: sentiment.rating,
+			session_id: sessionId,
+			source: "implicit",
+			sentiment_summary: sentiment.summary,
+			confidence: sentiment.confidence,
+		};
 
-    writeImplicitRating(entry);
+		writeImplicitRating(entry);
 
-    if (sentiment.rating < 6) {
-      captureLowRatingLearning(
-        sentiment.rating,
-        sentiment.summary,
-        sentiment.detailed_context || '',
-        lastResponse  // Pass directly (OpenCode-native)
-      );
-    }
+		if (sentiment.rating < 6) {
+			captureLowRatingLearning(
+				sentiment.rating,
+				sentiment.summary,
+				sentiment.detailed_context || "",
+				lastResponse, // Pass directly (OpenCode-native)
+			);
+		}
 
-    fileLog('[ImplicitSentiment] Done', 'info');
+		fileLog("[ImplicitSentiment] Done", "info");
 
-    return {
-      rating: sentiment.rating,
-      sentiment: sentiment.sentiment,
-      confidence: sentiment.confidence,
-    };
-  } catch (err) {
-    fileLogError('[ImplicitSentiment] Error', err);
-    return null;
-  }
+		return {
+			rating: sentiment.rating,
+			sentiment: sentiment.sentiment,
+			confidence: sentiment.confidence,
+		};
+	} catch (err) {
+		fileLogError("[ImplicitSentiment] Error", err);
+		return null;
+	}
 }

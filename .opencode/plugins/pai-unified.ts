@@ -120,12 +120,26 @@ const messageDedupeCache = new Map<string, number>();
 const MESSAGE_DEDUPE_TTL_MS = 5000; // 5 seconds - enough for both events to fire
 
 /**
- * SESSION MESSAGE BUFFER
- * Accumulates user and assistant messages during a session so relationship-memory.ts
- * has real content to analyze at session end. Reset on session.created.
+ * SESSION MESSAGE BUFFERS (session-scoped)
+ * Accumulates user and assistant messages per session so relationship-memory.ts
+ * has real content to analyze at session end.
+ * Keyed by sessionId to prevent cross-session contamination in concurrent sessions.
+ * Entries are cleaned up on session.ended to prevent memory leaks.
  */
-const sessionUserMessages: string[] = [];
-const sessionAssistantMessages: string[] = [];
+const sessionUserMessages = new Map<string, string[]>();
+const sessionAssistantMessages = new Map<string, string[]>();
+
+/** Helper: get or create message buffer for a session */
+function getUserMessages(sessionId: string): string[] {
+	if (!sessionUserMessages.has(sessionId))
+		sessionUserMessages.set(sessionId, []);
+	return sessionUserMessages.get(sessionId)!;
+}
+function getAssistantMessages(sessionId: string): string[] {
+	if (!sessionAssistantMessages.has(sessionId))
+		sessionAssistantMessages.set(sessionId, []);
+	return sessionAssistantMessages.get(sessionId)!;
+}
 
 /**
  * Check if a message was recently processed (deduplication)
@@ -673,6 +687,9 @@ export const PaiUnified: Plugin = async (ctx) => {
 				const outputParts = (output as any).parts;
 				const content = extractTextContent(message, outputParts);
 
+				// Guard: skip empty/whitespace-only content before any further processing
+				if (!content || content.trim().length === 0) return;
+
 				// Only process user messages
 				if (role !== "user") return;
 
@@ -725,10 +742,12 @@ export const PaiUnified: Plugin = async (ctx) => {
 					await appendToThread(`**User:** ${content}`);
 				}
 
-				// Buffer user message for relationship memory (session end analysis)
+				// Buffer user message for relationship memory (session-scoped)
 				if (content.length >= 10) {
-					sessionUserMessages.push(content.slice(0, 300));
-					if (sessionUserMessages.length > 50) sessionUserMessages.shift(); // cap at 50
+					const sessionId = (input as any).sessionID || "unknown";
+					const buf = getUserMessages(sessionId);
+					buf.push(content.slice(0, 300));
+					if (buf.length > 50) buf.shift(); // cap at 50
 				}
 
 				// === EXPLICIT RATING CAPTURE ===
@@ -789,9 +808,11 @@ export const PaiUnified: Plugin = async (ctx) => {
 				if (eventType.includes("session.created")) {
 					fileLog("=== Session Started ===", "info");
 
-					// Reset session message buffers for relationship memory
-					sessionUserMessages.length = 0;
-					sessionAssistantMessages.length = 0;
+					// Initialize fresh buffers for new session (Map-based — no global reset)
+					const newSessionId =
+						(input.event as any)?.properties?.info?.id || "unknown";
+					sessionUserMessages.set(newSessionId, []);
+					sessionAssistantMessages.set(newSessionId, []);
 
 					// Emit session start (backup emit, primary is in context injection)
 					emitSessionStart().catch(() => {});
@@ -908,14 +929,20 @@ export const PaiUnified: Plugin = async (ctx) => {
 					}
 
 					// === RELATIONSHIP MEMORY (WP-A) ===
-					// Pass the accumulated session message buffers so the analyzer has
-					// real content. Buffers are populated throughout the session and
-					// reset on session.created.
+					// Pass the accumulated session message buffers (session-scoped Map).
+					// Buffers are populated throughout the session and cleaned up here.
 					try {
+						const endedSessionId =
+							(input.event as any)?.properties?.sessionID ||
+							(input.event as any)?.properties?.id ||
+							"unknown";
 						await captureRelationshipMemory(
-							[...sessionUserMessages],
-							[...sessionAssistantMessages],
+							[...getUserMessages(endedSessionId)],
+							[...getAssistantMessages(endedSessionId)],
 						);
+						// Cleanup to prevent memory leaks
+						sessionUserMessages.delete(endedSessionId);
+						sessionAssistantMessages.delete(endedSessionId);
 					} catch (error) {
 						fileLogError(
 							"[RelationshipMemory] Capture failed (non-blocking)",
@@ -1042,17 +1069,19 @@ export const PaiUnified: Plugin = async (ctx) => {
 								);
 							}
 
-							// Buffer assistant response for relationship memory (session end analysis)
-							sessionAssistantMessages.push(responseText.slice(0, 500));
-							if (sessionAssistantMessages.length > 20)
-								sessionAssistantMessages.shift(); // cap at 20
+							// Buffer assistant response for relationship memory (session-scoped)
+							const assistantSessionId = (input as any).sessionID || "unknown";
+							const assistBuf = getAssistantMessages(assistantSessionId);
+							assistBuf.push(responseText.slice(0, 500));
+							if (assistBuf.length > 20) assistBuf.shift(); // cap at 20
 
 							// === LAST RESPONSE CACHE (WP-A) ===
 							// Cache response so ImplicitSentiment has context on next user message.
 							// OpenCode-native replacement for Claude-Code transcript_path pattern.
 							// See ADR-009.
 							try {
-								await cacheLastResponse(responseText);
+								const cacheSessionId = (input as any).sessionID || "unknown";
+								await cacheLastResponse(responseText, cacheSessionId);
 							} catch (error) {
 								fileLogError(
 									"[LastResponseCache] Cache write failed (non-blocking)",
@@ -1132,7 +1161,9 @@ export const PaiUnified: Plugin = async (ctx) => {
 								// Read last response for context (ADR-009: OpenCode-native replacement
 								// for Claude-Code's transcriptPath pattern)
 								const lastResponse =
-									(await readLastResponse().catch(() => null)) ?? undefined;
+									(await readLastResponse((input as any).sessionID).catch(
+										() => null,
+									)) ?? undefined;
 								const sentimentResult = await handleImplicitSentiment(
 									userText,
 									sessionId,

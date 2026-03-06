@@ -14,13 +14,13 @@ date: 2026-03-06
 
 ## Gesamtfortschritt
 
-```
+```text
 WP1 ████████████ 100% ✅
 WP2 ████████████ 100% ✅
-WP3 ████░░░░░░░░  40% ⚠️
-WP4 ████████░░░░  70% ⚠️
+WP3 ████████████ 100% ✅
+WP4 ████████████ 100% ✅
 ─────────────────────────
-WP-A  ░░░░░░░░░░░░   0% 🔄  ← Als nächstes
+WP-A  ████████████  90% 🔄  ← PR #42 in review
 WP-B  ░░░░░░░░░░░░   0% 🔄
 WP-C  ░░░░░░░░░░░░   0% 🔄
 WP-D  ░░░░░░░░░░░░   0% 🔄
@@ -90,6 +90,7 @@ WP-E  ░░░░░░░░░░░░   0% 🔄
 
 ### Ungenutzte Bus-Events implementieren (direkt im `event`-Handler)
 
+> [!info]
 > **Warum hier:** Diese Events brauchen keine eigenen Handler-Dateien — sie sind einfaches
 > Event-Logging/Tracking direkt im bestehenden `event: async (input) => {}` Block.
 > Alle non-blocking, alle via file-logger.
@@ -298,6 +299,7 @@ Referenz: `/Releases/v4.0.3/.claude/PAI/Tools/`
 **Abhängigkeiten:** PR #A (session-cleanup.ts bereits Grundlage)  
 **Priorität:** WICHTIG — verhindert DB-Wachstum auf 2+ GB
 
+> [!warning]
 > **Hintergrund:** OpenCode hat keine automatische Session-Retention.  
 > Die `opencode.db` wächst unendlich. Nach 3 Monaten: 2.4 GB, 234k Parts.  
 > Beim ersten Start blockiert das DB-Lock den Start (Startup-Race).  
@@ -413,12 +415,13 @@ Referenz: `/Releases/v4.0.3/.claude/PAI-Install/`
 - [ ] `PAI-Install/main.ts` für OpenCode anpassen
 - [ ] `PAI-Install/README.md` schreiben
 
+> [!important]
 > **Electron-GUI ist Pflicht für v3.0** — CLI-Installer UND Electron-GUI beide required
 
 ### Migration Script
 
 - [ ] **`tools/migration-v2-to-v3.ts`** erstellen:
-  ```
+  ```text
   1. Backup ~/.opencode/ → ~/.opencode-backup-YYYYMMDD/
   2. Detect current version (v2.x vs v3.x)
   3. Move flat skills → hierarchical structure (wenn noch nicht)

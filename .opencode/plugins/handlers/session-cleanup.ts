@@ -77,7 +77,10 @@ export async function cleanupSession(sessionId?: string): Promise<void> {
 				);
 				fs.writeFileSync(prdPath, content, "utf-8");
 				marked = true;
-				fileLog(`[SessionCleanup] Marked PRD.md as COMPLETED: ${workDir}`, "info");
+				fileLog(
+					`[SessionCleanup] Marked PRD.md as COMPLETED: ${workDir}`,
+					"info",
+				);
 			}
 
 			// Legacy fallback: META.yaml
@@ -121,11 +124,17 @@ export async function cleanupSession(sessionId?: string): Promise<void> {
 					if (names[sid]) {
 						delete names[sid];
 						fs.writeFileSync(snPath, JSON.stringify(names, null, 2), "utf-8");
-						fileLog(`[SessionCleanup] Removed session ${sid} from session-names.json`, "info");
+						fileLog(
+							`[SessionCleanup] Removed session ${sid} from session-names.json`,
+							"info",
+						);
 					}
 				}
 			} catch (err) {
-				fileLogError("[SessionCleanup] Failed to clean session-names.json", err);
+				fileLogError(
+					"[SessionCleanup] Failed to clean session-names.json",
+					err,
+				);
 			}
 		}
 

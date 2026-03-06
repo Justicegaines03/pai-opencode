@@ -23,8 +23,13 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileLog, fileLogError } from "../lib/file-logger";
-import { getMemoryDir, ensureDir, getDateString, getYearMonth } from "../lib/paths";
 import { getDAName, getPrincipal } from "../lib/identity";
+import {
+	ensureDir,
+	getDateString,
+	getMemoryDir,
+	getYearMonth,
+} from "../lib/paths";
 
 interface RelationshipNote {
 	type: "W" | "B" | "O";
@@ -35,10 +40,13 @@ interface RelationshipNote {
 
 // Patterns that signal relationship-relevant content
 const PATTERNS = {
-	preference: /(?:prefer|like|want|appreciate|enjoy|love|hate|dislike)\s+(?:when|that|to)/i,
+	preference:
+		/(?:prefer|like|want|appreciate|enjoy|love|hate|dislike)\s+(?:when|that|to)/i,
 	frustration: /(?:frustrat|annoy|bother|irritat)/i,
-	positive: /(?:great|awesome|perfect|excellent|good job|well done|nice work|danke|super)/i,
-	milestone: /(?:first time|finally|breakthrough|success|accomplish|geschafft|fertig)/i,
+	positive:
+		/(?:great|awesome|perfect|excellent|good job|well done|nice work|danke|super)/i,
+	milestone:
+		/(?:first time|finally|breakthrough|success|accomplish|geschafft|fertig)/i,
 	summary: /(?:📋\s*SUMMARY|SUMMARY:|✅\s*RESULTS)/i,
 };
 
@@ -51,7 +59,7 @@ function analyzeForRelationship(
 ): RelationshipNote[] {
 	const notes: RelationshipNote[] = [];
 
-	let sessionSummaries: string[] = [];
+	const sessionSummaries: string[] = [];
 	let positiveCount = 0;
 	let frustrationCount = 0;
 
@@ -99,7 +107,8 @@ function analyzeForRelationship(
 		notes.push({
 			type: "O",
 			entity: principalEntity,
-			content: "Experienced friction during this session (tooling or complexity)",
+			content:
+				"Experienced friction during this session (tooling or complexity)",
 			confidence: 0.75,
 		});
 	}
@@ -169,6 +178,9 @@ export async function captureRelationshipMemory(
 			"info",
 		);
 	} catch (error) {
-		fileLogError("[RelationshipMemory] Failed to capture (non-blocking)", error);
+		fileLogError(
+			"[RelationshipMemory] Failed to capture (non-blocking)",
+			error,
+		);
 	}
 }

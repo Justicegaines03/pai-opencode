@@ -19,7 +19,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileLog, fileLogError } from "../lib/file-logger";
-import { getMemoryDir, getStateDir, ensureDir } from "../lib/paths";
+import { ensureDir, getMemoryDir, getStateDir } from "../lib/paths";
 
 interface PRDFrontmatter {
 	id?: string;
@@ -139,8 +139,13 @@ export async function syncPRDToRegistry(
 	sessionId?: string,
 ): Promise<{ synced: boolean; prdId?: string }> {
 	try {
+		// Normalize path separators for cross-platform compatibility (Windows backslash fix)
+		const normalizedPath = filePath.replace(/\\/g, "/");
 		// Only process PRD.md files in MEMORY/WORK/
-		if (!filePath.includes("MEMORY/WORK/") || !filePath.endsWith("PRD.md")) {
+		if (
+			!normalizedPath.includes("MEMORY/WORK/") ||
+			!normalizedPath.endsWith("PRD.md")
+		) {
 			return { synced: false };
 		}
 
@@ -168,17 +173,22 @@ export async function syncPRDToRegistry(
 			synced_at: new Date().toISOString(),
 		};
 
-		// Write to registry
+		// Write to registry — atomic write to prevent race conditions / lost updates
+		// Pattern: write to temp file → rename (atomic on same filesystem)
 		const stateDir = getStateDir();
 		await ensureDir(stateDir);
 		const registryPath = path.join(stateDir, "prd-registry.json");
+		const tmpPath = `${registryPath}.tmp.${process.pid}`;
+
 		const registry = readRegistry(registryPath);
 
 		// Key by prd_id (not session — multiple PRDs per session possible)
 		registry.sessions[fm.id] = entry;
 		registry.last_updated = new Date().toISOString();
 
-		fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2), "utf-8");
+		// Write to temp then rename — atomic on POSIX, near-atomic on Windows
+		fs.writeFileSync(tmpPath, JSON.stringify(registry, null, 2), "utf-8");
+		fs.renameSync(tmpPath, registryPath);
 
 		fileLog(
 			`[PRDSync] Synced PRD ${fm.id} — status=${entry.status} phase=${entry.phase} iter=${entry.iteration}`,

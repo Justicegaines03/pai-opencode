@@ -22,7 +22,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileLog, fileLogError } from "../lib/file-logger";
-import { getStateDir, ensureDir } from "../lib/paths";
+import { ensureDir, getStateDir } from "../lib/paths";
 
 interface QAPair {
 	timestamp: string;
@@ -74,7 +74,10 @@ export async function trackQuestionAnswered(
 			"info",
 		);
 	} catch (error) {
-		fileLogError("[QuestionTracking] Failed to record Q&A (non-blocking)", error);
+		fileLogError(
+			"[QuestionTracking] Failed to record Q&A (non-blocking)",
+			error,
+		);
 	}
 }
 
@@ -87,12 +90,15 @@ export function extractAskUserQuestionAnswer(
 	args: Record<string, unknown>,
 	result: unknown,
 ): { question: string; answer: string } | null {
-	// Only process AskUserQuestion tool results
-	if (
-		tool !== "AskUserQuestion" &&
-		!tool.toLowerCase().includes("ask_user") &&
-		!tool.toLowerCase().includes("question")
-	) {
+	// Only process AskUserQuestion tool results — whitelist to prevent false positives
+	// tool.includes("question") is too broad (matches unrelated tools like "list_questions")
+	const ALLOWED_QUESTION_TOOLS = new Set([
+		"askuserquestion",
+		"ask_user_question",
+		"ask_user",
+	]);
+	const normalizedTool = tool.toLowerCase().replace(/[^a-z0-9_]/g, "");
+	if (!ALLOWED_QUESTION_TOOLS.has(normalizedTool)) {
 		return null;
 	}
 

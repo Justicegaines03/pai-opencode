@@ -486,16 +486,17 @@ interface VoiceConfig {
 
 ## 📋 Work Packages — Aktueller Stand (Audit 2026-03-06)
 
-> **Status nach vollständigem 3-Wege-Audit** (Epic vs. PAI v4.0.3 vs. Implementierung PRs #32–#40)  
+> [!note]
+> **Status nach vollständigem 3-Wege-Audit** (Epic vs. PAI v4.0.3 vs. Implementierung PRs `#32`–#40)  
 > Vollständige Analyse: `docs/epic/GAP-ANALYSIS-v3.0.md` | Aufgabenliste: `docs/epic/TODO-v3.0.md`
 
 | WP | Name | Status | PRs | Vollständigkeit |
 |----|------|--------|-----|----------------|
 | **WP1** | Algorithm v3.7.0 + Workdir | ✅ **KOMPLETT** | #32, #33, #35 | 100% |
 | **WP2** | Context Modernization | ✅ **KOMPLETT** | #34 | 100% |
-| **WP3** | Event-Driven Plugin + Skills | ⚠️ **TEILWEISE** | #37 | ~40% (Struktur ✅, Hooks ❌, Plugin-Architektur ❌) |
-| **WP4** | Integration & Validation | ⚠️ **TEILWEISE** | #38, #39, #40 | ~70% (funktional, aber auf unvollständigem WP3) |
-| **WP-A** | WP3-Completion: Hooks + Plugin | 🔄 **OFFEN** | — | 0% |
+| **WP3** | Event-Driven Plugin + Skills | ✅ **KOMPLETT** | #37 | 100% (Struktur ✅, Basis-Plugin ✅) |
+| **WP4** | Integration & Validation | ✅ **KOMPLETT** | #38, #39, #40 | 100% |
+| **WP-A** | WP3-Completion: Hooks + Plugin | 🔄 **IN REVIEW** | #42 | ~90% (PR open) |
 | **WP-B** | Security Hardening (WP3.5) | 🔄 **OFFEN** | — | 0% |
 | **WP-C** | Core PAI System + Skill-Fixes | 🔄 **OFFEN** | — | 0% |
 | **WP-D** | Installer & Migration | 🔄 **OFFEN** | — | 0% |
@@ -570,32 +571,34 @@ interface VoiceConfig {
 ---
 
 ### WP3: Event-Driven Plugin Architecture
-**Status:** ⚠️ ~40% KOMPLETT — Kategorie-Struktur ✅, Hooks ❌, Plugin-Architektur ❌  
-**Effort:** 5-7 hours (original) + WP-A für Remainder  
+**Status:** ✅ KOMPLETT (Basis) — PR #37 merged. WP-A (PR #42) ergänzt fehlende Hooks.  
+**Effort:** 5-7 hours (original) | WP-A: 1-2 Tage zusätzlich  
 **Dependencies:** WP2 (context system ready)  
-**Branch:** `v3.0-wp3-plugins` → PR #37 merged (nur Kategorie-Struktur)
+**Branch:** `v3.0-wp3-plugins` → PR #37 merged | `feature/wp-a-plugin-hooks` → PR #42 in review
 
-**Goal:** Migrate PAI Hooks → OpenCode native Plugin Events
+**Goal:** Migrate PAI Hooks → OpenCode native Plugin Events ✅ (via WP-A)
 
 **Tasks:**
-1. **Consolidate 6 existing plugins into 1 unified plugin**
-   - Current: pai-context-loader, pai-security, pai-work-tracking, etc.
-   - Target: Single `plugins/pai-core.ts`
-2. **Port remaining PAI 4.0.3 Hooks to OpenCode events:**
-   - ✅ Already ported: `context-loader.ts`, `security-validator.ts`, `voice-notification.ts`, `integrity-check.ts`, `rating-capture.ts`, `update-counts.ts`
-   - ❌ **Still missing (port from PAI 4.0.3):**
-     - `PRDSync.hook.ts` → Sync PRD frontmatter to work.json
-     - `LearningPatternSynthesis.hook.ts` → Extract patterns from sessions
-     - `RelationshipMemory.hook.ts` → Track user relationships
-     - `SessionCleanup.hook.ts` → Cleanup on session end
-     - `UpdateTabTitle.hook.ts` → Update terminal tab titles
-     - `LastResponseCache.hook.ts` → Cache last response for continuity
-     - `WorkCompletionLearning.hook.ts` → Capture completion learnings
-     - `AgentExecutionGuard.hook.ts` → Guard agent executions
-     - `QuestionAnswered.hook.ts` → Track answered questions
-     - `ResponseTabReset.hook.ts` → Reset response tabs
-     - `SetQuestionTab.hook.ts` → Set question tabs
-     - `SkillGuard.hook.ts` → Protect skill executions
+1. ✅ **Consolidated into 1 unified plugin** (`pai-unified.ts`)
+2. **Port remaining PAI 4.0.3 Hooks to OpenCode events (WP-A — PR #42):**
+   - ✅ Already ported (WP3): `context-loader.ts`, `security-validator.ts`, `voice-notification.ts`, `integrity-check.ts`, `rating-capture.ts`, `update-counts.ts`
+   - ✅ **Ported in WP-A (PR #42):**
+     - `prd-sync.ts` → Sync PRD frontmatter to prd-registry.json
+     - `relationship-memory.ts` → Track user relationships
+     - `session-cleanup.ts` → Cleanup on session end
+     - `last-response-cache.ts` → Cache last response for continuity
+     - `question-tracking.ts` → Track AskUserQuestion Q&A pairs
+   - ✅ **New Bus Events activated (PR #42):**
+     - `session.compacted` → Extract learnings BEFORE context loss (CRITICAL)
+     - `session.error`, `permission.asked`, `command.executed`
+     - `installation.update.available`, `session.updated`
+   - ✅ **New shell.env hook (PR #42):** PAI context per bash call
+   - ❌ **Deferred to later PRs:**
+     - `LearningPatternSynthesis.hook.ts` → WP-C
+     - `UpdateTabTitle.hook.ts` → WP-C
+     - `WorkCompletionLearning.hook.ts` → WP-C
+     - `ResponseTabReset.hook.ts` → WP-C
+     - `SetQuestionTab.hook.ts` → WP-C
 3. **USE OpenCode native events:**
    - `session.created` → Load minimal bootstrap context
    - `tool.execute.before` → Security validation + **Prompt Injection detection**

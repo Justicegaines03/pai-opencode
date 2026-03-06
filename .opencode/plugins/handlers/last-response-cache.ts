@@ -20,29 +20,46 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileLog, fileLogError } from "../lib/file-logger";
-import { getStateDir, ensureDir } from "../lib/paths";
+import { ensureDir, getStateDir } from "../lib/paths";
 
 const MAX_CACHE_LENGTH = 2000;
-const CACHE_FILENAME = "last-response.txt";
+
+/**
+ * Get session-scoped cache filename to prevent cross-session overwrites.
+ * Falls back to "last-response.txt" for backward compat when no sessionId given.
+ *
+ * @param sessionId - OpenCode session ID (sanitized for use in filenames)
+ */
+function getCacheFilename(sessionId?: string): string {
+	if (!sessionId || sessionId === "unknown") return "last-response.txt";
+	// Sanitize: keep only alphanumeric, hyphens, underscores — strip path chars
+	const safe = sessionId.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
+	return `last-response-${safe}.txt`;
+}
 
 /**
  * Cache the assistant response for later use by RatingCapture.
+ * Uses session-scoped filename to prevent cross-session overwrites.
  *
  * @param responseText - Full assistant response text
+ * @param sessionId - OpenCode session ID (optional, for scoping)
  */
-export async function cacheLastResponse(responseText: string): Promise<void> {
+export async function cacheLastResponse(
+	responseText: string,
+	sessionId?: string,
+): Promise<void> {
 	if (!responseText || responseText.trim().length === 0) return;
 
 	try {
 		const stateDir = getStateDir();
 		await ensureDir(stateDir);
 
-		const cachePath = path.join(stateDir, CACHE_FILENAME);
+		const cachePath = path.join(stateDir, getCacheFilename(sessionId));
 		const truncated = responseText.slice(0, MAX_CACHE_LENGTH);
 
 		await fs.promises.writeFile(cachePath, truncated, "utf-8");
 		fileLog(
-			`[LastResponseCache] Cached ${truncated.length} chars`,
+			`[LastResponseCache] Cached ${truncated.length} chars (session: ${sessionId ?? "global"})`,
 			"debug",
 		);
 	} catch (error) {
@@ -53,13 +70,16 @@ export async function cacheLastResponse(responseText: string): Promise<void> {
 
 /**
  * Read the cached last response (for use by RatingCapture).
+ * Uses session-scoped filename to prevent reading stale cross-session data.
  *
+ * @param sessionId - OpenCode session ID (optional, for scoping)
  * @returns Cached response text, or null if not available
  */
-export async function readLastResponse(): Promise<string | null> {
+export async function readLastResponse(
+	sessionId?: string,
+): Promise<string | null> {
 	try {
-		const cachePath = path.join(getStateDir(), CACHE_FILENAME);
-		// Purely async: rely on ENOENT catch instead of mixing sync existsSync
+		const cachePath = path.join(getStateDir(), getCacheFilename(sessionId));
 		return await fs.promises.readFile(cachePath, "utf-8");
 	} catch {
 		return null;
