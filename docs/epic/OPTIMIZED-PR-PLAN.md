@@ -1,83 +1,84 @@
 ---
-title: PAI-OpenCode v3.0 - Optimierter PR-Plan
-version: "3.0"
+title: PAI-OpenCode v3.0 - Korrigierter PR-Plan
+description: Tatsächlicher Stand nach WP1-WP4 Completion - Nur noch 2 PRs bis v3.0
+version: "3.0-corrected"
 status: active
 authors: [Jeremy]
-date: 2026-03-05
-tags: [architecture, migration, v3.0, PR-strategy]
+date: 2026-03-06
+tags: [architecture, migration, v3.0, PR-strategy, corrected]
 ---
 
-# PAI-OpenCode v3.0 - Optimierter PR-Plan
+# PAI-OpenCode v3.0 - Korrigierter PR-Plan
 
-**Ziel:** Minimale sinnvolle Anzahl von PRs mit substanziellen Änderungen
-
----
-
-## Aktueller Status Review
-
-| Phase | Was wurde gemacht | PRs | Bewertung |
-|-------|-------------------|-----|-----------|
-| WP3 | Category Structure | 1 PR (#37) | ✅ Gut - 881 Files, substanziell |
-| WP4 | Integration | 3 PRs (#38-#40) | ⚠️ Zu granular - nur ~100 Zeilen total |
-
-**Problem:** WP4 wurde in 3 kleine PRs aufgeteilt statt einem substanziellen PR.
+**Basierend auf:** Tatsächlicher Repository-Stand nach WP1-WP4 Completion  
+**Ziel:** Korrekte Darstellung der verbleibenden Arbeit (nur noch 2 PRs!)
 
 ---
 
-## Optimierter Plan: 4 PRs bis v3.0
+## Tatsächlicher Stand (Korrigiert)
 
-### ✅ PR #1: WP3 - Category Structure (COMPLETE)
-**Status:** Gemergt (#37)  
-**Changes:** 881 files, 10 Kategorien erstellt  
-**Bewertung:** ✅ Perfekte Größe
+| WP | Name | PRs | Status | Inhalt |
+|----|------|-----|--------|--------|
+| **WP1** | Algorithm v3.7.0 + Workdir Docs | #35, #36 | ✅ **Gemergt** | Algorithm v3.7.0, OpenCode workdir parameter |
+| **WP2** | Context Modernization | #34 | ✅ **Gemergt** | Lazy Loading, Hybrid Algorithm loading |
+| **WP3** | Category Structure Part A | #37 | ✅ **Gemergt** | Hierarchical structure, 10 Kategorien |
+| **WP4** | Integration & Validation | #38, #39, #40 | ✅ **Gemergt** | Path fixes, Plugin handlers, Validation tools |
 
----
-
-### 🔄 PR #2: WP4 - Integration & Validation (KOMBINIERT)
-**Branch:** `feature/wp4-integration-complete` (existiert als #40)  
-**Empfehlung:** Merge #40 als "WP4 Complete" - enthält bereits alles
-
-**Inhalt:**
-- Path reference fixes (11 paths)
-- Plugin handler updates (skill-guard.ts)
-- Validation tools (GenerateSkillIndex, ValidateSkillStructure)
-- NPM scripts
-
-**Stats:** ~50 Files, ~500 Zeilen  
-**Bewertung:** ✅ Angemessen
+**Ergebnis:** WP1-WP4 sind **vollständig erledigt!**
 
 ---
 
-### 📋 PR #3: WP5 - Algorithm v3.7.0 & Core System (GROSS)
-**Branch:** `feature/wp5-algorithm-core` (NEU)
-**Schätzung:** 20-25 Files, 2000+ Zeilen
+## Verbleibende Arbeit: Nur noch 2 PRs!
+
+### 📋 PR #5: Core PAI System Struktur (GROSS)
+**Branch:** `feature/wp5-core-pai-system` (NEU)  
+**Schätzung:** ~20 Files, ~2000 Zeilen  
+
+**Problem:** Aktuell gibt es `.opencode/skills/PAI/` (als Skill), aber es fehlt das **Core PAI System** in `.opencode/PAI/` (nicht als Skill!)
 
 **Inhalt:**
 ```text
-PAI-Algorithm Migration:
-├── PAI/Algorithm/v3.7.0.md (neu - 500+ Zeilen)
-├── PAI/SKILL.md (modular, ~200 Zeilen statt 1400)
-├── PAI/CONTEXT_ROUTING.md (updated)
-├── PAI/AISTEERINGRULES.md (updated)
-├── PAI/MEMORYSYSTEM.md (updated)
-├── PAI/Tools/ (portiert aus v4.0.3)
-│   ├── RebuildPAI.ts
-│   ├── IntegrityMaintenance.ts
-│   ├── SecretScan.ts
-│   └── ... (7 Tools total)
-└── Tests/validation
+NEU - Core PAI System (nicht als Skill):
+├── .opencode/PAI/                    # ← NEU: Core PAI (außerhalb skills/)
+│   ├── Algorithm/
+│   │   ├── v3.7.0.md                 # Port aus v4.0.3
+│   │   └── LATEST (Symlink)
+│   ├── Components/                   # Modularer Algorithm
+│   │   ├── THE_ALGORITHM.md
+│   │   ├── FORMAT_REMINDER.md
+│   │   ├── CAPABILITY_AUDIT.md
+│   │   ├── IDEAL_STATE_CRITERIA.md
+│   │   └── PHASE_GUIDES/
+│   ├── Tools/                        # Core Tools (fehlende portieren)
+│   │   ├── RebuildPAI.ts            # ← Fehlt!
+│   │   ├── IntegrityMaintenance.ts  # ← Fehlt!
+│   │   ├── SecretScan.ts            # ← Existiert bereits
+│   │   ├── SessionDocumenter.ts     # ← Fehlt!
+│   │   └── SystemAudit.ts           # ← Fehlt!
+│   ├── SKILL.md                      # ~200 Zeilen (nicht 1400!)
+│   ├── SYSTEM/
+│   └── USER/
+│
+REFACTOR - Bestehende Struktur:
+└── .opencode/skills/PAI/ → WIRD ENTFERNT/REDUZIERT
+    ├── SKILL.md (81KB monolithisch → modular)
+    └── Tools/ (nur Skill-spezifische Tools behalten)
 ```
 
-**Warum ein PR?**
-- Algorithm und Core Tools gehören zusammen
-- Alles oder nichts - halbe Algorithm-Updates sind gefährlich
-- Substantielle Änderung (2000+ Zeilen)
+**Was muss passieren:**
+1. `.opencode/PAI/` Verzeichnis erstellen (parallel zu skills/, nicht darin)
+2. Algorithm v3.7.0 in modularer Form portieren
+3. Fehlende Core Tools portieren (RebuildPAI, IntegrityMaintenance, etc.)
+4. SKILL.md modularisieren (~200 Zeilen statt 81KB)
+5. `.opencode/skills/PAI/` auf Skill-spezifische Tools reduzieren
+
+**Abhängigkeiten:** Keine (kann parallel zu alledem laufen)
 
 ---
 
-### 📋 PR #4: WP6 - Installer, Migration & Release (MITTEL)
-**Branch:** `feature/wp6-release` (NEU)
-**Schätzung:** 15-20 Files, 800+ Zeilen
+### 📋 PR #6: Installer & Migration (MITTEL)
+**Branch:** `feature/wp6-installer-migration` (NEU)  
+**Schätzung:** ~15 Files, ~800 Zeilen  
 
 **Inhalt:**
 ```text
@@ -87,99 +88,111 @@ Final Delivery:
 │   ├── electron/
 │   └── engine/
 ├── Tools/migration-v2-to-v3.ts (neu)
+│   - Automatische Migration von v2.x zu v3.0
+│   - Backup bestehender Konfiguration
+│   - Skill-Struktur Konvertierung
 ├── UPGRADE.md (neu)
+│   - Schritt-für-Schritt Upgrade Guide
 ├── RELEASE-v3.0.0.md (neu)
-├── README.md (updated)
-└── Final integration tests
+│   - Changelog, Breaking Changes, Migration
+└── README.md (updated)
+    - Neue Installation/Upgrade Instructions
 ```
 
-**Warum ein PR?**
-- Installer + Migration gehören zusammen
-- Release-Dokumentation ist logischer Abschluss
-- Angemessene Größe (800 Zeilen)
+**Wichtig:** Dieser PR muss auf WP5 warten, da die Installer die neue `.opencode/PAI/` Struktur installieren müssen!
 
-<details>
-<summary>📊 PR Dependencies (Mermaid Diagram)</summary>
+---
 
-```mermaid
-flowchart TB
-    subgraph PR3["📋 PR #3: WP5 - Algorithm v3.7.0 & Core System"]
-        A[PAI/Algorithm/v3.7.0.md]
-        B[PAI/SKILL.md]
-        C[PAI/Tools/]
-        D[Tests/validation]
-    end
-    
-    subgraph PR4["📋 PR #4: WP6 - Installer, Migration & Release"]
-        E[PAI-Install/]
-        F[Tools/migration-v2-to-v3.ts]
-        G[UPGRADE.md]
-        H[RELEASE-v3.0.0.md]
-        I[Final integration tests]
-    end
-    
-    PR4 -->|depends on| PR3
-    E --> C
-    I --> D
+## Warum nur noch 2 PRs?
+
+### Vorheriger (falscher) Plan:
+- PR #1: WP3 Category (881 files) ✅
+- PR #2: WP4 Integration (3 kleine PRs) ✅
+- PR #3: WP5 Algorithm (falsch - bereits in WP1 erledigt!)
+- PR #4: WP6 Installer
+
+### Korrigierter Plan:
+- ✅ WP1: Algorithm v3.7.0 (bereits erledigt)
+- ✅ WP2: Context Modernization (bereits erledigt)
+- ✅ WP3: Category Structure (bereits erledigt)
+- ✅ WP4: Integration & Validation (bereits erledigt)
+- 🔄 **PR #5**: Core PAI System (das war WP5 im alten Plan, aber falsch beschrieben)
+- 🔄 **PR #6**: Installer & Migration (final)
+
+**Ersparnis:** Statt 4 weiteren PRs nur noch **2 PRs**!
+
+---
+
+## Detaillierte Übersicht: Was fehlt wirklich?
+
+### Bereits erledigt (WP1-WP4):
+- ✅ Algorithm v3.7.0 ist portiert (in `.opencode/skills/PAI/SKILL.md`)
+- ✅ Category Structure existiert (10 Kategorien, 40+ skills)
+- ✅ Validation Tools existieren (GenerateSkillIndex, ValidateSkillStructure)
+- ✅ Plugin Handler unterstützen hierarchische Skills
+
+### Was fehlt (WP5-WP6):
+
+| Komponente | Status | Details |
+|------------|--------|---------|
+| `.opencode/PAI/` Verzeichnis | ❌ Fehlt komplett | Core PAI außerhalb skills/ |
+| Modularer Algorithm | ❌ Fehlt | 81KB monolithisch → ~200 Zeilen + Components |
+| RebuildPAI.ts | ❌ Fehlt | Tool zum Neuaufbau der PAI-Struktur |
+| IntegrityMaintenance.ts | ❌ Fehlt | Health Checks |
+| SessionDocumenter.ts | ❌ Fehlt | Automatische Session-Doku |
+| SystemAudit.ts | ❌ Fehlt | System-Integritätsprüfung |
+| PAI-Install/ | ❌ Fehlt | GUI Installer aus v4.0.3 |
+| Migration Script | ❌ Fehlt | v2→v3 Automatisierung |
+
+---
+
+## Empfohlene Reihenfolge
+
+```
+Aktueller Stand (dev branch):
+├── WP1 ✅ Algorithm v3.7.0
+├── WP2 ✅ Context Modernization  
+├── WP3 ✅ Category Structure
+└── WP4 ✅ Integration & Validation
+
+Nächste Schritte:
+    │
+    ▼
+┌─────────────────────────────────────┐
+│  PR #5: Core PAI System             │
+│  - .opencode/PAI/ erstellen         │
+│  - Algorithm modularisieren         │
+│  - Core Tools portieren             │
+│  - ~20 Files, ~2000 Zeilen          │
+└─────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────┐
+│  PR #6: Installer & Migration       │
+│  - PAI-Install/ portieren             │
+│  - Migration-Script v2→v3           │
+│  - Release-Dokumentation              │
+│  - ~15 Files, ~800 Zeilen           │
+└─────────────────────────────────────┘
+    │
+    ▼
+🎉 v3.0.0 RELEASE
 ```
 
-</details>
+---
+
+## Zusammenfassung
+
+| Metrik | Alter Plan | Korrigierter Plan |
+|--------|-----------|------------------|
+| Gesamt-PRs | 4 PRs (noch offen) | 6 PRs total (4 ✅, 2 🔄) |
+| Noch offen | 4 PRs | **Nur noch 2 PRs!** |
+| Verbleibende Arbeit | WP3-WP6 | Nur WP5-WP6 |
+| ETA | Unklar | 2-3 Wochen (WP5+WP6) |
+
+**Fazit:** Wir sind viel weiter als der alte Plan suggeriert hat. WP1-WP4 sind vollständig. Es bleiben nur noch 2 substantielle PRs bis v3.0!
 
 ---
 
-## Zusammenfassung: Optimierte PR-Struktur
-
-| PR | Name | Größe | Files | Status |
-|----|------|-------|-------|--------|
-| #1 | WP3: Category Structure | ✅ Gemergt | 881 | ✅ Done |
-| #2 | WP4: Integration Complete | 🟡 Offen | ~50 | Ready to merge |
-| #3 | WP5: Algorithm & Core | 🔴 Geplant | ~25 | Next |
-| #4 | WP6: Installer & Release | 🔴 Geplant | ~20 | Last |
-
-**Total: 4 PRs statt 8+ kleiner PRs**
-
----
-
-## Empfohlene Actions
-
-### Sofort (heute):
-1. ✅ Merge PR #40 als "WP4 Complete" (statt 3 kleiner PRs)
-2. Lösche `feature/wp4-*` Branches
-
-### Als nächstes:
-3. Starte PR #3: WP5 Algorithm & Core
-   - Branch: `feature/wp5-algorithm-core`
-   - Dauer: 6-8 Stunden
-   - Größe: 2000+ Zeilen
-
-### Zum Schluss:
-4. PR #4: WP6 Installer & Release
-   - Branch: `feature/wp6-release`
-   - Dauer: 4-6 Stunden
-   - Größe: 800+ Zeilen
-
----
-
-## Warum diese Aufteilung?
-
-| Kriterium | Alter Plan (8 PRs) | Neuer Plan (4 PRs) |
-|-----------|-------------------|-------------------|
-| Review-Overhead | Hoch | Niedrig |
-| Context-Switching | Viel | Wenig |
-| Substanz pro PR | Gering | Hoch |
-| Release-Zyklen | Lang | Kurz |
-| Verständlichkeit | Komplex | Klar |
-
-**Goldilocks-Prinzip:** Nicht zu viele (Overhead), nicht zu wenige (Review unmöglich), sondern genau richtig.
-
----
-
-## Konkrete Empfehlung
-
-**Merge PR #40 jetzt** → Es enthält bereits alle WP4-Änderungen (Phasen 1-3 kombiniert).
-
-**Dann 2 weitere PRs:**
-- PR #3: Algorithm & Core (groß)
-- PR #4: Installer & Release (mittel)
-
-**Fertig.** v3.0 in 4 Pull Requests insgesamt veröffentlicht.
+*Korrigiert am: 2026-03-06*  
+*Ursprünglicher Plan war irreführend durch durchnummerierte PRs statt tatsächlicher WP-Zuordnung*
