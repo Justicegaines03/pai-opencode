@@ -21,11 +21,16 @@ export const INSTRUCTION_OVERRIDE_PATTERNS = [
 
 // === KATEGORIE 2: Rollen-Übernahme ===
 // Versuche, dem Modell eine neue Identität zu geben
+// Strengere Patterns: verlangen explizite Rollen-Tokens (Großbuchstaben/Quotes/Role-Label)
 export const ROLE_HIJACKING_PATTERNS = [
-	/you\s+are\s+now\s+(a\s+|an\s+)?(?!Claude|an\s+AI)/i, // "you are now a hacker" etc.
-	/act\s+as\s+(a\s+|an\s+)?(evil|malicious|unrestricted|jailbreak)/i,
-	/pretend\s+(you\s+are|to\s+be)\s+(a\s+|an\s+)?(?!(helpful|assistant))/i,
-	/roleplay\s+as\s+(a\s+|an\s+)?(hacker|attacker|malware)/i,
+	// "you are now" gefolgt von einem rollen-indizierenden Token (nicht Adjektive wie "ready")
+	/you\s+are\s+now\s+(?:a\s+|an\s+)?(?:["']?[A-Z][a-z]+["']?|role:\s*\w+|hacker|attacker|malware|developer|expert|specialist)/i,
+	// "act as" mit explizit bösartigen Rollen
+	/act\s+as\s+(?:a\s+|an\s+)?(?:evil|malicious|unrestricted|jailbreak|hacker|attacker)/i,
+	// "pretend to be" mit expliziten Rollennamen (nicht Adjektive)
+	/pretend\s+(?:you\s+are|to\s+be)\s+(?:a\s+|an\s+)?(?:["']?[A-Z][a-z]+["']?|hacker|attacker|expert|developer)/i,
+	// explizite Rollen-Keywords
+	/roleplay\s+as\s+(?:a\s+|an\s+)?(?:hacker|attacker|malware|developer)/i,
 	/DAN\s+mode/i, // "Do Anything Now" jailbreak
 	/jailbreak\s+mode/i,
 	/developer\s+mode/i, // Fake "developer mode" jailbreak
@@ -66,8 +71,9 @@ export const CONTEXT_SEPARATOR_PATTERNS = [
 
 // === KATEGORIE 6: MCP Tool-Description Injection ===
 // Böswillige Anweisungen in Tool-Descriptions versteckt
+// Multiline-fähig: [\s\S] matcht auch Newlines
 export const MCP_TOOL_INJECTION_PATTERNS = [
-	/when\s+(you\s+)?(use|call|invoke)\s+this\s+tool.{0,50}(send|exfiltrate|leak)/i,
+	/when\s+(you\s+)?(use|call|invoke)\s+this\s+tool[\s\S]{0,50}(send|exfiltrate|leak)/i,
 	/tool\s+description.*ignore.*instructions/is,
 	/\[hidden\s+instruction\]/i,
 	/<hidden>/i,
@@ -81,7 +87,7 @@ export const PII_PATTERNS = [
 	/sk-(?!ant-)[a-zA-Z0-9]{32,}/, // OpenAI API Key
 	/gh[pousr]_[a-zA-Z0-9]{36,}/, // GitHub PAT
 	/\b(?:AKIA|ABIA|ACCA|ASIA)[0-9A-Z]{16}\b/, // AWS Access Key ID
-	/-----BEGIN\s+(?:RSA\s+)?PRIVATE\s+KEY-----/, // PEM Private Key
+	/-----BEGIN\s+(?:[A-Z0-9]+\s+)?PRIVATE\s+KEY-----/i, // PEM Private Key (RSA, EC, OPENSSH, etc.)
 	/gsk_[a-zA-Z0-9]{52}/, // Groq API Key
 	/hf_[a-zA-Z0-9]{34,}/, // HuggingFace Token
 ] as const;

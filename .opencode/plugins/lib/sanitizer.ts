@@ -51,18 +51,18 @@ export function normalizeUnicode(content: string): string {
 	return normalized.replace(nonAsciiRegex, (char) => {
 		// Map common Cyrillic/Greek lookalikes to ASCII
 		const lookalikes: Record<string, string> = {
-			а: "a",
-			е: "e",
-			і: "i",
-			о: "o",
-			р: "p",
-			с: "c",
-			ѕ: "s",
-			у: "y",
-			h: "x",
-			А: "A",
-			В: "B",
-			Е: "E",
+			а: "a", // Cyrillic а (U+0430)
+			е: "e", // Cyrillic е (U+0435)
+			і: "i", // Cyrillic і (U+0456)
+			о: "o", // Cyrillic о (U+043E)
+			р: "p", // Cyrillic р (U+0440)
+			с: "c", // Cyrillic с (U+0441)
+			ѕ: "s", // Cyrillic ѕ (U+0455)
+			у: "y", // Cyrillic у (U+0443)
+			х: "x", // Cyrillic х (U+0445) - kha, NOT Latin h
+			А: "A", // Cyrillic А (U+0410)
+			В: "B", // Cyrillic В (U+0412)
+			Е: "E", // Cyrillic Е (U+0415)
 		};
 		return lookalikes[char] ?? char;
 	});

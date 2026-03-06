@@ -5,10 +5,12 @@
  * Equivalent to PAI's security-validator.ts hook.
  *
  * Enhanced in WP-B:
- * - Comprehensive injection pattern detection (6 categories)
+ * - Comprehensive injection pattern detection (7 categories)
  * - Input sanitization before pattern matching
  * - Security audit logging to security-audit.jsonl
  * - Multi-field scanning (not just args.content)
+ * - Fire-and-forget audit logging (non-blocking)
+ * - Secrets redaction in audit logs
  *
  * @module security-validator
  */
@@ -46,24 +48,60 @@ interface SecurityAuditEntry {
 }
 
 /**
- * Append to security audit log (non-blocking)
+ * Append to security audit log (non-blocking, fire-and-forget)
  *
  * @param entry - The audit entry to log
  */
-async function logSecurityEvent(entry: SecurityAuditEntry): Promise<void> {
-	try {
-		const stateDir = getStateDir();
-		const auditPath = path.join(stateDir, "security-audit.jsonl");
+function logSecurityEvent(entry: SecurityAuditEntry): void {
+	// Fire-and-forget: don't await, don't block the decision path
+	Promise.resolve()
+		.then(async () => {
+			const stateDir = getStateDir();
+			const auditPath = path.join(stateDir, "security-audit.jsonl");
 
-		// Ensure directory exists
-		await fs.promises.mkdir(stateDir, { recursive: true });
+			// Ensure directory exists
+			await fs.promises.mkdir(stateDir, { recursive: true });
 
-		const line = `${JSON.stringify(entry)}\n`;
-		await fs.promises.appendFile(auditPath, line, "utf-8");
-	} catch {
-		// Silent fail - audit logging should never block execution
-		fileLog("Failed to write security audit entry", "warn");
-	}
+			const line = `${JSON.stringify(entry)}\n`;
+			await fs.promises.appendFile(auditPath, line, "utf-8");
+		})
+		.catch(() => {
+			// Silent fail - audit logging should never block execution
+			fileLog("Failed to write security audit entry", "warn");
+		});
+}
+
+/**
+ * Redact sensitive values from command text
+ * Masks API keys, tokens, and credentials
+ *
+ * @param command - The command to redact
+ * @returns Redacted command
+ */
+function redactSecrets(command: string): string {
+	// API Keys and tokens
+	const redacted = command
+		// Anthropic API keys
+		.replace(/sk-ant-[A-Za-z0-9\-_]{20,}/g, "sk-ant-[REDACTED]")
+		// OpenAI API keys
+		.replace(/sk-[a-zA-Z0-9]{32,}/g, "sk-[REDACTED]")
+		// GitHub PATs
+		.replace(/gh[pousr]_[a-zA-Z0-9]{36,}/g, "gh[REDACTED]")
+		// AWS Access Keys
+		.replace(/\b(AKIA|ABIA|ACCA|ASIA)[0-9A-Z]{16}\b/g, "$1[REDACTED]")
+		// Groq API keys
+		.replace(/gsk_[a-zA-Z0-9]{52}/g, "gsk-[REDACTED]")
+		// HuggingFace tokens
+		.replace(/hf_[a-zA-Z0-9]{34,}/g, "hf-[REDACTED]")
+		// PEM private keys (redact content between headers)
+		.replace(
+			/(-----BEGIN\s+(?:[A-Z0-9]+\s+)?PRIVATE\s+KEY-----)[\s\S]*?(-----END\s+(?:[A-Z0-9]+\s+)?PRIVATE\s+KEY-----)/g,
+			"$1\n[REDACTED]\n$2",
+		)
+		// Generic high-entropy tokens ( heuristic: 40+ alphanumeric chars)
+		.replace(/\b[a-zA-Z0-9_-]{40,}\b/g, "[REDACTED]");
+
+	return redacted;
 }
 
 /**
@@ -176,10 +214,47 @@ export async function validateSecurity(
 
 		const command = extractCommand(input);
 
+		// Check for prompt injection in ALL text fields FIRST (even if no command)
+		const injectionResult = input.args
+			? checkAllFieldsForInjection(input.args)
+			: null;
+
+		if (injectionResult) {
+			const firstMatch = injectionResult.matches[0];
+			fileLog(
+				`BLOCKED: Prompt injection detected in field '${injectionResult.field}'`,
+				"error",
+			);
+			fileLog(
+				`Category: ${firstMatch.category}, Pattern: ${firstMatch.pattern}`,
+				"error",
+			);
+			logSecurityEvent({
+				timestamp: new Date().toISOString(),
+				tool: input.tool,
+				action: "blocked",
+				reason: `Prompt injection in ${injectionResult.field}`,
+				category: firstMatch.category,
+				pattern: firstMatch.pattern.toString(),
+				commandPreview: command
+					? redactSecrets(command).slice(0, 100)
+					: `${injectionResult.field}:${input.args?.[injectionResult.field]}`.slice(
+							0,
+							100,
+						),
+			});
+			return {
+				action: "block",
+				reason: `Potential prompt injection detected in field '${injectionResult.field}'`,
+				message:
+					"Content appears to contain prompt injection patterns and has been blocked.",
+			};
+		}
+
 		if (!command) {
 			fileLog(`No command extracted from input`, "warn");
-			// No command to validate - allow by default
-			await logSecurityEvent({
+			// No command to validate - allow by default (injection check already passed)
+			logSecurityEvent({
 				timestamp: new Date().toISOString(),
 				tool: input.tool,
 				action: "allowed",
@@ -197,13 +272,13 @@ export async function validateSecurity(
 		const dangerousMatch = matchesDangerousPattern(command);
 		if (dangerousMatch) {
 			fileLog(`BLOCKED: Dangerous pattern matched: ${dangerousMatch}`, "error");
-			await logSecurityEvent({
+			logSecurityEvent({
 				timestamp: new Date().toISOString(),
 				tool: input.tool,
 				action: "blocked",
 				reason: `Dangerous pattern: ${dangerousMatch}`,
 				pattern: dangerousMatch.toString(),
-				commandPreview: command.slice(0, 100),
+				commandPreview: redactSecrets(command).slice(0, 100),
 			});
 			return {
 				action: "block",
@@ -213,49 +288,17 @@ export async function validateSecurity(
 			};
 		}
 
-		// Check for prompt injection in ALL text fields
-		const injectionResult = input.args
-			? checkAllFieldsForInjection(input.args)
-			: null;
-
-		if (injectionResult) {
-			const firstMatch = injectionResult.matches[0];
-			fileLog(
-				`BLOCKED: Prompt injection detected in field '${injectionResult.field}'`,
-				"error",
-			);
-			fileLog(
-				`Category: ${firstMatch.category}, Pattern: ${firstMatch.pattern}`,
-				"error",
-			);
-			await logSecurityEvent({
-				timestamp: new Date().toISOString(),
-				tool: input.tool,
-				action: "blocked",
-				reason: `Prompt injection in ${injectionResult.field}`,
-				category: firstMatch.category,
-				pattern: firstMatch.pattern.toString(),
-				commandPreview: command.slice(0, 100),
-			});
-			return {
-				action: "block",
-				reason: `Potential prompt injection detected in field '${injectionResult.field}'`,
-				message:
-					"Content appears to contain prompt injection patterns and has been blocked.",
-			};
-		}
-
 		// Check for warning patterns (CONFIRM)
 		const warningMatch = matchesWarningPattern(command);
 		if (warningMatch) {
 			fileLog(`CONFIRM: Warning pattern matched: ${warningMatch}`, "warn");
-			await logSecurityEvent({
+			logSecurityEvent({
 				timestamp: new Date().toISOString(),
 				tool: input.tool,
 				action: "confirmed",
 				reason: `Warning pattern: ${warningMatch}`,
 				pattern: warningMatch.toString(),
-				commandPreview: command.slice(0, 100),
+				commandPreview: redactSecrets(command).slice(0, 100),
 			});
 			return {
 				action: "confirm",
@@ -281,7 +324,7 @@ export async function validateSecurity(
 			for (const pattern of sensitivePaths) {
 				if (pattern.test(filePath)) {
 					fileLog(`CONFIRM: Sensitive file write: ${filePath}`, "warn");
-					await logSecurityEvent({
+					logSecurityEvent({
 						timestamp: new Date().toISOString(),
 						tool: input.tool,
 						action: "confirmed",
@@ -301,12 +344,12 @@ export async function validateSecurity(
 
 		// All checks passed - allow
 		fileLog("Security check passed", "debug");
-		await logSecurityEvent({
+		logSecurityEvent({
 			timestamp: new Date().toISOString(),
 			tool: input.tool,
 			action: "allowed",
 			reason: "All security checks passed",
-			commandPreview: command.slice(0, 100),
+			commandPreview: redactSecrets(command).slice(0, 100),
 		});
 		return {
 			action: "allow",
@@ -316,7 +359,7 @@ export async function validateSecurity(
 		fileLogError("Security validation error", error);
 		// Fail-open: on error, allow the operation
 		// This is a design decision - fail-closed would be safer but more disruptive
-		await logSecurityEvent({
+		logSecurityEvent({
 			timestamp: new Date().toISOString(),
 			tool: input.tool,
 			action: "allowed",
