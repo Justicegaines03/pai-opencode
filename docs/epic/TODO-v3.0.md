@@ -291,6 +291,105 @@ Referenz: `/Releases/v4.0.3/.claude/PAI/Tools/`
 
 ---
 
+## 🔵 WP-F — DB Health & Session Archivierung (in PR #D integriert)
+
+**Branch:** `feature/wp6-installer-migration` (gleicher Branch wie PR #D)  
+**Geschätzter Aufwand:** 0.5–1 Tag (zusätzlich zu WP6)  
+**Abhängigkeiten:** PR #A (session-cleanup.ts bereits Grundlage)  
+**Priorität:** WICHTIG — verhindert DB-Wachstum auf 2+ GB
+
+> **Hintergrund:** OpenCode hat keine automatische Session-Retention.  
+> Die `opencode.db` wächst unendlich. Nach 3 Monaten: 2.4 GB, 234k Parts.  
+> Beim ersten Start blockiert das DB-Lock den Start (Startup-Race).  
+> PAI-OpenCode 3.0 braucht eine OpenCode-native Lösung.
+
+### WP-F.1 — Plugin Event: Automatische DB-Warnung
+
+- [ ] **`plugins/handlers/session-cleanup.ts`** (bereits in WP-A geplant) **ERWEITERN:**
+  ```typescript
+  // Nach Session-Ende: DB-Health prüfen
+  async function checkDbHealth(): Promise<void> {
+    const sizeMB = getDbSizeMB();
+    const oldSessions = getSessionsOlderThan(90);
+    if (sizeMB > 500 || oldSessions > 100) {
+      fileLog(`[DBWarning] DB ${sizeMB}MB | ${oldSessions} Sessions > 90d → /db-archive empfohlen`);
+      // Optional: UI-Notification wenn OpenCode Notification-API verfügbar
+    }
+  }
+  ```
+- [ ] `getDbSizeMB()` Utility in `plugins/lib/db-utils.ts` implementieren
+- [ ] `getSessionsOlderThan(days)` Utility ebenfalls in `db-utils.ts`
+
+### WP-F.2 — Standalone Tool: `Tools/db-archive.ts`
+
+- [ ] **`Tools/db-archive.ts`** erstellen (Bun-Script, standalone):
+  ```bash
+  # Usage:
+  bun db-archive.ts           # Archive sessions > 90 days (default)
+  bun db-archive.ts 180       # Archive sessions > 180 days
+  bun db-archive.ts --dry-run # Zeige was archiviert werden würde
+  bun db-archive.ts --vacuum  # VACUUM nach Archivierung
+  bun db-archive.ts --restore archive-2025-Q4.db  # Archiv wiederherstellen
+  ```
+- [ ] **Interface definieren:**
+  ```typescript
+  interface ArchiveConfig {
+    daysToKeep: number;   // Default: 90
+    archiveDir: string;   // Default: ~/.opencode/archives/
+    autoVacuum: boolean;  // Default: false (OpenCode muss aus sein!)
+    dryRun: boolean;
+  }
+  interface ArchiveResult {
+    sessionsArchived: number;
+    messagesArchived: number;
+    partsArchived: number;
+    spaceSaved: string;   // "1.2 GB"
+    archivePath: string;
+  }
+  ```
+- [ ] **Export-Logik:** `ATTACH DATABASE ... AS archive` → kopiere session/message/part
+- [ ] **Lösch-Logik:** `DELETE FROM session WHERE time_created < cutoff` (CASCADE löscht Messages+Parts)
+- [ ] **VACUUM-Logik:** `PRAGMA wal_checkpoint(TRUNCATE)` + `VACUUM` (nur wenn OpenCode nicht läuft)
+- [ ] **Restore-Logik:** `INSERT OR IGNORE INTO main.session SELECT * FROM archive.session`
+- [ ] **`~/.opencode/archives/archive-index.json`** pflegen (Datum, Count, Größe, Pfad)
+
+### WP-F.3 — Custom Command: `/db-archive` in OpenCode
+
+- [ ] **`.opencode/commands/db-archive.ts`** erstellen (OpenCode Custom Command):
+  - Aufrufbar direkt im TUI: `/db-archive`
+  - Zeigt: DB-Größe, Session-Anzahl, älteste 5 Sessions
+  - Fragt: "Archiviere Sessions älter als 90 Tage? (j/n)"
+  - Führt aus: Export → Löschen → WAL Checkpoint (kein VACUUM da OpenCode läuft)
+  - Meldet: "X Sessions archiviert, Y MB freigegeben"
+- [ ] **VACUUM-Hinweis im Command:** "Für vollständige Defragmentation: OpenCode beenden → `bun db-archive.ts --vacuum`"
+
+### WP-F.4 — Electron GUI: "DB Health" Tab im Installer
+
+- [ ] In `PAI-Install/electron/` einen **"DB Health"** Tab hinzufügen:
+  - **Status-Panel:** DB-Größe, Session-Count, WAL-Größe, Wachstumstrend
+  - **Archiv-Aktion:** Slider "Sessions älter als N Tage archivieren"
+  - **VACUUM-Button:** Setzt voraus dass OpenCode beendet ist → Prüfung + Hinweis
+  - **Archiv-Browser:** Liste der vorhandenen Archive + Restore-Button pro Session
+- [ ] Electron ruft `db-archive.ts` als Child-Process auf
+- [ ] **Sicherheitshinweis im GUI:** "VACUUM erfordert dass OpenCode beendet ist"
+
+### WP-F.5 — Dokumentation
+
+- [ ] **`docs/DB-MAINTENANCE.md`** erstellen:
+  - Was ist das Problem (DB-Wachstum, Lock-Error beim Start)
+  - Die drei Lösungsebenen (Plugin / CLI / GUI)
+  - VACUUM Erklärung (analog Defragmentation)
+  - Wie Client-Side Pruning und Server-Side DB sich unterscheiden
+  - Empfohlener Rhythmus: Archivierung quartalsweise, VACUUM nach Archivierung
+
+### Abschluss WP-F
+- [ ] `bun Tools/db-archive.ts --dry-run` auf echter DB testen
+- [ ] Custom Command `/db-archive` in frischer Session testen
+- [ ] Archiv-Restore testen (eine Session wiederherstellen)
+- [ ] `biome check --write .`
+
+---
+
 ## 🟢 PR #D — WP6: Installer & Migration
 
 **Branch:** `feature/wp-d-installer-migration`  

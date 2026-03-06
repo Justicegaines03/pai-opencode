@@ -814,6 +814,69 @@ PAI-OpenCode processes user input and executes system commands. Without protecti
 
 ---
 
+### WP-G: OpenCode-Native Hardening (NEU — 2026-03-06)
+**Status:** 🔄 OFFEN — integrierbar in WP-A  
+**Effort:** 0.5 Tag  
+**Dependencies:** WP-A (Plugin-System)  
+**Source:** DeepWiki Codemap Research 2026-03-06
+
+**Hintergrund:** 6 DeepWiki Codemap-Queries auf `anomalyco/opencode` haben fundamentale Unterschiede aufgedeckt. Vollständiges Research-Dokument: `docs/epic/OPENCODE-NATIVE-RESEARCH.md`
+
+**Kritische Punkte:**
+- Bash ist STATELESS — `workdir` Parameter ist PFLICHT überall (nicht `cd`)
+- `session.compacted` Event = letzter Moment für Learning-Rescue
+- `shell.env` Hook für PAI-Kontext-Injektion per Bash-Call
+- `file.edited` Event für Event-driven PRD-Sync
+- OpenCode liest AUCH `.claude/skills/` — Backward-Kompatibel!
+
+**Tasks (in WP-A integrieren):**
+1. ✅ AGENTS.md: `workdir` Pflicht dokumentiert (2026-03-06)
+2. pai-unified.ts: `shell.env` Hook für PAI-Kontext
+3. session-cleanup.ts: `session.compacted` als Learning-Rescue
+4. prd-sync.ts: `file.edited` auf `*.prd.md` für PRD-Sync
+
+---
+
+### WP-F: DB Health & Session Archivierung (NEU — 2026-03-06)
+**Status:** 🔄 OFFEN — integriert in PR #D  
+**Effort:** 0.5–1 Tag  
+**Dependencies:** WP-A (session-cleanup.ts als Basis)
+
+**Hintergrund:** OpenCode hat keine automatische Session-Retention-Policy. Die `opencode.db` wächst ungebremst (2.4 GB nach 3 Monaten). Ohne Lösung: Startup-Errors, Performance-Degradation, unhandhabbare DB-Größe.
+
+**Goal:** OpenCode-native Lösung in 3 Ebenen — automatisch, manuell, visuell.
+
+**Drei Ebenen:**
+
+```
+EBENE 1 — Plugin (automatisch):
+└── session-cleanup.ts: Warnung wenn DB > 500 MB oder > 100 alte Sessions
+
+EBENE 2 — CLI Tool (manuell, standalone):
+└── Tools/db-archive.ts: Archive, Delete, VACUUM, Restore
+
+EBENE 3 — Custom Command (OpenCode-native):
+└── /db-archive Command: Status + Archivierung direkt im TUI
+
+EBENE 4 — Electron GUI (visuell):
+└── PAI-Install DB Health Tab: Dashboard + Archiv-Browser
+```
+
+**Output:**
+- `plugins/lib/db-utils.ts` (Size/Session Utilities)
+- `Tools/db-archive.ts` (Standalone Bun Tool)
+- `.opencode/commands/db-archive.ts` (Custom Command)
+- `PAI-Install/electron/` — DB Health Tab
+- `docs/DB-MAINTENANCE.md`
+
+**Verification:**
+- `bun db-archive.ts --dry-run` zeigt korrekten Preview
+- Archivierte Sessions in `~/.opencode/archives/*.db`
+- Restore einer archivierten Session funktioniert
+- `/db-archive` Command erreichbar im TUI
+
+---
+
 ### WP-D (ehemals WP7): Migration & Installer
 **Status:** 🔄 OFFEN  
 **Effort:** 6-8 hours  
@@ -899,21 +962,24 @@ WP1 ✅ (Algorithm v3.7.0)
               └──► WP3 ⚠️ (Kategorie-Struktur ✅, Hooks/Plugin-Architektur ❌)
                         │
                         └──► WP-A 🔄 (WP3-Completion: 6 Hooks + Plugin)
+                                  │                     │
+                                  │                     └──► WP-F 🔄 (DB Health — session-cleanup.ts Basis)
                                   │
                                   └──► WP-B 🔄 (Security Hardening)
                                             │
                                             └──► WP-C 🔄 (Core PAI System + Skill-Fixes)
                                                       │
-                                                      └──► WP-D 🔄 (Installer + Migration)
+                                                      └──► WP-D 🔄 (Installer + Migration + WP-F GUI)
                                                                 │
                                                                 └──► WP-E 🔄 (Testing + v3.0 Release)
 
 Parallel (ab WP-A unabhängig):
 WP4 ⚠️ (Basis fertig) ──► Skill-Lücken in WP-C adressiert
+WP-F ──► in PR #D integriert (Tools/db-archive.ts + Electron GUI)
 ```
 
-**Critical Path:** WP-A → WP-B → WP-C → WP-D → WP-E  
-**Offene Abhängigkeit:** WP-C enthält Skill-Fixes aus WP4-Audit  
+**Critical Path:** WP-A → WP-B → WP-C → WP-D (inkl. WP-F) → WP-E  
+**WP-F Integration:** Session-Cleanup-Erweiterung in WP-A, GUI in WP-D  
 **Open Arc (out of scope):** Voice-to-Voice, OMI Ambient AI  
 **Referenzdokumente:** `GAP-ANALYSIS-v3.0.md` (was fehlt) | `TODO-v3.0.md` (konkrete Tasks)
 
@@ -927,13 +993,14 @@ WP4 ⚠️ (Basis fertig) ──► Skill-Lücken in WP-C adressiert
 | WP2 | ✅ Fertig | 6-8h | Lazy Context (~20KB) |
 | WP3 | ⚠️ 40% | 5-7h investiert | Nur Kategorie-Struktur |
 | WP4 | ⚠️ 70% | 8-10h investiert | Integration (funktional, unvollständig) |
-| **WP-A** | 🔄 Offen | **1-2 Tage** | **6 Hooks + Plugin-Architektur** |
+| **WP-A** | 🔄 Offen | **1-2 Tage** | **6 Hooks + Plugin-Architektur + DB-Warnung** |
 | **WP-B** | 🔄 Offen | **0.5-1 Tag** | **Prompt Injection Protection** |
 | **WP-C** | 🔄 Offen | **2-3 Tage** | **Core PAI System + Skill-Fixes + PAI Tools** |
-| **WP-D** | 🔄 Offen | **1-2 Tage** | **Installer + Migration Script** |
+| **WP-D** | 🔄 Offen | **1.5-3 Tage** | **Installer + Migration + DB Health GUI** |
 | **WP-E** | 🔄 Offen | **0.5-1 Tag** | **Testing + v3.0.0 Release** |
+| **WP-F** | 🔄 Offen (in WP-D) | **0.5-1 Tag** | **DB Archivierung: Tool + Command + Electron Tab** |
 
-**Verbleibender Aufwand:** ~5-9 Tage  
+**Verbleibender Aufwand:** ~6-10 Tage  
 **Open Arc (out of scope):** Voice-to-Voice, OMI Ambient AI  
 **MCP-Skills:** Zurückgestellt auf v3.1 (kein v3.0-Blocker)
 
@@ -967,6 +1034,10 @@ WP4 ⚠️ (Basis fertig) ──► Skill-Lücken in WP-C adressiert
 8. ✅ Documentation complete
 9. ✅ Biome zero errors
 10. ✅ CI/CD passing
+11. ✅ **DB archivierbar via `/db-archive` Command** (OpenCode-native)
+12. ✅ **`bun db-archive.ts --dry-run` zeigt korrekte Session-Vorschau**
+13. ✅ **Archivierte Sessions wiederherstellbar via `--restore`**
+14. ✅ **Electron DB Health Tab zeigt Größe, Sessions, Archiv-Button**
 
 ---
 

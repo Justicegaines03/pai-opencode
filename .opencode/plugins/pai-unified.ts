@@ -54,6 +54,10 @@ import { detectEffortLevel } from "./handlers/format-reminder";
 import { handleImplicitSentiment } from "./handlers/implicit-sentiment";
 import { runIntegrityCheck } from "./handlers/integrity-check";
 import { validateISC } from "./handlers/isc-validator";
+import {
+	cacheLastResponse,
+	readLastResponse,
+} from "./handlers/last-response-cache";
 import { extractLearningsFromWork } from "./handlers/learning-capture";
 import {
 	emitAgentComplete,
@@ -72,9 +76,17 @@ import {
 	emitUserMessage,
 	emitVoiceSent,
 } from "./handlers/observability-emitter";
+// WP-A: New handlers (PR #A)
+import { syncPRDToRegistry } from "./handlers/prd-sync";
+import {
+	extractAskUserQuestionAnswer,
+	trackQuestionAnswered,
+} from "./handlers/question-tracking";
 import { captureRating, detectRating } from "./handlers/rating-capture";
+import { captureRelationshipMemory } from "./handlers/relationship-memory";
 import { handleResponseCapture } from "./handlers/response-capture";
 import { validateSecurity } from "./handlers/security-validator";
+import { cleanupSession } from "./handlers/session-cleanup";
 import { validateSkillInvocation } from "./handlers/skill-guard";
 import { restoreSkillFiles } from "./handlers/skill-restore";
 import { handleTabState } from "./handlers/tab-state";
@@ -91,18 +103,6 @@ import {
 	isTrivialMessage,
 } from "./handlers/work-tracker";
 import { clearLog, fileLog, fileLogError } from "./lib/file-logger";
-// WP-A: New handlers (PR #A)
-import { syncPRDToRegistry } from "./handlers/prd-sync";
-import { cleanupSession } from "./handlers/session-cleanup";
-import {
-	cacheLastResponse,
-	readLastResponse,
-} from "./handlers/last-response-cache";
-import { captureRelationshipMemory } from "./handlers/relationship-memory";
-import {
-	trackQuestionAnswered,
-	extractAskUserQuestionAnswer,
-} from "./handlers/question-tracking";
 
 /**
  * MESSAGE DEDUPLICATION CACHE
@@ -901,7 +901,10 @@ export const PaiUnified: Plugin = async (ctx) => {
 							undefined;
 						await cleanupSession(sessionId);
 					} catch (error) {
-						fileLogError("[SessionCleanup] Cleanup failed (non-blocking)", error);
+						fileLogError(
+							"[SessionCleanup] Cleanup failed (non-blocking)",
+							error,
+						);
 					}
 
 					// === RELATIONSHIP MEMORY (WP-A) ===
@@ -914,7 +917,10 @@ export const PaiUnified: Plugin = async (ctx) => {
 							[...sessionAssistantMessages],
 						);
 					} catch (error) {
-						fileLogError("[RelationshipMemory] Capture failed (non-blocking)", error);
+						fileLogError(
+							"[RelationshipMemory] Capture failed (non-blocking)",
+							error,
+						);
 					}
 
 					// Emit session end
@@ -1038,7 +1044,8 @@ export const PaiUnified: Plugin = async (ctx) => {
 
 							// Buffer assistant response for relationship memory (session end analysis)
 							sessionAssistantMessages.push(responseText.slice(0, 500));
-							if (sessionAssistantMessages.length > 20) sessionAssistantMessages.shift(); // cap at 20
+							if (sessionAssistantMessages.length > 20)
+								sessionAssistantMessages.shift(); // cap at 20
 
 							// === LAST RESPONSE CACHE (WP-A) ===
 							// Cache response so ImplicitSentiment has context on next user message.
@@ -1047,7 +1054,10 @@ export const PaiUnified: Plugin = async (ctx) => {
 							try {
 								await cacheLastResponse(responseText);
 							} catch (error) {
-								fileLogError("[LastResponseCache] Cache write failed (non-blocking)", error);
+								fileLogError(
+									"[LastResponseCache] Cache write failed (non-blocking)",
+									error,
+								);
 							}
 						}
 					}
@@ -1121,7 +1131,8 @@ export const PaiUnified: Plugin = async (ctx) => {
 								const sessionId = (input as any).sessionID || "unknown";
 								// Read last response for context (ADR-009: OpenCode-native replacement
 								// for Claude-Code's transcriptPath pattern)
-								const lastResponse = await readLastResponse().catch(() => null) ?? undefined;
+								const lastResponse =
+									(await readLastResponse().catch(() => null)) ?? undefined;
 								const sentimentResult = await handleImplicitSentiment(
 									userText,
 									sessionId,
@@ -1129,11 +1140,13 @@ export const PaiUnified: Plugin = async (ctx) => {
 								);
 
 								// Emit implicit sentiment if captured
-								if (sentimentResult && sentimentResult.score !== undefined) {
+								// Fix ADR-009: handleImplicitSentiment returns { rating, sentiment, confidence }
+								// NOT { score, indicators } — CodeRabbit bug fix
+								if (sentimentResult && sentimentResult.rating !== null) {
 									emitImplicitSentiment({
-										score: sentimentResult.score,
+										score: sentimentResult.rating,
 										confidence: sentimentResult.confidence || 0,
-										indicators: sentimentResult.indicators || [],
+										sentiment: sentimentResult.sentiment,
 									}).catch(() => {});
 								}
 							} catch (error) {
@@ -1192,7 +1205,10 @@ export const PaiUnified: Plugin = async (ctx) => {
 				// OpenCode compresses context when token limit reached.
 				// CRITICAL moment — rescue learnings BEFORE context is lost.
 				if (eventType === "session.compacted") {
-					fileLog("=== Context Compaction Detected — rescuing learnings ===", "info");
+					fileLog(
+						"=== Context Compaction Detected — rescuing learnings ===",
+						"info",
+					);
 					try {
 						const learningResult = await extractLearningsFromWork();
 						if (learningResult.success && learningResult.learnings.length > 0) {
@@ -1206,7 +1222,10 @@ export const PaiUnified: Plugin = async (ctx) => {
 					} catch (error) {
 						fileLogError("[Compaction] Learning rescue failed", error);
 					}
-					fileLog(`[Compaction] Compacted at ${new Date().toISOString()}`, "info");
+					fileLog(
+						`[Compaction] Compacted at ${new Date().toISOString()}`,
+						"info",
+					);
 				}
 
 				// === SESSION ERROR ===
@@ -1233,7 +1252,8 @@ export const PaiUnified: Plugin = async (ctx) => {
 					const props = eventData?.properties || {};
 					const permId = props.id || "unknown";
 					const permission = props.permission || "unknown";
-					const patterns = (props.patterns || []).slice(0, 3).join(", ") || "none";
+					const patterns =
+						(props.patterns || []).slice(0, 3).join(", ") || "none";
 					const via = props.tool ? `tool/${props.tool.callID}` : "no-tool";
 					fileLog(
 						`[PermissionAudit] id=${permId} permission=${permission} patterns=[${patterns}] via=${via}`,
@@ -1282,6 +1302,33 @@ export const PaiUnified: Plugin = async (ctx) => {
 				fileLog(`Event: ${eventType}`, "debug");
 			} catch (error) {
 				fileLogError("Event handler failed", error);
+			}
+		},
+
+		// === SHELL.ENV HOOK (WP-G — OpenCode-native) ===
+		// Inject PAI context into every Bash tool call environment.
+		// OpenCode Bash is STATELESS (fresh process per call) — this is the only
+		// reliable way to pass runtime context into shell commands.
+		// See docs/epic/OPENCODE-NATIVE-RESEARCH.md — Section 1.
+		"shell.env": async (input: any, output: any) => {
+			try {
+				const sessionId = input?.sessionID || "unknown";
+				const workDir = input?.cwd || "";
+
+				// Inject PAI context so scripts can detect they're running under PAI
+				output.env = output.env || {};
+				output.env["PAI_CONTEXT"] = "1";
+				output.env["PAI_SESSION_ID"] = sessionId;
+				output.env["PAI_WORK_DIR"] = workDir;
+				output.env["PAI_VERSION"] = "3.0";
+
+				fileLog(
+					`[shell.env] Context injected for session ${sessionId}`,
+					"debug",
+				);
+			} catch (error) {
+				// Non-blocking — never fail a bash call due to env injection
+				fileLogError("[shell.env] Env injection failed (non-blocking)", error);
 			}
 		},
 	};

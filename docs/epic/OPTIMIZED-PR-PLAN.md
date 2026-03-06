@@ -124,10 +124,10 @@ SKILL-STRUKTUR KORREKTUREN:
 
 ---
 
-### 📋 PR #D: WP6 — Installer & Migration (KRITISCH)
+### 📋 PR #D: WP6 — Installer & Migration + DB Health (KRITISCH)
 
 **Branch:** `feature/wp6-installer-migration` (NEU)  
-**Schätzung:** ~15 Files, ~1000 Zeilen  
+**Schätzung:** ~18 Files, ~1300 Zeilen  
 
 **Inhalt:**
 ```text
@@ -135,16 +135,136 @@ Final Delivery:
 ├── PAI-Install/ (portiert aus v4.0.3)
 │   ├── install.sh
 │   ├── cli/
-│   ├── electron/
+│   ├── electron/          ← DB Health Tab hier integriert
 │   ├── engine/
 │   └── web/
 ├── Tools/migration-v2-to-v3.ts (neu)
+├── Tools/db-archive.ts (neu)      ← Standalone DB Archivierungs-Tool
 ├── UPGRADE.md (neu)
 ├── RELEASE-v3.0.0.md (neu)
 └── README.md (updated)
 ```
 
+**DB Health Erweiterung:** Siehe WP-F (DB Health & Archivierung) — vollständig integriert in PR #D.
+
 **Wichtig:** Dieser PR muss auf PR #C warten!
+
+---
+
+### 📋 PR #D Erweiterung: WP-F — DB Health & Session Archivierung (WICHTIG)
+
+> **Neu hinzugefügt 2026-03-06** — Erkenntnisse aus OpenCode DB-Analyse:  
+> `opencode.db` wird 2.4 GB+ groß ohne Cleanup. Keine Auto-Retention in OpenCode.  
+> Lösung muss OpenCode-native, benutzerfreundlich und in v3.0 integriert sein.
+
+**Drei Ebenen der Lösung:**
+
+```text
+EBENE 1 — Plugin Event (automatisch, WP-A Erweiterung):
+└── plugins/handlers/session-cleanup.ts
+    └── Erweitern: Auto-Archiv-Check nach Session-Ende
+        ├── Prüfen: Ist DB > 500 MB? Gibt es Sessions > 90 Tage?
+        ├── Wenn ja: Benutzer benachrichtigen ("DB wächst, Archiv empfohlen")
+        └── Optional: Silent Auto-Archiv nach konfigurierbarem Schwellenwert
+
+EBENE 2 — Custom Command (manuell, OpenCode-native):
+└── /db-archive  OpenCode Custom Command
+    ├── Zeigt: DB-Größe, Session-Anzahl, älteste Sessions
+    ├── Schlägt vor: Archivierung aller Sessions älter als N Tage
+    ├── Führt aus: Export → Löschen → VACUUM
+    └── Bestätigt: "X Sessions archiviert, Y MB freigegeben"
+
+EBENE 3 — Electron GUI (visuell, WP-D Electron-Installer):
+└── PAI-Install Electron App: "DB Health" Tab
+    ├── Dashboard: DB-Größe, Session-Count, Growth-Trend
+    ├── Archiv-Button: "Archiviere Sessions älter als [90] Tage"
+    ├── VACUUM-Button: "Datenbank defragmentieren"
+    └── Archiv-Browser: Alte Sessions wiederherstellen
+```
+
+**Technische Architektur:**
+
+```typescript
+// Tools/db-archive.ts — OpenCode-native Tool
+// Aufrufbar: bun db-archive.ts [days] [--dry-run] [--vacuum]
+
+interface ArchiveConfig {
+  daysToKeep: number;     // Default: 90
+  archiveDir: string;     // Default: ~/.opencode/archives/
+  autoVacuum: boolean;    // Default: true
+  dryRun: boolean;        // Default: false
+}
+
+interface ArchiveResult {
+  sessionsArchived: number;
+  messagesArchived: number;
+  partsArchived: number;
+  spaceSaved: string;     // "1.2 GB"
+  archivePath: string;
+  vacuumRan: boolean;
+}
+
+// Restore einzelner Session aus Archiv
+bun db-archive.ts --restore archive-2025-Q4.db --session ses_xxx
+```
+
+**Plugin Integration (session-cleanup.ts Erweiterung):**
+
+```typescript
+// Automatische Warnung bei DB-Wachstum
+async function checkDbHealth(dbPath: string): Promise<void> {
+  const sizeMB = getDbSizeMB(dbPath);
+  const oldSessionCount = getOldSessionCount(dbPath, 90);
+
+  if (sizeMB > 500 || oldSessionCount > 100) {
+    // OpenCode notification (nicht blockierend)
+    await notify(`⚠️ DB-Warnung: ${sizeMB}MB — ${oldSessionCount} Sessions > 90 Tage.\n` +
+                 `Archivierung empfohlen: /db-archive`);
+  }
+}
+```
+
+**OpenCode Custom Command (`/db-archive`):**
+
+```typescript
+// .opencode/commands/db-archive.ts
+// Aufrufbar direkt in OpenCode TUI: /db-archive
+export default async function dbArchiveCommand(args: string[]) {
+  const days = parseInt(args[0]) || 90;
+  
+  // 1. Status anzeigen
+  const stats = await getDbStats();
+  console.log(`DB: ${stats.sizeMB}MB | Sessions: ${stats.total} | Archivierbar: ${stats.archivable}`);
+  
+  // 2. Bestätigung
+  const confirmed = await confirm(`Archiviere ${stats.archivable} Sessions (> ${days} Tage)?`);
+  if (!confirmed) return;
+  
+  // 3. Archivieren
+  const result = await archiveSessions(days);
+  
+  // 4. Ergebnis
+  console.log(`✅ ${result.sessionsArchived} Sessions archiviert → ${result.archivePath}`);
+  console.log(`💾 Freigegeben: ${result.spaceSaved}`);
+}
+```
+
+**WICHTIG — VACUUM Requirement:**
+```
+VACUUM braucht EXKLUSIVEN DB Zugriff:
+→ db-archive.ts muss aufgerufen werden OHNE laufendes OpenCode
+→ Electron GUI: Zeigt "OpenCode muss beendet sein" Hinweis
+→ Custom Command /db-archive: Läuft im OpenCode-Prozess, nutzt
+   SQLite WAL Checkpoint statt Full VACUUM (sicherer bei laufender Session)
+```
+
+**Archiv-Format:**
+```
+~/.opencode/archives/
+├── archive-2025-Q4.db          ← SQLite (wiederherstellbar)
+├── archive-2026-Q1.db
+└── archive-index.json          ← { date, sessionCount, sizeBytes, dbPath }
+```
 
 ---
 
