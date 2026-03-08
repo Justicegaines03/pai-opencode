@@ -1,5 +1,5 @@
 {
-  "generated": "2026-03-08T23:24:20.017Z",
+  "generated": "2026-03-08T23:26:02.782Z",
   "totalSkills": 51,
   "categories": 7,
   "flatSkills": 16,
@@ -358,7 +358,7 @@
     },
     "docx": {
       "name": "Docx",
-      "path": "Utilities/Documents/Docx/SKILL.md",
+      "path": "Utilities/Docx/SKILL.md",
       "category": "Utilities",
       "fullDescription": "Word document processing. USE WHEN docx, Word document. SkillSearch('docx') for docs.",
       "triggers": [
@@ -617,7 +617,7 @@
     },
     "pdf": {
       "name": "Pdf",
-      "path": "Utilities/Documents/Pdf/SKILL.md",
+      "path": "Utilities/Pdf/SKILL.md",
       "category": "Utilities",
       "fullDescription": "PDF processing. USE WHEN pdf, PDF file. SkillSearch('pdf') for docs.",
       "triggers": [
@@ -630,7 +630,7 @@
     },
     "pptx": {
       "name": "Pptx",
-      "path": "Utilities/Documents/Pptx/SKILL.md",
+      "path": "Utilities/Pptx/SKILL.md",
       "category": "Utilities",
       "fullDescription": "PowerPoint processing. USE WHEN pptx, PowerPoint, slides. SkillSearch('pptx') for docs.",
       "triggers": [
@@ -1191,7 +1191,7 @@
     },
     "xlsx": {
       "name": "Xlsx",
-      "path": "Utilities/Documents/Xlsx/SKILL.md",
+      "path": "Utilities/Xlsx/SKILL.md",
       "category": "Utilities",
       "fullDescription": "Excel file processing. USE WHEN xlsx, Excel, spreadsheet. SkillSearch('xlsx') for docs.",
       "triggers": [
