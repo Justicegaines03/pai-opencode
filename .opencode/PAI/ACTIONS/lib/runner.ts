@@ -26,10 +26,27 @@ const ACTIONS_DIR = dirname(import.meta.dir);
 
 /**
  * Load an action by name
+ * 
+ * SECURITY: Validates name to prevent path traversal attacks.
+ * Only allows alphanumeric, dash, underscore, and single slash for category/action.
+ * Rejects '..' segments and absolute paths.
  */
 export async function loadAction(name: string): Promise<ActionSpec> {
+  // SECURITY: Validate name format to prevent path traversal
+  // Allow only: alphanumeric, dash, underscore, single slash
+  const validNamePattern = /^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/;
+  if (!validNamePattern.test(name)) {
+    throw new Error(`Invalid action name: ${name}. Must match pattern: category/action (alphanumeric, dash, underscore only)`);
+  }
+
   // Convert category/name to path: parse/topic -> parse/topic.action.ts
   const actionPath = join(ACTIONS_DIR, `${name}.action.ts`);
+  
+  // SECURITY: Ensure resolved path is within ACTIONS_DIR
+  const resolvedPath = resolve(actionPath);
+  if (!resolvedPath.startsWith(ACTIONS_DIR)) {
+    throw new Error(`Path traversal detected: ${name} resolves outside actions directory`);
+  }
 
   try {
     const module = await import(actionPath);
@@ -80,7 +97,7 @@ export async function runAction<TInput, TOutput>(
     };
 
     if (mode === "cloud") {
-      return await dispatchToCloud(name, validatedInput, ctx);
+      return await dispatchToCloud(name, validatedInput, ctx, action);
     }
 
     // Execute locally
@@ -117,13 +134,20 @@ export async function runAction<TInput, TOutput>(
 async function dispatchToCloud<TInput, TOutput>(
   name: string,
   input: TInput,
-  ctx: ActionContext
+  ctx: ActionContext,
+  action: ActionSpec<TInput, TOutput>
 ): Promise<ActionResult<TOutput>> {
   const startTime = Date.now();
 
-  // Worker URL pattern: pai-{category}-{name}.workers.dev
+  // Worker URL pattern: pai-{category}-{name}.{subdomain}.workers.dev
   const workerName = name.replace("/", "-");
-  const workerUrl = `https://pai-${workerName}.${process.env.CF_ACCOUNT_SUBDOMAIN || 'workers'}.dev`;
+  const subdomain = process.env.CF_ACCOUNT_SUBDOMAIN || 'workers';
+  const workerUrl = `https://pai-${workerName}.${subdomain}.workers.dev`;
+
+  // Setup timeout with AbortController
+  const controller = new AbortController();
+  const timeoutMs = ctx.env?.ACTION_TIMEOUT_MS ? parseInt(ctx.env.ACTION_TIMEOUT_MS, 10) : 30000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(workerUrl, {
@@ -133,7 +157,10 @@ async function dispatchToCloud<TInput, TOutput>(
         ...(ctx.trace && { "X-Trace-Id": ctx.trace.traceId }),
       },
       body: JSON.stringify(input),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const error = await response.text();
@@ -149,10 +176,13 @@ async function dispatchToCloud<TInput, TOutput>(
     }
 
     const result = await response.json();
+    
+    // SECURITY: Validate cloud response with schema before returning
+    const validatedOutput = action.outputSchema.parse(result);
 
     return {
       success: true,
-      output: result as TOutput,
+      output: validatedOutput,
       metadata: {
         durationMs: Date.now() - startTime,
         action: name,
@@ -160,6 +190,21 @@ async function dispatchToCloud<TInput, TOutput>(
       },
     };
   } catch (error) {
+    clearTimeout(timeoutId);
+    
+    // Handle timeout specifically
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {
+        success: false,
+        error: `Cloud action timed out after ${timeoutMs}ms`,
+        metadata: {
+          durationMs: Date.now() - startTime,
+          action: name,
+          mode: "cloud",
+        },
+      };
+    }
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -199,7 +244,14 @@ async function main() {
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--mode" && args[i + 1]) {
-      mode = args[i + 1] as "local" | "cloud";
+      const modeValue = args[i + 1];
+      // Validate mode - only allow "local" or "cloud"
+      if (modeValue === "local" || modeValue === "cloud") {
+        mode = modeValue;
+      } else {
+        console.error(`Error: Invalid mode "${modeValue}". Must be "local" or "cloud".`);
+        process.exit(1);
+      }
       i++;
     } else if (args[i] === "--input" && args[i + 1]) {
       inputJson = args[i + 1];
@@ -224,7 +276,12 @@ async function main() {
   let input: unknown;
 
   if (inputJson) {
-    input = JSON.parse(inputJson);
+    try {
+      input = JSON.parse(inputJson);
+    } catch (err) {
+      console.error(`Error: Invalid JSON in --input: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
   } else if (!process.stdin.isTTY) {
     // Read from stdin
     const chunks: Buffer[] = [];
@@ -233,11 +290,18 @@ async function main() {
     }
     const stdinContent = Buffer.concat(chunks).toString().trim();
     if (stdinContent) {
-      input = JSON.parse(stdinContent);
+      try {
+        input = JSON.parse(stdinContent);
+      } catch (err) {
+        console.error(`Error: Invalid JSON from stdin: ${err instanceof Error ? err.message : String(err)}`);
+        process.exit(1);
+      }
     }
   }
 
-  if (!input) {
+  // FIX: Check for undefined specifically, not falsy values
+  // This allows 0, false, "", null as valid inputs
+  if (input === undefined) {
     console.error("Error: No input provided. Use --input or pipe JSON to stdin.");
     process.exit(1);
   }
@@ -254,5 +318,8 @@ async function main() {
 
 // Run if executed directly
 if (import.meta.main) {
-  main().catch(console.error);
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
 }

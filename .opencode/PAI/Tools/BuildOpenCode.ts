@@ -14,13 +14,31 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
+import { homedir } from "os";
 
-const PAI_DIR = join(process.env.HOME!, ".opencode");
+// ─── Safe home directory resolution ───
+const HOME_DIR = process.env.HOME || process.env.USERPROFILE || homedir() || "/tmp";
+const PAI_DIR = join(HOME_DIR, ".opencode");
 const TEMPLATE_PATH = join(PAI_DIR, "AGENTS.md.template");
 const OUTPUT_PATH = join(PAI_DIR, "AGENTS.md");
 const SETTINGS_PATH = join(PAI_DIR, "settings.json");
 const ALGORITHM_DIR = join(PAI_DIR, "PAI/Algorithm");
 const LATEST_PATH = join(ALGORITHM_DIR, "LATEST");
+
+// ─── Safe JSON parsing with fallback ───
+
+function safeJsonParse<T>(path: string, defaultValue: T): T {
+  if (!existsSync(path)) {
+    return defaultValue;
+  }
+  try {
+    const content = readFileSync(path, "utf-8");
+    return JSON.parse(content) as T;
+  } catch (err) {
+    console.warn(`Warning: Failed to parse ${path}: ${err instanceof Error ? err.message : String(err)}`);
+    return defaultValue;
+  }
+}
 
 // ─── Load current algorithm version ───
 
@@ -37,10 +55,7 @@ function getAlgorithmVersion(): string {
 // ─── Load variables from settings.json ───
 
 function loadVariables(): Record<string, string> {
-  const settings = existsSync(SETTINGS_PATH)
-    ? JSON.parse(readFileSync(SETTINGS_PATH, "utf-8"))
-    : {};
-
+  const settings = safeJsonParse<Record<string, any>>(SETTINGS_PATH, {});
   const algoVersion = getAlgorithmVersion();
 
   return {
@@ -76,9 +91,7 @@ export function needsRebuild(): boolean {
   if (match && match[1] !== algoVersion) return true;
 
   // Check if DA name matches settings
-  const settings = existsSync(SETTINGS_PATH)
-    ? JSON.parse(readFileSync(SETTINGS_PATH, "utf-8"))
-    : {};
+  const settings = safeJsonParse<Record<string, any>>(SETTINGS_PATH, {});
   const daName = settings.daidentity?.name || "Assistant";
   if (!outputContent.includes(`🗣️ ${daName}:`)) return true;
 

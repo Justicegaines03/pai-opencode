@@ -50,148 +50,183 @@ function loadEnv(): void {
   }
 }
 
-loadEnv();
-
-const args = process.argv.slice(2);
-const positional = args.filter((a) => !a.startsWith("--"));
-const audioFile = positional[0];
-const outputFlag = args.indexOf("--output");
-const outputPath = outputFlag !== -1 ? args[outputFlag + 1] : undefined;
-
-if (!audioFile) {
-  console.error("Usage: bun Polish.ts <audio-file> [--output <path>]");
-  process.exit(1);
+// Only load env when running as main script (not when imported as module)
+if (import.meta.main) {
+  loadEnv();
 }
 
-if (!existsSync(audioFile)) {
-  console.error(`File not found: ${audioFile}`);
-  process.exit(1);
-}
+// ============================================================================
+// Main polish logic
+// ============================================================================
 
-const apiKey = process.env.CLEANVOICE_API_KEY;
-if (!apiKey) {
-  console.error("CLEANVOICE_API_KEY not found. Set it in ~/.config/PAI/.env");
-  console.error("Get key at: https://cleanvoice.ai → Dashboard → Settings → API Key");
-  process.exit(1);
-}
+async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  const positional = args.filter((a) => !a.startsWith("--"));
+  const audioFile = positional[0];
+  const outputFlag = args.indexOf("--output");
+  const outputPath = outputFlag !== -1 ? args[outputFlag + 1] : undefined;
 
-const ext = extname(audioFile);
-const base = basename(audioFile, ext);
-const dir = dirname(audioFile);
-const outFile = outputPath || join(dir, `${base}_polished${ext}`);
+  if (!audioFile) {
+    console.error("Usage: bun Polish.ts <audio-file> [--output <path>]");
+    throw new Error("Missing audio file");
+  }
 
-console.log(`Audio: ${audioFile}`);
-console.log(`Output: ${outFile}`);
+  if (!existsSync(audioFile)) {
+    console.error(`File not found: ${audioFile}`);
+    throw new Error("Audio file not found");
+  }
 
-const API_BASE = "https://api.cleanvoice.ai/v2";
+  const apiKey = process.env.CLEANVOICE_API_KEY;
+  if (!apiKey) {
+    console.error("CLEANVOICE_API_KEY not found. Set it in ~/.config/PAI/.env");
+    console.error("Get key at: https://cleanvoice.ai → Dashboard → Settings → API Key");
+    throw new Error("Missing CLEANVOICE_API_KEY");
+  }
 
-// Step 1: Upload the file
-console.log("\nUploading to Cleanvoice...");
+  const ext = extname(audioFile);
+  const base = basename(audioFile, ext);
+  const dir = dirname(audioFile);
+  const outFile = outputPath || join(dir, `${base}_polished${ext}`);
 
-const fileData = await Bun.file(audioFile).arrayBuffer();
-const formData = new FormData();
-formData.append("file", new Blob([fileData]), basename(audioFile));
+  console.log(`Audio: ${audioFile}`);
+  console.log(`Output: ${outFile}`);
 
-const uploadResponse = await fetch(`${API_BASE}/upload`, {
-  method: "POST",
-  headers: {
-    "X-API-Key": apiKey,
-  },
-  body: formData,
-});
+  const API_BASE = "https://api.cleanvoice.ai/v2";
 
-if (!uploadResponse.ok) {
-  const err = await uploadResponse.text();
-  console.error(`Upload failed: ${uploadResponse.status} ${err}`);
-  process.exit(1);
-}
+  // Step 1: Upload the file
+  console.log("\nUploading to Cleanvoice...");
 
-const uploadData = (await uploadResponse.json()) as any;
-const fileId = uploadData.id || uploadData.file_id;
-console.log(`Uploaded: ${fileId}`);
+  const fileData = await Bun.file(audioFile).arrayBuffer();
+  const formData = new FormData();
+  formData.append("file", new Blob([fileData]), basename(audioFile));
 
-// Step 2: Start processing
-console.log("Starting Cleanvoice processing...");
-
-const editResponse = await fetch(`${API_BASE}/edit`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "X-API-Key": apiKey,
-  },
-  body: JSON.stringify({
-    input: { files: [fileId] },
-    config: {
-      filler_words: true,
-      mouth_sounds: true,
-      deadair: false, // We handle this ourselves
-      normalize: true,
+  const uploadResponse = await fetch(`${API_BASE}/upload`, {
+    method: "POST",
+    headers: {
+      "X-API-Key": apiKey,
     },
-  }),
-});
-
-if (!editResponse.ok) {
-  const err = await editResponse.text();
-  console.error(`Edit request failed: ${editResponse.status} ${err}`);
-  process.exit(1);
-}
-
-const editData = (await editResponse.json()) as any;
-const editId = editData.id || editData.edit_id;
-console.log(`Edit job: ${editId}`);
-
-// Step 3: Poll for completion
-console.log("Processing...");
-const POLL_INTERVAL = 5000; // 5 seconds
-const MAX_POLLS = 360; // 30 minutes max
-
-for (let i = 0; i < MAX_POLLS; i++) {
-  await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
-
-  const statusResponse = await fetch(`${API_BASE}/edit/${editId}`, {
-    headers: { "X-API-Key": apiKey },
+    body: formData,
   });
 
-  if (!statusResponse.ok) {
-    console.error(`Status check failed: ${statusResponse.status}`);
-    continue;
+  if (!uploadResponse.ok) {
+    const err = await uploadResponse.text();
+    console.error(`Upload failed: ${uploadResponse.status} ${err}`);
+    throw new Error("Upload failed");
   }
 
-  const statusData = (await statusResponse.json()) as any;
-  const status = statusData.status;
-
-  if (status === "completed" || status === "done") {
-    console.log("Processing complete.");
-
-    // Download the result
-    const downloadUrl = statusData.result?.url || statusData.download_url || statusData.output?.url;
-    if (!downloadUrl) {
-      console.error("No download URL in response:", JSON.stringify(statusData, null, 2));
-      process.exit(1);
-    }
-
-    console.log("Downloading polished audio...");
-    const downloadResponse = await fetch(downloadUrl);
-    if (!downloadResponse.ok) {
-      console.error(`Download failed: ${downloadResponse.status}`);
-      process.exit(1);
-    }
-
-    const outputData = await downloadResponse.arrayBuffer();
-    await Bun.write(outFile, outputData);
-
-    const sizeMB = Math.round(outputData.byteLength / 1024 / 1024);
-    console.log(`\n=== Polish Complete ===`);
-    console.log(`Output: ${outFile} (${sizeMB}MB)`);
-    process.exit(0);
-  } else if (status === "failed" || status === "error") {
-    console.error(`Processing failed: ${statusData.error || "unknown error"}`);
-    process.exit(1);
-  } else {
-    const elapsed = ((i + 1) * POLL_INTERVAL / 1000).toFixed(0);
-    process.stdout.write(`\r  Status: ${status} (${elapsed}s elapsed)`);
+  const uploadData = (await uploadResponse.json()) as { id?: string; file_id?: string };
+  const fileId = uploadData.id || uploadData.file_id;
+  if (!fileId) {
+    throw new Error("No file ID in upload response");
   }
+  console.log(`Uploaded: ${fileId}`);
+
+  // Step 2: Start processing
+  console.log("Starting Cleanvoice processing...");
+
+  const editResponse = await fetch(`${API_BASE}/edit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": apiKey,
+    },
+    body: JSON.stringify({
+      input: { files: [fileId] },
+      config: {
+        filler_words: true,
+        mouth_sounds: true,
+        deadair: false, // We handle this ourselves
+        normalize: true,
+      },
+    }),
+  });
+
+  if (!editResponse.ok) {
+    const err = await editResponse.text();
+    console.error(`Edit request failed: ${editResponse.status} ${err}`);
+    throw new Error("Edit request failed");
+  }
+
+  const editData = (await editResponse.json()) as { id?: string; edit_id?: string };
+  const editId = editData.id || editData.edit_id;
+  if (!editId) {
+    throw new Error("No edit ID in response");
+  }
+  console.log(`Edit job: ${editId}`);
+
+  // Step 3: Poll for completion
+  console.log("Processing...");
+  const POLL_INTERVAL = 5000; // 5 seconds
+  const MAX_POLLS = 360; // 30 minutes max
+
+  for (let i = 0; i < MAX_POLLS; i++) {
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+
+    const statusResponse = await fetch(`${API_BASE}/edit/${editId}`, {
+      headers: { "X-API-Key": apiKey },
+    });
+
+    if (!statusResponse.ok) {
+      console.error(`Status check failed: ${statusResponse.status}`);
+      continue;
+    }
+
+    const statusData = (await statusResponse.json()) as { 
+      status: string; 
+      error?: string; 
+      result?: { url?: string }; 
+      download_url?: string;
+      output?: { url?: string };
+    };
+    const status = statusData.status;
+
+    if (status === "completed" || status === "done") {
+      console.log("Processing complete.");
+
+      // Download the result
+      const downloadUrl = statusData.result?.url || statusData.download_url || statusData.output?.url;
+      if (!downloadUrl) {
+        console.error("No download URL in response:", JSON.stringify(statusData, null, 2));
+        throw new Error("No download URL");
+      }
+
+      console.log("Downloading polished audio...");
+      const downloadResponse = await fetch(downloadUrl);
+      if (!downloadResponse.ok) {
+        console.error(`Download failed: ${downloadResponse.status}`);
+        throw new Error("Download failed");
+      }
+
+      const outputData = await downloadResponse.arrayBuffer();
+      await Bun.write(outFile, outputData);
+
+      const sizeMB = Math.round(outputData.byteLength / 1024 / 1024);
+      console.log(`\n=== Polish Complete ===`);
+      console.log(`Output: ${outFile} (${sizeMB}MB)`);
+      return;
+    } else if (status === "failed" || status === "error") {
+      console.error(`Processing failed: ${statusData.error || "unknown error"}`);
+      throw new Error(`Processing failed: ${statusData.error || "unknown error"}`);
+    } else {
+      const elapsed = ((i + 1) * POLL_INTERVAL / 1000).toFixed(0);
+      process.stdout.write(`\r  Status: ${status} (${elapsed}s elapsed)`);
+    }
+  }
+
+  console.error("\nTimeout: processing took too long (>30 min)");
+  throw new Error("Processing timeout");
 }
 
-console.error("\nTimeout: processing took too long (>30 min)");
-process.exit(1);
+// ============================================================================
+// Entry point — ADR-009 compliant: only run when executed directly
+// ============================================================================
+
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+// Export for testing/module usage
+export { main, loadEnv };
