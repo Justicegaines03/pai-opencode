@@ -1,11 +1,11 @@
 {
-  "generated": "2026-03-08T23:26:02.782Z",
-  "totalSkills": 51,
-  "categories": 7,
-  "flatSkills": 16,
-  "hierarchicalSkills": 35,
+  "generated": "2026-03-08T23:31:35.392Z",
+  "totalSkills": 54,
+  "categories": 9,
+  "flatSkills": 17,
+  "hierarchicalSkills": 37,
   "alwaysLoadedCount": 2,
-  "deferredCount": 49,
+  "deferredCount": 52,
   "skills": {
     "agents": {
       "name": "Agents",
@@ -559,6 +559,16 @@
       "tier": "deferred",
       "isHierarchical": true
     },
+    "pai": {
+      "name": "PAI",
+      "path": "PAI/SKILL.md",
+      "category": null,
+      "fullDescription": "Personal AI Infrastructure core. The authoritative reference for how PAI works.",
+      "triggers": [],
+      "workflows": [],
+      "tier": "deferred",
+      "isHierarchical": false
+    },
     "paiupgrade": {
       "name": "PAIUpgrade",
       "path": "Utilities/PAIUpgrade/SKILL.md",
@@ -991,6 +1001,29 @@
       "tier": "deferred",
       "isHierarchical": false
     },
+    "teloscore": {
+      "name": "TelosCore",
+      "path": "Telos/Telos/SKILL.md",
+      "category": "Telos",
+      "fullDescription": "\"Life OS and project analysis. USE WHEN TELOS, life goals, projects, dependencies, books, movies. SkillSearch('telos') for docs.\"",
+      "triggers": [
+        "telos",
+        "life",
+        "goals",
+        "projects",
+        "dependencies",
+        "books",
+        "movies"
+      ],
+      "workflows": [
+        "Update",
+        "InterviewExtraction",
+        "CreateNarrativePoints",
+        "WriteReport"
+      ],
+      "tier": "deferred",
+      "isHierarchical": true
+    },
     "thinking": {
       "name": "Thinking",
       "path": "Thinking/SKILL.md",
@@ -1041,6 +1074,27 @@
       "workflows": [],
       "tier": "deferred",
       "isHierarchical": false
+    },
+    "usmetricscore": {
+      "name": "USMetricsCore",
+      "path": "USMetrics/USMetrics/SKILL.md",
+      "category": "USMetrics",
+      "fullDescription": "US economic indicators. USE WHEN GDP, inflation, unemployment, economic metrics, gas prices. SkillSearch('usmetrics') for docs.",
+      "triggers": [
+        "gdp",
+        "inflation",
+        "unemployment",
+        "economic",
+        "metrics",
+        "gas",
+        "prices"
+      ],
+      "workflows": [
+        "UpdateData",
+        "GetCurrentState"
+      ],
+      "tier": "deferred",
+      "isHierarchical": true
     },
     "utilities": {
       "name": "Utilities",
@@ -1227,6 +1281,9 @@
       "SECUpdates",
       "WebAssessment"
     ],
+    "Telos": [
+      "TelosCore"
+    ],
     "Thinking": [
       "BeCreative",
       "Council",
@@ -1235,6 +1292,9 @@
       "RedTeam",
       "Science",
       "WorldThreatModelHarness"
+    ],
+    "USMetrics": [
+      "USMetricsCore"
     ],
     "Utilities": [
       "Aphorisms",
