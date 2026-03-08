@@ -20,6 +20,31 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileLog, fileLogError } from "../lib/file-logger";
 import { getStateDir, getWorkDir } from "../lib/paths";
+import { checkDbHealth } from "../lib/db-utils";
+
+/**
+ * Check database health and warn if thresholds exceeded.
+ * Called on session.created to alert user early.
+ */
+export async function checkAndWarnDbHealth(): Promise<void> {
+	try {
+		const { sizeMB, oldSessions, warnings } = await checkDbHealth();
+
+		if (warnings.length > 0) {
+			console.warn("\n⚠️  Database Health Warnings:");
+			for (const warning of warnings) {
+				console.warn(`   ${warning}`);
+			}
+			console.warn("\n   Run 'bun Tools/db-archive.ts --dry-run' to preview cleanup.\n");
+			fileLog(`[SessionCleanup] DB Health warnings: ${warnings.join(", ")}`, "warn");
+		} else {
+			fileLog(`[SessionCleanup] DB Health OK (${sizeMB}MB, ${oldSessions} old sessions)`, "debug");
+		}
+	} catch (error) {
+		// Non-blocking: don't fail session start if DB check fails
+		fileLogError("[SessionCleanup] DB Health check failed (non-blocking)", error);
+	}
+}
 
 /**
  * Mark the active work directory as COMPLETED and clear session state.
@@ -139,6 +164,9 @@ export async function cleanupSession(sessionId?: string): Promise<void> {
 		}
 
 		fileLog("[SessionCleanup] Session cleanup complete", "info");
+
+		// After cleanup, check DB health (non-blocking warning)
+		await checkAndWarnDbHealth();
 	} catch (error) {
 		fileLogError("[SessionCleanup] Cleanup failed (non-blocking)", error);
 		// Don't rethrow — session end must not be disrupted
