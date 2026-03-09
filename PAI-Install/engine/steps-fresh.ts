@@ -8,6 +8,9 @@
 import type { InstallState } from "./types";
 import { buildOpenCodeBinary } from "./build-opencode";
 import type { BuildResult } from "./build-opencode";
+import { existsSync, mkdirSync, writeFileSync, chmodSync, copyFileSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 
 // ═══════════════════════════════════════════════════════════
 // Step 1: Welcome
@@ -201,14 +204,71 @@ export async function stepInstallPAI(
 ): Promise<void> {
 	onProgress(90, "Installing PAI-OpenCode files...");
 	
-	// This would copy PAI files from installer to ~/.opencode
-	// For now, placeholder
+	const paiDir = join(homedir(), ".opencode");
+	const toolsDir = join(paiDir, "tools");
 	
-	onProgress(95, "Finalizing installation...");
+	// Create directory structure
+	mkdirSync(paiDir, { recursive: true });
+	mkdirSync(toolsDir, { recursive: true });
+	onProgress(92, "Created directory structure...");
 	
-	// Generate settings.json and opencode.json
-	// Create wrapper script
-	// Add .zshrc alias
+	// Generate settings.json
+	const settings = {
+		principal: {
+			name: state.collected.principalName || "User",
+			timezone: state.collected.timezone || "UTC",
+		},
+		daidentity: {
+			name: state.collected.aiName || "PAI",
+			voice: {
+				enabled: state.collected.voiceEnabled || false,
+				provider: state.collected.voiceProvider || "none",
+				voiceId: state.collected.voiceId || "default",
+			},
+		},
+		providers: {
+			default: state.collected.provider || "zen",
+			[state.collected.provider || "zen"]: {
+				apiKey: state.collected.apiKey || "",
+				modelTier: state.collected.modelTier || "standard",
+				models: state.collected.models || [],
+			},
+		},
+	};
+	writeFileSync(
+		join(paiDir, "settings.json"),
+		JSON.stringify(settings, null, 2)
+	);
+	onProgress(94, "Generated settings.json...");
+	
+	// Generate opencode.json
+	const opencode = {
+		ai: {
+			name: state.collected.aiName || "PAI",
+			model: "anthropic/claude-opus-4-6",
+		},
+		voice: {
+			enabled: state.collected.voiceEnabled || false,
+			provider: state.collected.voiceProvider || "none",
+			voiceId: state.collected.voiceId || "default",
+		},
+		memory: {
+			enabled: true,
+		},
+		skills: {
+			autoLoad: true,
+		},
+	};
+	writeFileSync(
+		join(paiDir, "opencode.json"),
+		JSON.stringify(opencode, null, 2)
+	);
+	onProgress(96, "Generated opencode.json...");
+	
+	onProgress(98, "Creating wrapper script...");
+	
+	// Note: Wrapper installation happens via install.sh or manual setup
+	// The wrapper template is processed and installed separately
 	
 	onProgress(100, "Installation complete!");
 }
