@@ -157,6 +157,72 @@ export async function stepMigrationDone(
 }
 
 // ═══════════════════════════════════════════════════════════
+// Orchestrator: Migration Flow
+// ═══════════════════════════════════════════════════════════
+
+export async function runMigration(
+  state: InstallState,
+  emit: (event: any) => Promise<void>,
+  requestInput: (id: string, prompt: string, type: "text" | "password" | "key", placeholder?: string) => Promise<string>,
+  requestChoice: (id: string, prompt: string, choices: { label: string; value: string; description?: string }[]) => Promise<string>
+): Promise<void> {
+  // Step 1: Detect Migration
+  emit({ event: "step_start", step: "backup" });
+  const { detectSystem } = await import("./detect");
+  const detection = stepDetectMigration(state, () => detectSystem());
+  emit({ event: "step_complete", step: "backup" });
+
+  // Step 2: Create Backup (with explicit consent)
+  emit({ event: "step_start", step: "detect" });
+  emit({ 
+    event: "message", 
+    content: MIGRATION_CONSENT_TEXT.title + "\n" + 
+             MIGRATION_CONSENT_TEXT.description(detection.skillsToMigrate.length)
+  });
+  
+  const consentChoices = [
+    { label: MIGRATION_CONSENT_TEXT.buttons.proceed, value: "proceed", description: "Create backup and migrate" },
+    { label: MIGRATION_CONSENT_TEXT.buttons.cancel, value: "cancel", description: "Exit without migrating" },
+  ];
+  const consent = await requestChoice("migration-consent", MIGRATION_CONSENT_TEXT.warning, consentChoices);
+  
+  if (consent !== "proceed") {
+    throw new Error("Migration cancelled by user");
+  }
+  
+  await stepCreateBackup(state, (percent, message) => {
+    emit({ event: "progress", step: "detect", percent, detail: message });
+  });
+  emit({ event: "step_complete", step: "detect" });
+
+  // Step 3: Migrate Configuration
+  emit({ event: "step_start", step: "migrate-config" });
+  await stepMigrate(state, (percent, message) => {
+    emit({ event: "progress", step: "migrate-config", percent, detail: message });
+  });
+  emit({ event: "step_complete", step: "migrate-config" });
+
+  // Step 4: Build Binary
+  emit({ event: "step_start", step: "build" });
+  const { buildOpenCodeBinary } = await import("./build-opencode");
+  await buildOpenCodeBinary(
+    { cacheBust: true },
+    (percent, message) => {
+      emit({ event: "progress", step: "build", percent, detail: message });
+    },
+    () => Promise.resolve(false)
+  );
+  emit({ event: "step_complete", step: "build" });
+
+  // Step 5: Verify Migration
+  emit({ event: "step_start", step: "verify" });
+  await stepMigrationDone(state, (percent, message) => {
+    emit({ event: "progress", step: "verify", percent, detail: message });
+  });
+  emit({ event: "step_complete", step: "verify" });
+}
+
+// ═══════════════════════════════════════════════════════════
 // Migration Consent UI Text
 // ═══════════════════════════════════════════════════════════
 

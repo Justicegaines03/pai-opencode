@@ -15,16 +15,9 @@ import {
   runVoiceSetup,
 } from "../engine/actions";
 import { runValidation, generateSummary } from "../engine/validate";
-import {
-  createFreshState,
-  hasSavedState,
-  loadState,
-  saveState,
-  clearState,
-  completeStep,
-  skipStep,
-} from "../engine/state";
-import { STEPS, getProgress, getStepStatuses } from "../engine/steps";
+import { runFreshInstall } from "../engine/steps-fresh";
+import { runMigration } from "../engine/steps-migrate";
+import { runUpdate } from "../engine/steps-update";
 
 // ─── State ───────────────────────────────────────────────────────
 
@@ -149,6 +142,9 @@ async function requestChoice(
 
 // ─── WebSocket Message Handler ───────────────────────────────────
 
+let detectedMode: "fresh" | "migrate" | "update" | null = null;
+let selectedMode: "fresh" | "migrate" | "update" | null = null;
+
 export function handleWsMessage(ws: any, raw: string): void {
   let msg: ClientMessage;
   try {
@@ -169,6 +165,20 @@ export function handleWsMessage(ws: any, raw: string): void {
         for (const s of steps) {
           ws.send(JSON.stringify({ type: "step_update", step: s.id, status: s.status }));
         }
+      }
+      // Detect and broadcast install mode
+      detectInstallMode().then((mode) => {
+        detectedMode = mode;
+        broadcast({ type: "mode_detected", mode: detectedMode });
+      });
+      break;
+
+    case "select_mode":
+      if (msg.mode && ["fresh", "migrate", "update"].includes(msg.mode)) {
+        selectedMode = msg.mode as "fresh" | "migrate" | "update";
+        broadcast({ type: "mode_selected", mode: selectedMode });
+        // Auto-start installation after mode selection
+        startInstallation(selectedMode);
       }
       break;
 
@@ -206,8 +216,8 @@ export function handleWsMessage(ws: any, raw: string): void {
     }
 
     case "start_install": {
-      if (!installState) {
-        startInstallation();
+      if (!installState && selectedMode) {
+        startInstallation(selectedMode);
       }
       break;
     }
@@ -216,7 +226,7 @@ export function handleWsMessage(ws: any, raw: string): void {
 
 // ─── Installation Flow ───────────────────────────────────────────
 
-async function startInstallation(): Promise<void> {
+async function startInstallation(mode: "fresh" | "migrate" | "update"): Promise<void> {
   // Always start fresh — GUI should not silently resume stale state
   if (hasSavedState()) clearState();
   installState = createFreshState("web");
@@ -224,67 +234,22 @@ async function startInstallation(): Promise<void> {
   const emit = createWsEmitter();
 
   try {
-    // Step 1: System Detection
-    if (!installState.completedSteps.includes("system-detect")) {
-      await runSystemDetect(installState, emit);
-      broadcast({ type: "detection_result", data: installState.detection! });
-      completeStep(installState, "system-detect", "prerequisites");
-    }
+    broadcast({ type: "message", role: "assistant", content: `Starting ${mode} installation...` });
 
-    // Step 2: Prerequisites
-    if (!installState.completedSteps.includes("prerequisites")) {
-      await runPrerequisites(installState, emit);
-      completeStep(installState, "prerequisites", "api-keys");
+    switch (mode) {
+      case "fresh":
+        await runFreshInstall(installState, emit, requestInput, requestChoice);
+        break;
+      case "migrate":
+        await runMigration(installState, emit, requestInput, requestChoice);
+        break;
+      case "update":
+        await runUpdate(installState, emit, requestInput, requestChoice);
+        break;
     }
-
-    // Step 3: API Keys
-    if (!installState.completedSteps.includes("api-keys")) {
-      await runApiKeys(installState, emit, requestInput, requestChoice);
-      completeStep(installState, "api-keys", "identity");
-    }
-
-    // Step 4: Identity
-    if (!installState.completedSteps.includes("identity")) {
-      await runIdentity(installState, emit, requestInput);
-      completeStep(installState, "identity", "repository");
-    }
-
-    // Step 5: Repository
-    if (!installState.completedSteps.includes("repository")) {
-      await runRepository(installState, emit);
-      completeStep(installState, "repository", "configuration");
-    }
-
-    // Step 6: Configuration
-    if (!installState.completedSteps.includes("configuration")) {
-      await runConfiguration(installState, emit);
-      completeStep(installState, "configuration", "voice");
-    }
-
-    // Step 7: Voice (handles key collection + voice selection + server test)
-    if (!installState.completedSteps.includes("voice") && !installState.skippedSteps.includes("voice")) {
-      try {
-        await runVoiceSetup(installState, emit, requestChoice, requestInput);
-        if (!installState.skippedSteps.includes("voice")) {
-          completeStep(installState, "voice", "validation");
-        }
-      } catch (voiceErr: any) {
-        broadcast({ type: "error", message: `Voice setup error: ${voiceErr?.message || "Unknown error"}` });
-        broadcast({ type: "message", role: "assistant", content: "Voice setup encountered an error. Continuing with installation..." });
-        skipStep(installState, "voice", "validation", voiceErr?.message || "error");
-      }
-    }
-
-    // Step 8: Validation
-    broadcast({ type: "step_update", step: "validation", status: "active" });
-    const checks = await runValidation(installState);
-    broadcast({ type: "validation_result", checks });
-    completeStep(installState, "validation");
-    broadcast({ type: "step_update", step: "validation", status: "completed" });
 
     const summary = generateSummary(installState);
-    broadcast({ type: "install_complete", success: true, summary });
-
+    broadcast({ type: "install_complete", success: true, summary, mode });
     clearState();
   } catch (error: any) {
     broadcast({ type: "error", message: error.message });
@@ -292,7 +257,31 @@ async function startInstallation(): Promise<void> {
   }
 }
 
-// ─── Connection Management ───────────────────────────────────────
+// ─── Mode Detection ─────────────────────────────────────────────
+
+async function detectInstallMode(): Promise<"fresh" | "migrate" | "update" | null> {
+  // Check for existing PAI installation
+  const paiDir = `${process.env.HOME}/.opencode`;
+  const hasPai = await fs.exists(paiDir);
+  
+  if (!hasPai) {
+    return "fresh";
+  }
+  
+  // Check for v2 installation (claude/config.json vs opencode/settings.json)
+  const hasV2 = await fs.exists(`${paiDir}/claude/config.json`);
+  const hasV3 = await fs.exists(`${paiDir}/settings.json`);
+  
+  if (hasV2 && !hasV3) {
+    return "migrate";
+  }
+  
+  if (hasV3) {
+    return "update";
+  }
+  
+  return "fresh";
+}
 
 export function addClient(ws: any): void {
   wsClients.add(ws);

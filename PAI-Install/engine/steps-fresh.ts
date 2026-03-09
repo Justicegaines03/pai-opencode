@@ -214,6 +214,70 @@ export async function stepInstallPAI(
 }
 
 // ═══════════════════════════════════════════════════════════
+// Orchestrator: Fresh Install Flow
+// ═══════════════════════════════════════════════════════════
+
+export async function runFreshInstall(
+  state: InstallState,
+  emit: (event: any) => Promise<void>,
+  requestInput: (id: string, prompt: string, type: "text" | "password" | "key", placeholder?: string) => Promise<string>,
+  requestChoice: (id: string, prompt: string, choices: { label: string; value: string; description?: string }[]) => Promise<string>
+): Promise<void> {
+  // Step 1: Welcome / System Detection
+  emit({ event: "step_start", step: "system-detect" });
+  const { detectSystem } = await import("./detect");
+  state.detection = detectSystem();
+  emit({ event: "step_complete", step: "system-detect" });
+
+  // Step 2: Prerequisites
+  emit({ event: "step_start", step: "prerequisites" });
+  await stepPrerequisites(state, (percent, message) => {
+    emit({ event: "progress", step: "prerequisites", percent, detail: message });
+  });
+  emit({ event: "step_complete", step: "prerequisites" });
+
+  // Step 3: Provider Configuration (API Keys)
+  emit({ event: "step_start", step: "api-keys" });
+  await stepProviderConfig(state, requestChoice, requestInput, (message) => {
+    emit({ event: "message", content: message });
+  });
+  emit({ event: "step_complete", step: "api-keys" });
+
+  // Step 4: Identity
+  emit({ event: "step_start", step: "identity" });
+  await stepIdentity(state, requestInput, (message) => {
+    emit({ event: "message", content: message });
+  });
+  emit({ event: "step_complete", step: "identity" });
+
+  // Step 5: Build OpenCode
+  emit({ event: "step_start", step: "repository" });
+  const { buildOpenCodeBinary } = await import("./build-opencode");
+  await buildOpenCodeBinary(
+    { cacheBust: true },
+    (percent, message) => {
+      emit({ event: "progress", step: "repository", percent, detail: message });
+    },
+    () => Promise.resolve(false) // No skip for now
+  );
+  emit({ event: "step_complete", step: "repository" });
+
+  // Step 6: Voice Setup
+  emit({ event: "step_start", step: "voice" });
+  await stepVoice(state, requestChoice, requestInput, (message) => {
+    emit({ event: "message", content: message });
+  });
+  emit({ event: "step_complete", step: "voice" });
+
+  // Step 7: Install PAI
+  emit({ event: "step_start", step: "configuration" });
+  await stepInstallPAI(state, (percent, message) => {
+    emit({ event: "progress", step: "configuration", percent, detail: message });
+  });
+  emit({ event: "step_complete", step: "configuration" });
+}
+
+// ═══════════════════════════════════════════════════════════
 // Helper
 // ═══════════════════════════════════════════════════════════
 
