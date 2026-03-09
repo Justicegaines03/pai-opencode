@@ -22,7 +22,8 @@ import { spawn } from "bun";
 
 const PAI_DIR = join(homedir(), ".opencode");
 const BACKUP_PREFIX = ".opencode-backup-";
-const TIMESTAMP = new Date().toISOString().split("T")[0].replace(/-/g, "");
+// Use timestamp with milliseconds for uniqueness (YYYYMMDD-HHMMSS-mmm)
+const TIMESTAMP = new Date().toISOString().replace(/[:.]/g, "-").replace("T", "-").slice(0, -5);
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -48,12 +49,24 @@ interface Options {
 // ═══════════════════════════════════════════════════════════
 
 function parseArgs(): Options {
-  const args = process.argv.slice(2);
-  return {
-    dryRun: args.includes("--dry-run"),
-    force: args.includes("--force"),
-    backupDir: args.find((a) => a.startsWith("--backup-dir="))?.split("=")[1] || PAI_DIR,
-  };
+	const args = process.argv.slice(2);
+	let backupDir = PAI_DIR;
+
+	// Handle both --backup-dir=/path and --backup-dir /path
+	const backupIndex = args.findIndex((a) => a === "--backup-dir" || a.startsWith("--backup-dir="));
+	if (backupIndex !== -1) {
+		if (args[backupIndex].includes("=")) {
+			backupDir = args[backupIndex].split("=")[1];
+		} else if (args[backupIndex + 1]) {
+			backupDir = args[backupIndex + 1];
+		}
+	}
+
+	return {
+		dryRun: args.includes("--dry-run"),
+		force: args.includes("--force"),
+		backupDir,
+	};
 }
 
 function log(message: string, level: "info" | "success" | "warn" | "error" = "info") {
@@ -68,29 +81,42 @@ function log(message: string, level: "info" | "success" | "warn" | "error" = "in
 // ═══════════════════════════════════════════════════════════
 
 async function detectVersion(): Promise<string> {
-  const opencodeJson = join(PAI_DIR, "opencode.json");
-  const settingsJson = join(PAI_DIR, "settings.json");
+	const opencodeJson = join(PAI_DIR, "opencode.json");
+	const settingsJson = join(PAI_DIR, "settings.json");
 
-  if (existsSync(opencodeJson)) {
-    try {
-      const content = await Bun.file(opencodeJson).text();
-      const parsed = JSON.parse(content);
-      return parsed.pai?.version || "unknown";
-    } catch {
-      return "unknown";
-    }
-  }
+	// Check settings.json for v3 dual-config pattern
+	if (existsSync(settingsJson)) {
+		try {
+			const content = await Bun.file(settingsJson).text();
+			const parsed = JSON.parse(content);
+			// v3 has settings.json with pai section OR dual-config structure
+			if (parsed.pai?.version?.startsWith("3")) {
+				return parsed.pai.version;
+			}
+			// Check for v3 indicators: context, agent, or daidentity sections
+			if (parsed.context || parsed.agent || parsed.daidentity) {
+				return "v3-dual-config";
+			}
+		} catch {
+			// Continue to other checks
+		}
+	}
 
-  // Check for v2.x indicators (flat skill structure)
-  const skillsDir = join(PAI_DIR, "skills");
-  if (existsSync(skillsDir)) {
-    // If skills are flat (no Category/Skill nesting), it's v2
-    const entries = await Array.fromAsync(Bun.file(skillsDir).stream());
-    // Simplified: assume v2 if no version file found
-    return "2.x";
-  }
+	// Fallback to opencode.json (legacy v2 marker)
+	if (existsSync(opencodeJson)) {
+		try {
+			const content = await Bun.file(opencodeJson).text();
+			const parsed = JSON.parse(content);
+			// Only use pai.version if it looks like a real version
+			if (parsed.pai?.version && parsed.pai.version !== "unknown") {
+				return parsed.pai.version;
+			}
+		} catch {
+			return "unknown";
+		}
+	}
 
-  return "unknown";
+	return "unknown";
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -98,33 +124,45 @@ async function detectVersion(): Promise<string> {
 // ═══════════════════════════════════════════════════════════
 
 async function createBackup(backupPath: string, dryRun: boolean): Promise<void> {
-  if (dryRun) {
-    log(`[DRY-RUN] Would backup ${PAI_DIR} → ${backupPath}`, "info");
-    return;
-  }
+	// Validate backup path is not inside source directory
+	const relativePath = require("node:path").relative(PAI_DIR, backupPath);
+	if (!relativePath.startsWith("..") && !require("node:path").isAbsolute(relativePath)) {
+		throw new Error(`Backup path cannot be inside source directory: ${backupPath}`);
+	}
 
-  if (!existsSync(PAI_DIR)) {
-    throw new Error(`PAI directory not found: ${PAI_DIR}`);
-  }
+	if (dryRun) {
+		log(`[DRY-RUN] Would backup ${PAI_DIR} → ${backupPath}`, "info");
+		return;
+	}
 
-  log(`Creating backup at ${backupPath}...`, "info");
+	if (!existsSync(PAI_DIR)) {
+		throw new Error(`PAI directory not found: ${PAI_DIR}`);
+	}
 
-  // Create backup directory
-  mkdirSync(backupPath, { recursive: true });
+	log(`Creating backup at ${backupPath}...`, "info");
 
-  // Copy all files recursively (using cp -R for simplicity)
-  const proc = spawn({
-    cmd: ["cp", "-R", join(PAI_DIR, "."), backupPath],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+	// Ensure backup directory parent exists
+	const backupParent = require("node:path").dirname(backupPath);
+	if (!existsSync(backupParent)) {
+		mkdirSync(backupParent, { recursive: true });
+	}
 
-  const exitCode = await proc.exited;
-  if (exitCode !== 0) {
-    throw new Error(`Backup failed with exit code ${exitCode}`);
-  }
+	// Create backup directory
+	mkdirSync(backupPath, { recursive: true });
 
-  log(`Backup created: ${backupPath}`, "success");
+	// Copy all files recursively (using cp -R for simplicity)
+	const proc = spawn({
+		cmd: ["cp", "-R", join(PAI_DIR, "."), backupPath],
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+
+	const exitCode = await proc.exited;
+	if (exitCode !== 0) {
+		throw new Error(`Backup failed with exit code ${exitCode}`);
+	}
+
+	log(`Backup created: ${backupPath}`, "success");
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -132,30 +170,69 @@ async function createBackup(backupPath: string, dryRun: boolean): Promise<void> 
 // ═══════════════════════════════════════════════════════════
 
 async function migrateSkills(report: MigrationReport, dryRun: boolean): Promise<void> {
-  const skillsDir = join(PAI_DIR, "skills");
-  if (!existsSync(skillsDir)) {
-    report.skipped.push("skills directory not found");
-    return;
-  }
+	const skillsDir = join(PAI_DIR, "skills");
+	if (!existsSync(skillsDir)) {
+		report.skipped.push("skills directory not found");
+		return;
+	}
 
-  // Detect flat skills (v2) and convert to hierarchical (v3)
-  // This is a placeholder - actual implementation would scan and restructure
-  log("Checking skill structure...", "info");
+	log("Detecting skill structure...", "info");
 
-  // For now, just validate structure
-  const validationProc = spawn({
-    cmd: ["bun", "run", ".opencode/skills/PAI/Tools/ValidateSkillStructure.ts"],
-    cwd: PAI_DIR,
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+	// Detect flat skills (v2) vs hierarchical (v3)
+	const entries = require("node:fs").readdirSync(skillsDir, { withFileTypes: true });
+	const flatSkills = entries.filter((e) => e.isDirectory() && !e.name.startsWith("."));
 
-  const exitCode = await validationProc.exited;
-  if (exitCode === 0) {
-    report.migrated.push("Skills structure validated (already v3 compatible)");
-  } else {
-    report.manualReview.push("Skills validation failed - manual restructuring needed");
-  }
+	// Check if any skill is flat (has SKILL.md directly in skill dir, not in subdir)
+	let migratedCount = 0;
+	let alreadyHierarchical = 0;
+
+	for (const skill of flatSkills) {
+		const skillPath = join(skillsDir, skill.name);
+		const skillFiles = require("node:fs").readdirSync(skillPath);
+
+		// If SKILL.md exists directly in skill dir, it's flat (v2)
+		if (skillFiles.includes("SKILL.md")) {
+			// Check if it already has hierarchical structure (Tools/ or Workflows/)
+			if (skillFiles.includes("Tools") || skillFiles.includes("Workflows")) {
+				alreadyHierarchical++;
+				continue;
+			}
+
+			if (dryRun) {
+				log(`[DRY-RUN] Would migrate flat skill: ${skill.name}`, "info");
+			} else {
+				// Migrate flat to hierarchical: create skill dir with same name
+				const hierarchicalDir = join(skillPath, skill.name);
+				mkdirSync(hierarchicalDir, { recursive: true });
+
+				// Move SKILL.md into subdirectory
+				renameSync(join(skillPath, "SKILL.md"), join(hierarchicalDir, "SKILL.md"));
+
+				// Move any other .md files
+				for (const file of skillFiles) {
+					if (file.endsWith(".md") && file !== "SKILL.md") {
+						renameSync(join(skillPath, file), join(hierarchicalDir, file));
+					}
+				}
+
+				log(`Migrated flat skill to hierarchical: ${skill.name}`, "success");
+			}
+			migratedCount++;
+		} else {
+			// Already hierarchical (SKILL.md is in subdir)
+			alreadyHierarchical++;
+		}
+	}
+
+	if (migratedCount > 0) {
+		report.migrated.push(`${migratedCount} flat skills migrated to hierarchical structure`);
+	}
+	if (alreadyHierarchical > 0) {
+		report.skipped.push(`${alreadyHierarchical} skills already in v3 hierarchical format`);
+	}
+	if (migratedCount === 0 && alreadyHierarchical === 0) {
+		report.skipped.push("No skills to migrate");
+	}
 }
 
 async function updateMinimalBootstrap(report: MigrationReport, dryRun: boolean): Promise<void> {

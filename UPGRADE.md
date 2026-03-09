@@ -23,7 +23,7 @@ PAI-OpenCode v3.0 introduces significant architectural improvements:
 
 ```bash
 # Automatic backup created by migration script
-bun tools/migration-v2-to-v3.ts --dry-run
+bun Tools/migration-v2-to-v3.ts --dry-run
 
 # Or manual backup
 cp -r ~/.opencode ~/.opencode-backup-$(date +%Y%m%d)
@@ -41,7 +41,7 @@ Exit all OpenCode sessions before migrating.
 
 ```bash
 cd /path/to/pai-opencode
-bun tools/migration-v2-to-v3.ts
+bun Tools/migration-v2-to-v3.ts
 ```
 
 This will:
@@ -174,7 +174,7 @@ rmdir ~/.opencode/skills/Telos/Telos/
 ```bash
 # 1. Stop all OpenCode processes
 # 2. Retry migration
-bun tools/migration-v2-to-v3.ts --force
+bun Tools/migration-v2-to-v3.ts --force
 ```
 
 ### "Custom skills not found"

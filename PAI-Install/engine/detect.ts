@@ -108,9 +108,9 @@ function detectExisting(
 
   // Check for backup directories
   const backupPatterns = [
-    join(home, ".claude-backup"),
-    join(home, ".claude-old"),
-    join(home, ".claude-BACKUP"),
+    join(home, ".opencode-backup"),
+    join(home, ".opencode-old"),
+    join(home, ".opencode-BACKUP"),
   ];
   for (const bp of backupPatterns) {
     if (existsSync(bp)) {
@@ -126,7 +126,7 @@ function detectExisting(
  */
 export function detectSystem(): DetectionResult {
   const home = homedir();
-  const paiDir = join(home, ".claude");
+  const paiDir = join(home, ".opencode");
   const configDir = process.env.PAI_CONFIG_DIR || join(home, ".config", "PAI");
 
   return {

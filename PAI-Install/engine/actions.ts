@@ -14,7 +14,7 @@ import { detectSystem, validateElevenLabsKey } from "./detect";
 import { generateSettingsJson } from "./config-gen";
 
 /**
- * Search existing .claude directories and config locations for a given env key.
+ * Search existing .opencode/.claude directories and config locations for a given env key.
  * Returns the value if found, or empty string.
  */
 function findExistingEnvKey(keyName: string): string {
@@ -25,13 +25,13 @@ function findExistingEnvKey(keyName: string): string {
   searchPaths.push(join(home, ".config", "PAI", ".env"));
 
   // Check ~/.opencode/.env
-  searchPaths.push(join(home, ".claude", ".env"));
+  searchPaths.push(join(home, ".opencode", ".env"));
 
-  // Check any .claude* directories in home (old versions, backups)
+  // Check any .opencode* or .claude* directories in home (backups, old versions)
   try {
     const homeEntries = readdirSync(home);
     for (const entry of homeEntries) {
-      if (entry.startsWith(".claude") && entry !== ".claude") {
+      if ((entry.startsWith(".opencode") || entry.startsWith(".claude")) && entry !== ".opencode") {
         searchPaths.push(join(home, entry, ".env"));
         searchPaths.push(join(home, entry, ".config", "PAI", ".env"));
       }
@@ -59,7 +59,7 @@ function findExistingEnvKey(keyName: string): string {
 }
 
 /**
- * Search existing .claude directories for settings.json voice configuration.
+ * Search existing .opencode/.claude directories for settings.json voice configuration.
  * Returns { voiceId, aiName, source } if found, or null.
  */
 function findExistingVoiceConfig(): { voiceId: string; aiName: string; source: string } | null {
@@ -67,13 +67,13 @@ function findExistingVoiceConfig(): { voiceId: string; aiName: string; source: s
   const candidates: string[] = [];
 
   // Primary location first
-  candidates.push(join(home, ".claude", "settings.json"));
+  candidates.push(join(home, ".opencode", "settings.json"));
 
-  // Scan all .claude* directories (backups, renamed, etc.)
+  // Scan all .opencode* or .claude* directories (backups, old versions, etc.)
   try {
     const homeEntries = readdirSync(home);
     for (const entry of homeEntries) {
-      if (entry.startsWith(".claude") && entry !== ".claude") {
+      if ((entry.startsWith(".opencode") || entry.startsWith(".claude")) && entry !== ".opencode") {
         candidates.push(join(home, entry, "settings.json"));
       }
     }
@@ -432,7 +432,7 @@ export async function runRepository(
   emit: EngineEventHandler
 ): Promise<void> {
   await emit({ event: "step_start", step: "repository" });
-  const paiDir = state.detection?.paiDir || join(homedir(), ".claude");
+  const paiDir = state.detection?.paiDir || join(homedir(), ".opencode");
 
   if (state.installType === "upgrade") {
     await emit({ event: "progress", step: "repository", percent: 20, detail: "Existing installation found, updating..." });
@@ -474,7 +474,7 @@ export async function runRepository(
       } else {
         await emit({
           event: "message",
-          content: "Could not clone PAI repo automatically. You can clone it manually later: git clone https://github.com/danielmiessler/PAI.git ~/.claude",
+          content: "Could not clone PAI repo automatically. You can clone it manually later: git clone https://github.com/danielmiessler/PAI.git ~/.opencode",
         });
       }
     }
@@ -517,7 +517,7 @@ export async function runConfiguration(
   emit: EngineEventHandler
 ): Promise<void> {
   await emit({ event: "step_start", step: "configuration" });
-  const paiDir = state.detection?.paiDir || join(homedir(), ".claude");
+  const paiDir = state.detection?.paiDir || join(homedir(), ".opencode");
   const configDir = state.detection?.configDir || join(homedir(), ".config", "PAI");
 
   // Generate settings.json
@@ -917,7 +917,7 @@ export async function runVoiceSetup(
   }
 
   // ── Start voice server (works with or without ElevenLabs key) ──
-  const paiDir = state.detection?.paiDir || join(homedir(), ".claude");
+  const paiDir = state.detection?.paiDir || join(homedir(), ".opencode");
   await emit({ event: "progress", step: "voice", percent: 25, detail: "Starting voice server..." });
   const voiceServerReady = await startVoiceServer(paiDir, emit);
 

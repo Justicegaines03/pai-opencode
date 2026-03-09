@@ -174,12 +174,23 @@ function renderDetection(data) {
 
   const grid = document.createElement('div');
   grid.className = 'detection-grid';
-  grid.innerHTML = items.map(i =>
-    `<div class="detection-item">
-      <span class="${i.icon}">${i.icon === 'check' ? '✓' : i.icon === 'cross' ? '✗' : 'ℹ'}</span>
-      <span>${i.label}: ${i.value}</span>
-    </div>`
-  ).join('');
+  
+  items.forEach(i => {
+    const item = document.createElement('div');
+    item.className = 'detection-item';
+    
+    const iconSpan = document.createElement('span');
+    iconSpan.className = i.icon;
+    iconSpan.textContent = i.icon === 'check' ? '✓' : i.icon === 'cross' ? '✗' : 'ℹ';
+    
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = `${i.label}: ${i.value}`;
+    
+    item.appendChild(iconSpan);
+    item.appendChild(labelSpan);
+    grid.appendChild(item);
+  });
+  
   chat.appendChild(grid);
 }
 
@@ -192,14 +203,29 @@ function renderInputForm(requestId, prompt, inputType, placeholder) {
 
   const form = document.createElement('div');
   form.className = 'inline-form';
-  form.innerHTML = `
-    <label>${inputType === 'key' ? 'API Key' : 'Input'}</label>
-    <div class="form-row">
-      <input class="inline-input" type="${inputType === 'key' || inputType === 'password' ? 'password' : 'text'}"
-             placeholder="${placeholder || ''}" id="input-${requestId}" autocomplete="off">
-      <button class="inline-btn" onclick="submitInput('${requestId}')">Submit</button>
-    </div>
-  `;
+  
+  const label = document.createElement('label');
+  label.textContent = inputType === 'key' ? 'API Key' : 'Input';
+  
+  const formRow = document.createElement('div');
+  formRow.className = 'form-row';
+  
+  const input = document.createElement('input');
+  input.className = 'inline-input';
+  input.type = inputType === 'key' || inputType === 'password' ? 'password' : 'text';
+  input.placeholder = placeholder || '';
+  input.id = `input-${requestId}`;
+  input.autocomplete = 'off';
+  
+  const button = document.createElement('button');
+  button.className = 'inline-btn';
+  button.textContent = 'Submit';
+  button.onclick = () => submitInput(requestId);
+  
+  formRow.appendChild(input);
+  formRow.appendChild(button);
+  form.appendChild(label);
+  form.appendChild(formRow);
   chat.appendChild(form);
 
   // Focus input
@@ -327,11 +353,25 @@ function renderProgress(step, percent, detail) {
     const div = document.createElement('div');
     div.className = 'progress-msg';
     div.id = 'progress-' + step;
-    div.innerHTML = `
-      <div class="spinner"></div>
-      <div class="mini-bar"><div class="mini-fill" style="width:${percent}%"></div></div>
-      <span class="prog-detail">${detail}</span>
-    `;
+    
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    
+    const miniBar = document.createElement('div');
+    miniBar.className = 'mini-bar';
+    
+    const miniFill = document.createElement('div');
+    miniFill.className = 'mini-fill';
+    miniFill.style.width = percent + '%';
+    
+    const progDetail = document.createElement('span');
+    progDetail.className = 'prog-detail';
+    progDetail.textContent = detail;
+    
+    miniBar.appendChild(miniFill);
+    div.appendChild(spinner);
+    div.appendChild(miniBar);
+    div.appendChild(progDetail);
     chat.appendChild(div);
   }
   scrollToBottom();
@@ -345,13 +385,29 @@ function renderValidation(checks) {
 
   const list = document.createElement('div');
   list.className = 'validation-list';
-  list.innerHTML = checks.map(c =>
-    `<div class="validation-item">
-      <span class="v-icon">${c.passed ? '✓' : c.critical ? '✗' : '⚠'}</span>
-      <span class="v-name">${c.name}</span>
-      <span class="v-detail">${c.detail}</span>
-    </div>`
-  ).join('');
+  
+  checks.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'validation-item';
+    
+    const icon = document.createElement('span');
+    icon.className = 'v-icon';
+    icon.textContent = c.passed ? '✓' : c.critical ? '✗' : '⚠';
+    
+    const name = document.createElement('span');
+    name.className = 'v-name';
+    name.textContent = c.name;
+    
+    const detail = document.createElement('span');
+    detail.className = 'v-detail';
+    detail.textContent = c.detail;
+    
+    item.appendChild(icon);
+    item.appendChild(name);
+    item.appendChild(detail);
+    list.appendChild(item);
+  });
+  
   chat.appendChild(list);
   scrollToBottom();
 }

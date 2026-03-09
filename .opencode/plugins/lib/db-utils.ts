@@ -42,22 +42,16 @@ export async function getSessionsOlderThan(days: number): Promise<Session[]> {
 	const db = getDb();
 	if (!db) return [];
 
-	const rows = db.query`
-    SELECT id, created_at, updated_at, title
-    FROM conversations
-    WHERE updated_at < ${cutoffDate.toISOString()}
-    ORDER BY updated_at ASC
-  `;
+	const rows = db.query(
+		`SELECT id, created_at, updated_at, title\n    FROM conversations\n    WHERE updated_at < ?1\n    ORDER BY updated_at ASC`
+	).all(cutoffDate.toISOString());
 
-	const sessions: Session[] = [];
-	for (const row of rows) {
-		sessions.push({
-			id: row.id as string,
-			created_at: row.created_at as string,
-			updated_at: row.updated_at as string,
-			title: row.title as string | undefined,
-		});
-	}
+	const sessions: Session[] = rows.map((row: Record<string, unknown>) => ({
+		id: row.id as string,
+		created_at: row.created_at as string,
+		updated_at: row.updated_at as string,
+		title: row.title as string | undefined,
+	}));
 
 	return sessions;
 }
@@ -92,11 +86,11 @@ export async function archiveSessions(
 
 	for (const session of sessions) {
 		// Get full conversation data
-		const messages = db.query`
-      SELECT content FROM messages WHERE conversation_id = ${session.id}
-    `;
+		const messages = db.query(
+			"SELECT content FROM messages WHERE conversation_id = ?1"
+		).all(session.id);
 
-		const messageData = JSON.stringify(Array.from(messages));
+		const messageData = JSON.stringify(messages);
 
 		// Insert into archive
 		archiveDb.run(
@@ -123,15 +117,22 @@ export async function archiveSessions(
  * WARNING: Requires OpenCode to be stopped!
  */
 export async function vacuumDb(): Promise<void> {
-	const db = getDb();
-	if (!db) return;
+	// Open writable connection for VACUUM (cannot use readonly getDb())
+	let db;
+	try {
+		const { Database } = require("bun:sqlite");
+		db = new Database(DB_PATH, { readonly: false });
+	} catch {
+		throw new Error("Could not open database for vacuum. Is OpenCode running?");
+	}
 
-	// Check if any other processes are using the DB
 	try {
 		db.run("VACUUM");
 		fileLog("✓ Database vacuumed successfully", "info");
 	} catch (error) {
 		throw new Error(`Vacuum failed: ${error.message}. Is OpenCode running?`);
+	} finally {
+		db.close();
 	}
 }
 
