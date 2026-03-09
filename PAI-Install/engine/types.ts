@@ -94,10 +94,15 @@ export interface InstallState {
     provider?: string;
     apiKey?: string;
     modelTier?: "quick" | "standard" | "advanced";
-    models?: string[];
+    models?: {
+      quick: string;
+      standard: string;
+      advanced: string;
+    };
     voiceEnabled?: boolean;
     voiceProvider?: "elevenlabs" | "google" | "macos" | "none";
     voiceId?: string;
+    voiceApiKey?: string;
     backupPath?: string;  // For migration backup
   };
 

@@ -29,7 +29,14 @@ set -euo pipefail
 AI_NAME="{AI_NAME}"
 PAI_BIN_DIR="${HOME}/.opencode/tools"
 PAI_BIN="${PAI_BIN_DIR}/opencode"
-BREW_BIN="/usr/local/bin/opencode"
+
+# Detect Homebrew location (supports both Intel and Apple Silicon)
+BREW_BIN=""
+if [[ -x "/opt/homebrew/bin/opencode" ]]; then
+    BREW_BIN="/opt/homebrew/bin/opencode"  # Apple Silicon
+elif [[ -x "/usr/local/bin/opencode" ]]; then
+    BREW_BIN="/usr/local/bin/opencode"     # Intel Mac
+fi
 
 # Resolve PAI installation directory from ~/.opencode symlink
 PAI_INSTALL_DIR=""
@@ -78,6 +85,20 @@ rebuild() {
         echo -e "${BLUE}[${AI_NAME}]${NC} Cloning opencode source..."
         git clone https://github.com/Steffen025/opencode.git "${BUILD_DIR}" || {
             echo -e "${RED}[${AI_NAME}]${NC} Failed to clone source!"
+            return 1
+        }
+        
+        # Checkout feature/model-tiers branch
+        echo -e "${BLUE}[${AI_NAME}]${NC} Checking out feature/model-tiers branch..."
+        (cd "${BUILD_DIR}" && git fetch && git checkout feature/model-tiers) || {
+            echo -e "${RED}[${AI_NAME}]${NC} Failed to checkout feature/model-tiers branch!"
+            return 1
+        }
+        
+        # Install dependencies
+        echo -e "${BLUE}[${AI_NAME}]${NC} Installing dependencies (this may take 2-3 minutes)..."
+        (cd "${BUILD_DIR}" && bun install) || {
+            echo -e "${RED}[${AI_NAME}]${NC} Failed to install dependencies!"
             return 1
         }
     fi

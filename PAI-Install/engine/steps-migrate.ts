@@ -17,7 +17,7 @@ import type { MigrationResult } from "./migrate";
 // Step 1: Detected
 // ═══════════════════════════════════════════════════════════
 
-export interface DetectionResult {
+export interface MigrationDetectionResult {
 	needed: boolean;
 	reason?: string;
 	flatSkills?: string[];
@@ -27,7 +27,7 @@ export interface DetectionResult {
 export async function stepDetectMigration(
 	state: InstallState,
 	onProgress: (percent: number, message: string) => void
-): Promise<DetectionResult> {
+): Promise<MigrationDetectionResult> {
 	onProgress(0, "Detecting existing installation...");
 	
 	const detection = isMigrationNeeded();
