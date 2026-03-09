@@ -26,7 +26,7 @@ import { access, constants } from "node:fs/promises";
 let installState: InstallState | null = null;
 let wsClients = new Set<any>();
 let messageHistory: ServerMessage[] = [];
-let pendingRequests = new Map<string, { resolve: (value: string) => void; timeout: Timer }>();
+let pendingRequests = new Map<string, { resolve: (value: string) => void; timeout: Timer; ws?: any; inputType?: string }>();
 let installationRunning = false;
 
 // Request timeout: 5 minutes (prevent memory leaks from abandoned requests)
@@ -114,7 +114,8 @@ async function requestInput(
   id: string,
   prompt: string,
   type: "text" | "password" | "key",
-  placeholder?: string
+  placeholder?: string,
+  ws?: any
 ): Promise<string> {
   return new Promise<string>((resolve) => {
     const timeout = setTimeout(() => {
@@ -122,15 +123,26 @@ async function requestInput(
       resolve(""); // Resolve empty on timeout
     }, REQUEST_TIMEOUT_MS);
     
-    pendingRequests.set(id, { resolve, timeout });
-    broadcast({ type: "input_request", id, prompt, inputType: type, placeholder });
+    pendingRequests.set(id, { resolve, timeout, ws, inputType: type });
+    // Send only to requesting socket if provided, otherwise broadcast
+    const msg: ServerMessage = { type: "input_request", id, prompt, inputType: type, placeholder };
+    if (ws) {
+      try {
+        ws.send(JSON.stringify(msg));
+      } catch {
+        wsClients.delete(ws);
+      }
+    } else {
+      broadcast(msg);
+    }
   });
 }
 
 async function requestChoice(
   id: string,
   prompt: string,
-  choices: { label: string; value: string; description?: string }[]
+  choices: { label: string; value: string; description?: string }[],
+  ws?: any
 ): Promise<string> {
   return new Promise<string>((resolve) => {
     const timeout = setTimeout(() => {
@@ -138,8 +150,18 @@ async function requestChoice(
       resolve(""); // Resolve empty on timeout
     }, REQUEST_TIMEOUT_MS);
     
-    pendingRequests.set(id, { resolve, timeout });
-    broadcast({ type: "choice_request", id, prompt, choices });
+    pendingRequests.set(id, { resolve, timeout, ws });
+    // Send only to requesting socket if provided, otherwise broadcast
+    const msg: ServerMessage = { type: "choice_request", id, prompt, choices };
+    if (ws) {
+      try {
+        ws.send(JSON.stringify(msg));
+      } catch {
+        wsClients.delete(ws);
+      }
+    } else {
+      broadcast(msg);
+    }
   });
 }
 
@@ -215,17 +237,21 @@ export function handleWsMessage(ws: any, raw: string): void {
         clearTimeout(pending.timeout);
         pending.resolve(msg.value);
         pendingRequests.delete(msg.requestId);
-        // Only echo back to the originating socket, don't broadcast to all
-        const display = msg.value.startsWith("sk-") || msg.value.startsWith("xi-")
+        
+        // Determine if value should be masked
+        const isPassword = pending.inputType === "password" || pending.inputType === "key";
+        const isKey = msg.value.startsWith("sk-") || msg.value.startsWith("xi-");
+        const display = (isPassword || isKey)
           ? msg.value.substring(0, 8) + "..."
           : msg.value;
+          
         if (display) {
           // Send only to origin socket, not to message history
           const originMsg: ServerMessage = { type: "message", role: "system", content: display };
           try {
-            ws.send(JSON.stringify(originMsg));
+            (pending.ws || ws).send(JSON.stringify(originMsg));
           } catch {
-            wsClients.delete(ws);
+            wsClients.delete(pending.ws || ws);
           }
         }
       }
