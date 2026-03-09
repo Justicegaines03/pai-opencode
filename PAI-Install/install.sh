@@ -1,116 +1,31 @@
 #!/usr/bin/env bash
-# ═══════════════════════════════════════════════════════════
-#  PAI Installer v4.0 — Bootstrap Script
-#  Requirements: bash, curl
-#  This script bootstraps the installer by ensuring Bun is
-#  available, then hands off to the TypeScript installer.
-# ═══════════════════════════════════════════════════════════
+# PAI-OpenCode Installer Bootstrap
+#
+# WHY: Single entry point for both GUI and headless installation.
+#
+# Usage:
+#   bash install.sh                    # Launch Electron GUI (default)
+#   bash install.sh --cli [args...]  # Headless installation
+#
+
 set -euo pipefail
 
-# ─── Colors ───────────────────────────────────────────────
-BLUE='\033[38;2;59;130;246m'
-LIGHT_BLUE='\033[38;2;147;197;253m'
-NAVY='\033[38;2;30;58;138m'
-GREEN='\033[38;2;34;197;94m'
-YELLOW='\033[38;2;234;179;8m'
-RED='\033[38;2;239;68;68m'
-GRAY='\033[38;2;100;116;139m'
-STEEL='\033[38;2;51;65;85m'
-SILVER='\033[38;2;203;213;225m'
-RESET='\033[0m'
-ITALIC='\033[3m'
+# ─── Colors ────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
 
-# ─── Helpers ──────────────────────────────────────────────
-info()    { echo -e "  ${BLUE}ℹ${RESET} $1"; }
-success() { echo -e "  ${GREEN}✓${RESET} $1"; }
-warn()    { echo -e "  ${YELLOW}⚠${RESET} $1"; }
-error()   { echo -e "  ${RED}✗${RESET} $1"; }
+# ─── Helpers ───────────────────────────────────────────────
+info() { echo -e "${BLUE}[installer]${NC} $*"; }
+success() { echo -e "${GREEN}[installer]${NC} $*"; }
+warn() { echo -e "${YELLOW}[installer]${NC} $*"; }
+error() { echo -e "${RED}[installer]${NC} $*" >&2; }
 
-# ─── Banner ───────────────────────────────────────────────
-SEP="${STEEL}│${RESET}"
-BAR="${STEEL}────────────────────────${RESET}"
-
-echo ""
-echo -e "${STEEL}┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓${RESET}"
-echo ""
-echo -e "                      ${NAVY}P${RESET}${BLUE}A${RESET}${LIGHT_BLUE}I${RESET} ${STEEL}|${RESET} ${GRAY}Personal AI Infrastructure${RESET}"
-echo ""
-echo -e "                     ${ITALIC}${LIGHT_BLUE}\"Magnifying human capabilities...\"${RESET}"
-echo ""
-echo ""
-echo -e "           ${NAVY}████████████████${RESET}${LIGHT_BLUE}████${RESET}   ${SEP}  ${GRAY}\"${RESET}${LIGHT_BLUE}Lean and Mean${RESET}${GRAY}\"${RESET}"
-echo -e "           ${NAVY}████████████████${RESET}${LIGHT_BLUE}████${RESET}   ${SEP}  ${BAR}"
-echo -e "           ${NAVY}████${RESET}        ${NAVY}████${RESET}${LIGHT_BLUE}████${RESET}   ${SEP}  ${NAVY}⬢${RESET}  ${GRAY}PAI${RESET}       ${SILVER}v4.0.3${RESET}"
-echo -e "           ${NAVY}████${RESET}        ${NAVY}████${RESET}${LIGHT_BLUE}████${RESET}   ${SEP}  ${NAVY}⚙${RESET}  ${GRAY}Algo${RESET}      ${SILVER}v3.7.0${RESET}"
-echo -e "           ${NAVY}████████████████${RESET}${LIGHT_BLUE}████${RESET}   ${SEP}  ${LIGHT_BLUE}✦${RESET}  ${GRAY}Installer${RESET} ${SILVER}v4.0${RESET}"
-echo -e "           ${NAVY}████████████████${RESET}${LIGHT_BLUE}████${RESET}   ${SEP}  ${BAR}"
-echo -e "           ${NAVY}████${RESET}        ${BLUE}████${RESET}${LIGHT_BLUE}████${RESET}   ${SEP}"
-echo -e "           ${NAVY}████${RESET}        ${BLUE}████${RESET}${LIGHT_BLUE}████${RESET}   ${SEP}  ${LIGHT_BLUE}✦  Lean and Mean${RESET}"
-echo -e "           ${NAVY}████${RESET}        ${BLUE}████${RESET}${LIGHT_BLUE}████${RESET}   ${SEP}"
-echo -e "           ${NAVY}████${RESET}        ${BLUE}████${RESET}${LIGHT_BLUE}████${RESET}   ${SEP}"
-echo ""
-echo ""
-echo -e "                       ${STEEL}→${RESET} ${BLUE}github.com/danielmiessler/PAI${RESET}"
-echo ""
-echo -e "${STEEL}┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛${RESET}"
-echo ""
-
-# ─── Resolve Script Directory ─────────────────────────────
-# Follow symlinks so install.sh works from ~/.opencode/ symlink
-SOURCE="${BASH_SOURCE[0]}"
-while [ -L "$SOURCE" ]; do
-  DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
-  SOURCE="$(readlink "$SOURCE")"
-  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
-done
-SCRIPT_DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
-
-# ─── OS Detection ─────────────────────────────────────────
-OS="$(uname -s)"
-ARCH="$(uname -m)"
-
-case "$OS" in
-  Darwin) info "Platform: macOS ($ARCH)" ;;
-  Linux)  info "Platform: Linux ($ARCH)" ;;
-  *)      error "Unsupported platform: $OS"; exit 1 ;;
-esac
-
-# ─── Check curl ───────────────────────────────────────────
-if ! command -v curl &>/dev/null; then
-  error "curl is required but not found."
-  echo "  Please install curl and try again."
-  exit 1
-fi
-success "curl found"
-
-# ─── Check/Install Git ───────────────────────────────────
-if command -v git &>/dev/null; then
-  success "Git found: $(git --version 2>&1 | head -1)"
-else
-  warn "Git not found — attempting to install..."
-  if [[ "$OS" == "Darwin" ]]; then
-    if command -v brew &>/dev/null; then
-      brew install git 2>/dev/null || warn "Could not install Git via Homebrew"
-    else
-      info "Installing Xcode Command Line Tools (includes Git)..."
-      xcode-select --install 2>/dev/null || true
-      echo "  Please complete the Xcode installation and re-run this script."
-      exit 1
-    fi
-  elif [[ "$OS" == "Linux" ]]; then
-    if command -v apt-get &>/dev/null; then
-      sudo apt-get install -y git 2>/dev/null || warn "Could not install Git"
-    elif command -v yum &>/dev/null; then
-      sudo yum install -y git 2>/dev/null || warn "Could not install Git"
-    fi
-  fi
-
-  if command -v git &>/dev/null; then
-    success "Git installed: $(git --version 2>&1 | head -1)"
-  else
-    warn "Git could not be installed automatically. Please install it manually."
-  fi
-fi
+# ─── Resolve Script Directory ────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ─── Check/Install Bun ───────────────────────────────────
 if command -v bun &>/dev/null; then
@@ -152,12 +67,14 @@ fi
 info "Launching installer..."
 echo ""
 
-# Auto-detect headless/SSH environments and fall back to CLI mode
-if [ -z "${DISPLAY-}" ] && [ -z "${WAYLAND_DISPLAY-}" ] && [ "$(uname)" != "Darwin" ]; then
-    INSTALL_MODE="cli"
-    info "Headless environment detected — using CLI installer."
+# Launch mode
+if [ "${1:-}" = "--cli" ]; then
+	# Headless mode
+	shift
+	exec bun "$INSTALLER_DIR/cli/quick-install.ts" "$@"
 else
-    INSTALL_MODE="gui"
+	# GUI mode (default) - runs from electron subdirectory
+	cd "$INSTALLER_DIR/electron"
+	bun install --silent 2>/dev/null || true
+	exec bunx electron .
 fi
-
-exec bun run "$INSTALLER_DIR/main.ts" --mode "$INSTALL_MODE"

@@ -79,6 +79,7 @@ export interface InstallState {
 
   // Collected data
   collected: {
+    // v2.x properties (legacy)
     elevenLabsKey?: string;
     principalName?: string;
     timezone?: string;
@@ -88,6 +89,21 @@ export interface InstallState {
     temperatureUnit?: "fahrenheit" | "celsius";
     voiceType?: "female" | "male" | "custom";
     customVoiceId?: string;
+    
+    // v3.0 properties
+    provider?: string;
+    apiKey?: string;
+    modelTier?: "quick" | "standard" | "advanced";
+    models?: {
+      quick: string;
+      standard: string;
+      advanced: string;
+    };
+    voiceEnabled?: boolean;
+    voiceProvider?: "elevenlabs" | "google" | "macos" | "none";
+    voiceId?: string;
+    voiceApiKey?: string;
+    backupPath?: string;  // For migration backup
   };
 
   // Results
@@ -122,6 +138,8 @@ export interface PAIConfig {
 // Server → Client messages
 export type ServerMessage =
   | { type: "connected"; port: number }
+  | { type: "mode_detected"; mode: "fresh" | "migrate" | "update" | null }
+  | { type: "mode_selected"; mode: "fresh" | "migrate" | "update" }
   | { type: "step_update"; step: StepId; status: StepStatus; detail?: string }
   | { type: "detection_result"; data: DetectionResult }
   | { type: "message"; role: "assistant" | "system"; content: string; speak?: boolean }
@@ -129,13 +147,14 @@ export type ServerMessage =
   | { type: "choice_request"; id: string; prompt: string; choices: { label: string; value: string; description?: string }[] }
   | { type: "progress"; step: StepId; percent: number; detail: string }
   | { type: "voice_enabled"; enabled: boolean; mode: "elevenlabs" | "browser" | "none" }
-  | { type: "install_complete"; success: boolean; summary: InstallSummary }
+  | { type: "install_complete"; success: boolean; summary: InstallSummary; mode?: "fresh" | "migrate" | "update" }
   | { type: "validation_result"; checks: ValidationCheck[] }
   | { type: "error"; message: string; step?: StepId };
 
 // Client → Server messages
 export type ClientMessage =
   | { type: "client_ready" }
+  | { type: "select_mode"; mode: "fresh" | "migrate" | "update" }
   | { type: "user_input"; requestId: string; value: string }
   | { type: "user_choice"; requestId: string; value: string }
   | { type: "mode_select"; mode: "cli" | "web" }

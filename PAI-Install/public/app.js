@@ -10,16 +10,8 @@ let ws = null;
 let connected = false;
 let voiceEnabled = true;
 let currentAudio = null;
-let steps = [
-  { id: 'system-detect', name: 'System Detection', number: 1, status: 'pending' },
-  { id: 'prerequisites', name: 'Prerequisites', number: 2, status: 'pending' },
-  { id: 'api-keys', name: 'API Keys', number: 3, status: 'pending' },
-  { id: 'identity', name: 'Identity', number: 4, status: 'pending' },
-  { id: 'repository', name: 'PAI Repository', number: 5, status: 'pending' },
-  { id: 'configuration', name: 'Configuration', number: 6, status: 'pending' },
-  { id: 'voice', name: 'DA Voice', number: 7, status: 'pending' },
-  { id: 'validation', name: 'Validation', number: 8, status: 'pending' },
-];
+let installMode = null; // 'fresh', 'migrate', 'update'
+let steps = [];
 
 // ─── WebSocket Connection ────────────────────────────────────────
 
@@ -59,6 +51,16 @@ function handleServerMessage(msg) {
 
   switch (msg.type) {
     case 'connected':
+      break;
+
+    case 'mode_detected':
+      installMode = msg.mode;
+      renderModeSelection(msg.mode);
+      break;
+
+    case 'mode_selected':
+      setStepsForMode(msg.mode);
+      renderSteps();
       break;
 
     case 'step_update':
@@ -477,7 +479,7 @@ function renderSummary(summary) {
   addRow('AI Name', summary.aiName);
   addRow('Timezone', summary.timezone);
   addRow('Voice', summary.voiceEnabled ? summary.voiceMode : 'Disabled');
-  addRow('Install Type', summary.installType);
+  addRow('Install Type', summary.mode || summary.installType);
   
   const actionDiv = document.createElement('div');
   actionDiv.className = 'summary-action';
@@ -505,6 +507,12 @@ function renderSummary(summary) {
 // ─── Welcome Screen ──────────────────────────────────────────────
 
 function startInstall() {
+  // This is now handled by selectMode
+  console.log('Start install clicked - should use selectMode instead');
+}
+
+// Legacy - keep for compatibility but mode selection handles this now
+function legacyStartInstall() {
   const overlay = document.getElementById('welcome-overlay');
   if (overlay) overlay.classList.add('hidden');
 
@@ -533,7 +541,113 @@ function startInstall() {
 
 // ─── Utilities ───────────────────────────────────────────────────
 
-function scrollToBottom() {
+function setStepsForMode(mode) {
+  if (mode === 'fresh') {
+    steps = [
+      { id: 'system-detect', name: 'System Detection', number: 1, status: 'pending' },
+      { id: 'prerequisites', name: 'Prerequisites', number: 2, status: 'pending' },
+      { id: 'api-keys', name: 'API Keys', number: 3, status: 'pending' },
+      { id: 'identity', name: 'Identity', number: 4, status: 'pending' },
+      { id: 'repository', name: 'PAI Repository', number: 5, status: 'pending' },
+      { id: 'configuration', name: 'Configuration', number: 6, status: 'pending' },
+      { id: 'voice', name: 'DA Voice', number: 7, status: 'pending' },
+      { id: 'validation', name: 'Validation', number: 8, status: 'pending' },
+    ];
+  } else if (mode === 'migrate') {
+    steps = [
+      { id: 'backup', name: 'Backup v2 Config', number: 1, status: 'pending' },
+      { id: 'detect', name: 'Detect Current Install', number: 2, status: 'pending' },
+      { id: 'migrate-config', name: 'Migrate Configuration', number: 3, status: 'pending' },
+      { id: 'build', name: 'Build OpenCode', number: 4, status: 'pending' },
+      { id: 'verify', name: 'Verify Migration', number: 5, status: 'pending' },
+    ];
+  } else if (mode === 'update') {
+    steps = [
+      { id: 'backup', name: 'Backup Current Config', number: 1, status: 'pending' },
+      { id: 'pull', name: 'Pull Latest Changes', number: 2, status: 'pending' },
+      { id: 'rebuild', name: 'Rebuild & Verify', number: 3, status: 'pending' },
+    ];
+  }
+}
+
+function renderModeSelection(detectedMode) {
+  const overlay = document.getElementById('welcome-overlay');
+  if (!overlay) return;
+
+  // Clear the default content
+  overlay.innerHTML = '';
+
+  const logo = document.createElement('img');
+  logo.src = '/assets/pai-logo.png';
+  logo.alt = 'PAI';
+  logo.className = 'welcome-logo';
+  overlay.appendChild(logo);
+
+  const title = document.createElement('div');
+  title.className = 'welcome-title';
+  title.textContent = 'PAI Installer';
+  overlay.appendChild(title);
+
+  const subtitle = document.createElement('div');
+  subtitle.className = 'welcome-subtitle';
+  subtitle.textContent = 'Personal AI Infrastructure v4.0';
+  overlay.appendChild(subtitle);
+
+  // Mode selection
+  const modeLabel = document.createElement('div');
+  modeLabel.style.cssText = 'margin: 20px 0 10px; color: var(--text-secondary); font-size: 14px;';
+  modeLabel.textContent = detectedMode === 'fresh' 
+    ? 'No existing installation found' 
+    : detectedMode === 'migrate' 
+    ? 'Existing v2 installation detected'
+    : 'Existing v3 installation detected';
+  overlay.appendChild(modeLabel);
+
+  const buttonGroup = document.createElement('div');
+  buttonGroup.style.cssText = 'display: flex; gap: 10px; margin-top: 20px;';
+
+  if (detectedMode === 'fresh') {
+    // Only fresh install option
+    const freshBtn = createModeButton('Fresh Install', 'New installation with full setup', 'fresh', true);
+    buttonGroup.appendChild(freshBtn);
+  } else if (detectedMode === 'migrate') {
+    // v2 -> v3 migration options
+    const migrateBtn = createModeButton('Migrate from v2', 'Migrate your existing v2 configuration to v3', 'migrate', true);
+    const freshBtn = createModeButton('Fresh Install', 'Start fresh (discards v2 config)', 'fresh', false);
+    buttonGroup.appendChild(migrateBtn);
+    buttonGroup.appendChild(freshBtn);
+  } else if (detectedMode === 'update') {
+    // v3 update options
+    const updateBtn = createModeButton('Update', 'Update to latest v3.x version', 'update', true);
+    const freshBtn = createModeButton('Reinstall Fresh', 'Remove and reinstall fresh', 'fresh', false);
+    buttonGroup.appendChild(updateBtn);
+    buttonGroup.appendChild(freshBtn);
+  }
+
+  overlay.appendChild(buttonGroup);
+}
+
+function createModeButton(label, description, mode, isPrimary) {
+  const btn = document.createElement('button');
+  btn.className = isPrimary ? 'welcome-start' : 'welcome-start secondary';
+  btn.style.cssText = isPrimary ? '' : 'background: transparent; border: 1px solid var(--accent-primary); color: var(--accent-primary);';
+  btn.innerHTML = `<div style="font-weight: 600;">${label}</div><div style="font-size: 12px; opacity: 0.8; font-weight: 400;">${description}</div>`;
+  btn.onclick = () => selectMode(mode);
+  return btn;
+}
+
+function selectMode(mode) {
+  installMode = mode;
+  setStepsForMode(mode);
+  
+  const overlay = document.getElementById('welcome-overlay');
+  if (overlay) overlay.classList.add('hidden');
+
+  // Send mode selection to server
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'select_mode', mode: mode }));
+  }
+}
   const chat = document.getElementById('chat-messages');
   if (chat) {
     // Double-RAF ensures DOM has fully rendered before scrolling
