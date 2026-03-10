@@ -1,4 +1,50 @@
+---
+title: "ADR-012: Session Registry as Custom Plugin Tool"
+status: accepted
+date: 2026-03-10
+deciders: [Steffen, Jeremy]
+tags: [opencode-native, session-api, custom-tools, compaction-recovery]
+wp: WP-N1
+type: adr
+related_adrs: [ADR-001, ADR-013, ADR-015]
+---
+
 # ADR-012: Session Registry as Custom Plugin Tool
+
+## Quick Overview
+
+```
+┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│  Task Tool      │────▶│ session-registry.ts  │────▶│ Registry File   │
+│  (subagent)     │     │ (capture handler)    │     │ (JSON metadata) │
+└─────────────────┘     └──────────────────────┘     └─────────────────┘
+                                │
+                                ▼
+                       ┌──────────────────────┐
+                       │   Custom Tools       │
+                       │ • session_registry   │
+                       │ • session_results    │
+                       └──────────────────────┘
+```
+
+<details>
+<summary>Detailed Diagram</summary>
+
+```mermaid
+flowchart TB
+    Task[Task Tool Subagent Spawn] -->|tool.execute.after| Handler[session-registry.ts Handler]
+    Handler -->|Extract session_id| Registry[(Registry JSON File)]
+    Registry -->|session_registry tool| List[List Subagents]
+    Registry -->|session_results tool| Detail[Subagent Metadata + Resume Hint]
+    
+    style Task fill:#f9f,stroke:#333
+    style Handler fill:#bbf,stroke:#333
+    style Registry fill:#bfb,stroke:#333
+```
+
+</details>
+
+---
 
 **Status:** Accepted
 **Date:** 2026-03-10
@@ -22,10 +68,10 @@ After context compaction, the PAI Algorithm loses track of which subagents were 
 
 Register two custom tools via the `tool` property in `pai-unified.ts` plugin hooks:
 
-1. **`session_registry`** — Lists all subagent sessions spawned from the current session
-2. **`session_results`** — Retrieves the final output of a completed subagent session
+1. **`session_registry`** — Lists all subagent sessions spawned from the current session with their metadata (agent type, description, status)
+2. **`session_results`** — Retrieves registry metadata for a specific subagent session plus instructions on how to resume or access the full conversation
 
-Additionally, create a handler that intercepts Task tool completions (`tool.execute.after` where `tool === "task"`) to build a local registry file for fast lookups.
+Additionally, create a handler that intercepts Task tool completions (`tool.execute.after` where `tool === "task"`) to build a local registry file for fast lookups. The handler captures session_id from Task output metadata and stores it with descriptive info for later recovery.
 
 ---
 
@@ -94,11 +140,12 @@ export type PluginInput = {
  * after context compaction.
  *
  * TOOLS PROVIDED:
- * - session_registry: Lists all subagent sessions for current session
- * - session_results: Gets the final output of a completed subagent
+ * - session_registry: Lists all subagent sessions with metadata for current session
+ * - session_results: Gets registry metadata for a subagent + resume instructions
  *
  * HOOKS USED:
- * - tool.execute.after (tool === "task"): Captures session_id from Task tool output
+ * - tool.execute.after (tool === "task"): Captures session_id from Task tool output,
+ *   extracts metadata, writes to local registry file
  *
  * @module session-registry
  */
@@ -288,22 +335,24 @@ export const sessionRegistryTool = tool({
 /**
  * Tool: session_results
  *
- * Retrieves the final output of a completed subagent session.
- * The session data is stored in OpenCode's SQLite database and
- * survives context compaction.
+ * Retrieves registry metadata for a specific subagent session (agent type, description,
+ * spawn time, status) plus instructions for resuming the session. The full conversation
+ * history is stored in OpenCode's SQLite database and survives context compaction.
+ * To get the actual conversation messages, use the Task tool with the session_id.
  */
 export const sessionResultsTool = tool({
   description:
-    "Get the final output of a completed subagent session by session_id. " +
-    "Use this to retrieve results from subagents spawned earlier in the session, " +
-    "even after context compaction. Get session_ids from the session_registry tool.",
+    "Get registry metadata for a specific subagent session by session_id. " +
+    "Returns: agent type, description, model tier, status, and resume instructions. " +
+    "Use this to identify what a subagent worked on and how to access its full results. " +
+    "The full conversation history is in OpenCode's database — use Task tool with session_id to retrieve it.",
   args: {
     session_id: tool.schema
       .string()
       .describe("The session ID of the subagent (e.g., ses_abc123). Get IDs from session_registry."),
   },
   async execute(args: { session_id: string }, context: ToolContext): Promise<string> {
-    // Read the registry file for the session_id to get stored info
+    // Read the registry file to get stored metadata for this session
     const registry = readRegistry(context.sessionID);
     const entry = registry.entries.find((e) => e.sessionId === args.session_id);
 
@@ -311,10 +360,9 @@ export const sessionResultsTool = tool({
       return `Session ${args.session_id} not found in the registry for this session. Use session_registry to see available sessions.`;
     }
 
-    // Read the subagent's output from the state directory
-    // Note: We store basic info in the registry. For full message retrieval
-    // we would need the SDK client, which is available via ctx in pai-unified.ts.
-    // For now, return the registry info + point to the session.
+    // Return registry metadata + resume instructions
+    // Note: Full conversation is in OpenCode's DB. To retrieve actual messages,
+    // use Task({ session_id, prompt: "Summarize your work" }) or access via SDK.
     return [
       `## Subagent Session: ${args.session_id}`,
       "",
@@ -324,8 +372,8 @@ export const sessionResultsTool = tool({
       `**Spawned:** ${entry.spawnedAt}`,
       `**Status:** ${entry.status}`,
       "",
-      `To resume this session or get full conversation history, use:`,
-      `Task({ session_id: "${args.session_id}", prompt: "Continue where you left off" })`,
+      `**To resume this session or get full conversation history:**`,
+      `Task({ session_id: "${args.session_id}", prompt: "Continue where you left off and summarize what you did" })`,
     ].join("\n");
   },
 });

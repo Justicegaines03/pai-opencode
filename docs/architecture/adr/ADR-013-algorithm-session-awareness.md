@@ -1,4 +1,52 @@
+---
+title: "ADR-013: Algorithm Session Awareness Post-Compaction"
+status: accepted
+date: 2026-03-10
+deciders: [Steffen, Jeremy]
+tags: [opencode-native, algorithm, compaction-recovery, agents-md]
+wp: WP-N3
+type: adr
+related_adrs: [ADR-012, ADR-015]
+---
+
 # ADR-013: Algorithm Session Awareness Post-Compaction
+
+## Quick Overview
+
+```
+┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│  AGENTS.md      │────▶│ Session Recovery     │────▶│ Algorithm       │
+│  (docs)         │     │ Section              │     │ Uses Tools      │
+└─────────────────┘     └──────────────────────┘     └─────────────────┘
+                                │
+                                ▼
+                       ┌──────────────────────┐
+                       │  Custom Tools        │
+                       │ • session_registry   │
+                       │ • session_results    │
+                       └──────────────────────┘
+```
+
+<details>
+<summary>Detailed Diagram</summary>
+
+```mermaid
+flowchart LR
+    ADR[ADR-012<br/>Session Registry Tools] -->|Provides| Tools[session_registry<br/>session_results]
+    Tools -->|Documented in| AGENTS[AGENTS.md<br/>New Section]
+    SKILL[Algorithm SKILL.md<br/>CONTEXT RECOVERY] -->|References| Tools
+    AGENTS -->|Teaches| Algorithm[PAI Algorithm]
+    Algorithm -->|Calls| PostCompaction[Post-Compaction Recovery]
+    
+    style ADR fill:#f9f,stroke:#333
+    style Tools fill:#bbf,stroke:#333
+    style AGENTS fill:#bfb,stroke:#333
+    style SKILL fill:#bfb,stroke:#333
+```
+
+</details>
+
+---
 
 **Status:** Accepted
 **Date:** 2026-03-10

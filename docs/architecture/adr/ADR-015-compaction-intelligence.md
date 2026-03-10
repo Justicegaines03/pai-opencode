@@ -1,4 +1,57 @@
+---
+title: "ADR-015: Compaction Intelligence via Plugin Hook"
+status: accepted
+date: 2026-03-10
+deciders: [Steffen, Jeremy]
+tags: [opencode-native, compaction, context-preservation, session-api]
+wp: WP-N2
+type: adr
+related_adrs: [ADR-012, ADR-013]
+---
+
 # ADR-015: Compaction Intelligence via Plugin Hook
+
+## Quick Overview
+
+```
+┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│  Compaction     │────▶│ compaction-          │────▶│ Injected        │
+│  Triggered      │     │ intelligence.ts    │     │ Context         │
+└─────────────────┘     └──────────────────────┘     └─────────────────┘
+                                │
+          ┌─────────────────────┼─────────────────────┐
+          ▼                     ▼                     ▼
+   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+   │ Registry     │    │ PRD + ISC    │    │ Algorithm    │
+   │ (subagents)  │    │ (status)     │    │ State        │
+   └──────────────┘    └──────────────┘    └──────────────┘
+```
+
+<details>
+<summary>Detailed Diagram</summary>
+
+```mermaid
+flowchart TB
+    Trigger[Compaction Triggered] -->|experimental.session.compacting| Handler[compaction-intelligence.ts]
+    
+    Handler -->|Calls| Reg[buildRegistryContext<br/>from ADR-012]
+    Handler -->|Calls| PRD[buildPrdContext<br/>PRD Status + ISC]
+    Handler -->|Calls| Alg[buildAlgorithmContext<br/>Phase/Effort Level]
+    
+    Reg -->|Injects| Context[Summary Context Array]
+    PRD -->|Injects| Context
+    Alg -->|Injects| Context
+    
+    Context -->|LLM Summarizes| Summary[Compaction Summary<br/>with PAI State]
+    
+    style Trigger fill:#f9f,stroke:#333
+    style Handler fill:#bbf,stroke:#333
+    style Context fill:#bfb,stroke:#333
+```
+
+</details>
+
+---
 
 **Status:** Accepted
 **Date:** 2026-03-10

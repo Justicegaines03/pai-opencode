@@ -1,4 +1,58 @@
+---
+title: "ADR-014: LSP-Native Code Navigation"
+status: accepted
+date: 2026-03-10
+deciders: [Steffen, Jeremy]
+tags: [opencode-native, lsp, code-navigation, developer-experience]
+wp: WP-N4
+type: adr
+related_adrs: [ADR-008]
+---
+
 # ADR-014: LSP-Native Code Navigation
+
+## Quick Overview
+
+```
+┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│  OpenCode LSP   │────▶│ Environment Variable │────▶│ PAI Algorithm   │
+│  (35+ servers)  │     │ OPENCODE_EXPERIMENTAL│     │ Uses LSP Tools  │
+└─────────────────┘     └──────────────────────┘     └─────────────────┘
+                                │
+                                ▼
+                       ┌──────────────────────┐
+                       │  LSP Tools           │
+                       │ • goToDefinition     │
+                       │ • findReferences     │
+                       │ • hover              │
+                       │ • callHierarchy      │
+                       └──────────────────────┘
+```
+
+<details>
+<summary>Detailed Diagram</summary>
+
+```mermaid
+flowchart TB
+    LSP[OpenCode LSP<br/>35+ Language Servers] -->|Requires| Env[OPENCODE_EXPERIMENTAL_LSP_TOOL=true]
+    Env -->|Set in| Install[PAI-Install<br/>engine/steps-fresh.ts]
+    Install -->|Documented in| AGENTS[AGENTS.md<br/>Code Navigation Section]
+    AGENTS -->|Guides| Algorithm[PAI Algorithm]
+    Algorithm -->|Uses| Tools[LSP Tools]
+    
+    Tools --> goTo[goToDefinition]
+    Tools --> findRef[findReferences]
+    Tools --> hover[hover]
+    Tools --> call[callHierarchy]
+    
+    style LSP fill:#f9f,stroke:#333
+    style Env fill:#bbf,stroke:#333
+    style Tools fill:#bfb,stroke:#333
+```
+
+</details>
+
+---
 
 **Status:** Accepted
 **Date:** 2026-03-10
