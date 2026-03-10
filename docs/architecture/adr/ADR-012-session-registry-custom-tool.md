@@ -391,7 +391,7 @@ export function buildRegistryContext(sessionId: string): string | null {
     "",
     "The following subagent sessions were spawned during this session.",
     "Their data is stored in OpenCode's database and survives compaction.",
-    "Use `session_registry` tool to list them, `session_results` to retrieve output.",
+    "Use `session_registry` tool to list them, `session_results` to view metadata and resume hints.",
     "",
   ];
 

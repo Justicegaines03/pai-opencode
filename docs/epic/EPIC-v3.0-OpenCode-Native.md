@@ -18,7 +18,7 @@ tags: [architecture, opencode-native, v3.0, refactoring, epic]
 
 ## 📊 Current State (2026-03-10)
 
-All original WPs completed and merged:
+Current status of original WPs:
 
 | WP | Name | PR | Status |
 |----|------|----|--------|
@@ -418,9 +418,9 @@ flowchart TD
     E --> N1
     N1 --> N2
     N1 --> N3
+    N1 --> N5
     N2 --> N3
     N3 --> N4
-    N4 --> N5
 ```
 
 </details>
