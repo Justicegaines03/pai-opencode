@@ -38,6 +38,7 @@ interface SubagentRegistry {
 	parentSessionId: string;
 	entries: SubagentEntry[];
 	updatedAt: string;
+	version: number;
 }
 
 // --- Registry File Operations ---
@@ -50,7 +51,12 @@ function readRegistry(sessionId: string): SubagentRegistry {
 	const filePath = getRegistryPath(sessionId);
 	if (fs.existsSync(filePath)) {
 		try {
-			return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+			const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+			// Ensure version field exists (for backward compatibility)
+			if (typeof data.version !== "number") {
+				data.version = 0;
+			}
+			return data;
 		} catch {
 			// Corrupted file — start fresh
 		}
@@ -59,16 +65,34 @@ function readRegistry(sessionId: string): SubagentRegistry {
 		parentSessionId: sessionId,
 		entries: [],
 		updatedAt: new Date().toISOString(),
+		version: 0,
 	};
 }
 
-function writeRegistryAtomic(sessionId: string, registry: SubagentRegistry): boolean {
+/**
+ * Write registry with compare-and-swap semantics.
+ * Only writes if the current on-disk version matches expectedVersion.
+ * Returns true if write succeeded, false if version mismatch (caller should retry).
+ */
+function writeRegistryAtomic(
+	sessionId: string,
+	registry: SubagentRegistry,
+	expectedVersion: number,
+): boolean {
 	const filePath = getRegistryPath(sessionId);
 	const dir = path.dirname(filePath);
 	const tempPath = `${filePath}.tmp.${Date.now()}`;
 
 	if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
+	// Check current version before writing (compare-and-swap)
+	const current = readRegistry(sessionId);
+	if (current.version !== expectedVersion) {
+		return false; // Version mismatch - caller should retry
+	}
+
+	// Increment version for new write
+	registry.version = expectedVersion + 1;
 	registry.updatedAt = new Date().toISOString();
 
 	try {
@@ -86,25 +110,34 @@ function writeRegistryAtomic(sessionId: string, registry: SubagentRegistry): boo
 	}
 }
 
-// Legacy non-atomic write for compatibility
+// Legacy non-atomic write for compatibility (no CAS check)
 function writeRegistry(sessionId: string, registry: SubagentRegistry): void {
-	writeRegistryAtomic(sessionId, registry);
+	const current = readRegistry(sessionId);
+	writeRegistryAtomic(sessionId, registry, current.version);
 }
 
 // --- Task Tool Output Parser ---
 
 /**
- * Sanitize text for Markdown table cells.
+ * Sanitize text for Markdown display.
  * - Replace newlines with spaces
- * - Escape pipe characters
+ * - Collapse consecutive whitespace
+ * - Trim
+ * - Escape pipe characters (for tables)
  * - Truncate to max length
  */
-function sanitizeForTable(text: string, maxLength = 60): string {
-	return text
+function sanitizeForMarkdown(text: string, maxLength = 60, escapePipes = true): string {
+	let sanitized = text
 		.replace(/\r\n/g, " ")
 		.replace(/\n/g, " ")
-		.replace(/\|/g, "\\|")
-		.substring(0, maxLength);
+		.replace(/\s+/g, " ")
+		.trim();
+
+	if (escapePipes) {
+		sanitized = sanitized.replace(/\|/g, "\\|");
+	}
+
+	return sanitized.substring(0, maxLength);
 }
 
 /**
@@ -180,12 +213,13 @@ export async function captureSubagentSession(
 
 		const taskInfo = extractTaskInfo(args);
 
-		// Retry loop for atomic update (handles concurrent writes)
-		let retries = 3;
+		// Retry loop with compare-and-swap for atomic updates
+		let retries = 5;
 		while (retries > 0) {
 			const registry = readRegistry(sessionId);
+			const expectedVersion = registry.version;
 
-			// Avoid duplicates
+			// Avoid duplicates (check if already registered)
 			if (registry.entries.some((e) => e.sessionId === childSessionId)) {
 				fileLog(
 					`[SessionRegistry] Session ${childSessionId} already registered`,
@@ -203,20 +237,20 @@ export async function captureSubagentSession(
 				status: "completed",
 			});
 
-			// Atomic write with retry on failure
-			if (writeRegistryAtomic(sessionId, registry)) {
+			// Compare-and-swap write
+			if (writeRegistryAtomic(sessionId, registry, expectedVersion)) {
 				fileLog(
-					`[SessionRegistry] Registered ${taskInfo.agentType} subagent: ${childSessionId} (${registry.entries.length} total)`,
+					`[SessionRegistry] Registered ${taskInfo.agentType} subagent: ${childSessionId} (${registry.entries.length} total, v${expectedVersion + 1})`,
 					"info",
 				);
 				return;
 			}
 
-			// Retry after short delay
+			// CAS failed - version mismatch, retry after delay
 			retries--;
 			if (retries > 0) {
 				fileLog(
-					`[SessionRegistry] Registry write conflict, retrying... (${retries} left)`,
+					`[SessionRegistry] Registry version conflict, re-reading and retrying... (${retries} left)`,
 					"warn",
 				);
 				await new Promise((r) => setTimeout(r, 50));
@@ -225,7 +259,7 @@ export async function captureSubagentSession(
 
 		fileLogError(
 			"[SessionRegistry] Failed to write registry after retries",
-			new Error("Atomic write failed"),
+			new Error("Compare-and-swap failed"),
 		);
 	} catch (error) {
 		fileLogError("[SessionRegistry] Failed to capture subagent session", error);
@@ -263,7 +297,7 @@ export const sessionRegistryTool = tool({
 		for (let i = 0; i < registry.entries.length; i++) {
 			const e = registry.entries[i];
 			lines.push(
-				`| ${i + 1} | ${e.agentType} | ${e.sessionId} | ${sanitizeForTable(e.description, 60)} | ${e.spawnedAt} |`,
+				`| ${i + 1} | ${e.agentType} | ${e.sessionId} | ${sanitizeForMarkdown(e.description, 60, true)} | ${e.spawnedAt} |`,
 			);
 		}
 
@@ -345,8 +379,9 @@ export function buildRegistryContext(sessionId: string): string | null {
 	];
 
 	for (const e of registry.entries) {
+		const sanitizedDesc = sanitizeForMarkdown(e.description, 80, false);
 		lines.push(
-			`- **${e.agentType}** (${e.sessionId}): ${e.description.substring(0, 80)}`,
+			`- **${e.agentType}** (${e.sessionId}): ${sanitizedDesc}`,
 		);
 	}
 
