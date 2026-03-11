@@ -357,14 +357,77 @@ doesn't *know* these tools exist. It won't use `session_registry` unless it's ta
 2. **Update `docs/epic/OPTIMIZED-PR-PLAN.md`:**
    - Mark PR #45, #47 as MERGED
    - Mark PR #48 as IN REVIEW
-   - Add PRs #N1–#N4 as upcoming
+   - Add PRs #N1–#N5 as upcoming
 
 3. **Update `docs/epic/TODO-v3.0.md`:**
    - Mark WP-C and WP-D tasks as complete
-   - Add WP-N task lists
+   - Add WP-N1 through WP-N6 task lists
 
 4. **Update `docs/architecture/adr/README.md`:**
-   - Add ADR-012 through ADR-016 to index
+   - Add ADR-012 through ADR-017 to index
+
+---
+
+### WP-N6: System Self-Awareness (P2 — Algorithm Introspection)
+**Effort:** 3-4h | **Branch:** `feature/wp-n6-system-awareness`
+
+**The Problem:** The Algorithm has WP-N1 tools (session recovery) and WP-N4 tools (LSP, Fork), but doesn't have a **systematic understanding** of its own operating environment. When unexpected behavior occurs, it cannot self-diagnose.
+
+**The Vision:** An OpenCodeSystem Skill that acts as the Algorithm's "operating system manual" — available both to the Algorithm (for self-awareness) and to human users (for reference).
+
+**Deliverables:**
+
+1. **New Skill:** `.opencode/skills/OpenCodeSystem/SKILL.md`
+   - **USE WHEN triggers:**
+     - "How does X work in OpenCode?"
+     - Unexpected behavior with tools/bash
+     - System errors, paths not found
+     - "Which tools do I have available?"
+     - Questions about configuration (models, settings, etc.)
+   - **Capabilities documented:**
+     - Tool registry (task, skill, bash, read, write, edit, mcp_*)
+     - Bash environment (stateless, workdir parameter, PAI_CONTEXT env)
+     - Configuration (settings.json, opencode.json, model routing)
+     - Data locations (MEMORY/, STATE/, WORK/, LEARNING/)
+     - Best practices (Bun not npm, Tabs not spaces, etc.)
+     - Troubleshooting checklist
+
+2. **System Architecture Doc:** `SystemArchitecture.md`
+   - How PAI-OpenCode 3.0 is structured
+   - Plugin system, hooks, custom tools
+   - Interaction between OpenCode core and PAI plugins
+
+3. **Tool Reference:** `ToolReference.md`
+   - All available native OpenCode tools
+   - When to use which (decision matrix)
+   - MCP tools inventory with examples
+
+4. **Configuration Guide:** `Configuration.md`
+   - Model tiers: quick/standard/advanced with use cases
+   - opencode.json structure (agents, routing, model tiers)
+   - settings.json (user preferences, API keys)
+
+5. **Troubleshooting Flowchart:** `Troubleshooting.md`
+   - Self-diagnostic checklist for the Algorithm
+   - Common errors and resolutions
+   - "When stuck → consult OpenCodeSystem Skill"
+
+6. **New ADR:** `docs/architecture/adr/ADR-017-system-self-awareness.md`
+   - Decision: Algorithm should have introspection capability
+   - Pattern: System Skill as self-documentation mechanism
+   - Future: Auto-updating when new tools/features added
+
+**Verification:**
+- Skill responds correctly to "How do I use bash?" → Stateless, workdir required
+- Skill responds to "Where is data stored?" → .opencode/MEMORY/STATE/
+- Skill responds to "What models available?" → quick/standard/advanced routing
+- When Algorithm encounters error → can consult skill for diagnosis
+- No "magic constants" in Algorithm — all paths/configs reference skill
+
+**Integration with WP-N3:**
+- WP-N3 teaches Algorithm: "Use session_registry after compaction"
+- WP-N6 teaches Algorithm: "Understand your entire environment"
+- Together: Complete Algorithm awareness (tools + system)
 
 ---
 
@@ -377,31 +440,42 @@ doesn't *know* these tools exist. It won't use `session_registry` unless it's ta
 | 🔴 P0 | WP-N3 | Algorithm knows tools | 2-3h | Algorithm uses new capabilities |
 | 🟡 P1 | WP-N4 | LSP + Fork | 2h | Code navigation + safe experiments |
 | 🟡 P1 | WP-N5 | Plan updated | 1h | Single source of truth |
+| 🟢 P2 | WP-N6 | System Self-Awareness | 3-4h | Algorithm understands its OS |
 
-**Total effort:** ~12-16h for full OpenCode-native transformation
+**Total effort:** ~15-20h for full OpenCode-native transformation
 
 ---
 
-## 🔄 Dependency Graph
+## 🔄 Dependency Graph (Sequential Execution)
 
 ```text
-WP-E (PR #48 — Installer Refactor) — IN REVIEW, independent
+WP-E (PR #48 — Installer Refactor) — MERGED
     │
     ▼
-WP-N1 (Session Registry)           ← No dependencies
+WP-N1 (Session Registry) ✅ COMPLETE
     │
-    ├──► WP-N2 (Compaction Intelligence) ← Reads registry output
-    │         │
-    ├──► WP-N3 (Algorithm Awareness) ← Documents N1+N2 tools
+    ├──► WP-N2 (Compaction Intelligence) ← Next
     │         │
     │         ▼
-    │     WP-N4 (LSP + Fork)  ← Independent, can parallel with N2/N3
+    │     WP-N3 (Algorithm Awareness)
     │         │
-    │         ▼
-    │     WP-N5 (Plan Update) ← Parallel docs work (part of N1)
+    │         ├──► WP-N4 (LSP + Fork)
+    │         │         │
+    │         │         ▼
+    │         │     WP-N5 (Plan Update)
+    │         │         │
+    │         │         ▼
+    │         └──► WP-N6 (System Self-Awareness) ← Final step
     │
-    └──► (All N2–N5 can run in parallel once N1 starts)
+    └──► (Sequential: N2 → N3 → N4 → N5 → N6)
 ```
+
+**Execution Order:**
+1. **WP-N2** (Compaction) — Uses N1 registry, injects into summaries
+2. **WP-N3** (Session Awareness) — Algorithm learns session tools
+3. **WP-N4** (LSP + Fork) — Algorithm learns navigation + experiments  
+4. **WP-N5** (Plan Update) — Documentation sync
+5. **WP-N6** (System Awareness) — Algorithm learns its environment
 
 <details>
 <summary>Detailed Mermaid Diagram</summary>
@@ -409,18 +483,19 @@ WP-N1 (Session Registry)           ← No dependencies
 ```mermaid
 flowchart TD
     E["WP-E (PR #48 — Installer Refactor)"]
-    N1["WP-N1 (Session Registry)"]
+    N1["WP-N1 (Session Registry) ✅"]
     N2["WP-N2 (Compaction Intelligence)"]
     N3["WP-N3 (Algorithm Awareness)"]
     N4["WP-N4 (LSP + Fork)"]
     N5["WP-N5 (Plan Update)"]
+    N6["WP-N6 (System Self-Awareness)"]
 
     E --> N1
     N1 --> N2
-    N1 --> N3
-    N1 --> N5
     N2 --> N3
     N3 --> N4
+    N4 --> N5
+    N5 --> N6
 ```
 
 </details>
@@ -436,12 +511,13 @@ flowchart TD
 | ADR-014 | LSP-Native Code Navigation | WP-N4 | Code understanding |
 | ADR-015 | Compaction Intelligence via Plugin Hook | WP-N2 | Memory preservation |
 | ADR-016 | Session Fork for Experiment Isolation | WP-N4 | Safe experiments |
+| ADR-017 | System Self-Awareness for Algorithm Introspection | WP-N6 | Self-diagnostic capability |
 
 ---
 
 ## ✅ What v3.0 Native Means
 
-When WP-N1 through WP-N4 are complete, PAI-OpenCode v3.0 will:
+When WP-N1 through WP-N6 are complete, PAI-OpenCode v3.0 will:
 
 | Before (Port) | After (Native) |
 |---------------|----------------|
@@ -450,7 +526,9 @@ When WP-N1 through WP-N4 are complete, PAI-OpenCode v3.0 will:
 | Grep for everything | LSP for symbol navigation, Grep for text search |
 | Experiments = risky | Session fork = safe checkpoint/rollback |
 | 0 custom tools | 2 custom tools (`session_registry`, `session_results`) |
-| 11 ADRs about porting | 16 ADRs — 11 port + 5 native |
+| 11 ADRs about porting | 17 ADRs — 11 port + 6 native |
+| Algorithm asks "How do I...?" | Algorithm consults OpenCodeSystem Skill for self-diagnosis |
+| Hard-coded paths/configs | Algorithm reads from centralized system documentation |
 
 **That is the difference between a port and a native system.**
 
@@ -458,9 +536,9 @@ When WP-N1 through WP-N4 are complete, PAI-OpenCode v3.0 will:
 
 ## 🚀 Next Actions
 
-1. **Merge PR #48** (WP-E) — unblock the branch
-2. **Start WP-N1** (`feature/wp-n1-session-registry`) — highest impact, enables N2+N3
-3. **Parallel: WP-N5** — update plan docs so team has single source of truth
+1. **Merge PR #50** (WP-N1) — ✅ COMPLETE, ready to merge
+2. **Start WP-N2** (`feature/wp-n2-compaction-intelligence`) — highest priority next
+3. **Sequentially:** N2 → N3 → N4 → N5 → N6
 
 ---
 
