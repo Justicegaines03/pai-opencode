@@ -224,11 +224,14 @@ loopStatus: null
 last_phase: null
 failing_criteria: []
 verification_summary: "0/0"
+parent_session_id: {OpenCode session ID}  # ← Key for subagent recovery
 parent: null
 children: []
 ---
 ```
 The effort level defaults to `Standard` here and gets refined later in OBSERVE after reverse engineering.
+
+**Critical:** The `parent_session_id` field captures the OpenCode session ID at PRD creation. This single ID enables recovery of ALL subagent sessions via `session_registry` after compaction.
 
 **Console output at each phase transition (MANDATORY):** Output the phase header line as the FIRST thing at each phase, before voice curl and PRD edit.
 
@@ -452,11 +455,46 @@ Fill in all bracketed values from the current session. `implied_sentiment` is yo
 
 ### Context Recovery
 
-If after compaction you don't know your current phase or criteria status:
-1. Read the most recent PRD from `~/.opencode/MEMORY/WORK/` (by mtime) — it has all state
-2. PRD frontmatter has `phase`, `progress` (legacy) or `last_phase`, `verification_summary` (v1.0.0 canonical), `effort_level`, `mode`, `task`/`id`, `slug`, `started`/`created`, `updated` (optional: `iteration`)
-3. PRD body has criteria checkboxes, decisions, verification evidence
-4. `~/.opencode/MEMORY/STATE/work.json` has the registry of all sessions (populated by read-only PRDSync + PRDStateSync hooks)
+**Recovery Mode Detection (check FIRST — before searching):**
+
+- **POST-COMPACTION:** Context was compressed mid-session →
+  1. **Read PRD frontmatter** — get `parent_session_id` (the OpenCode session ID)
+  2. **Call `session_registry`** with the context — lists all subagents for this parent session
+  3. **Call `session_results(session_id)`** for any subagent results needed
+  4. Run env var/shell state audit: verify auth tokens, working directory
+  5. Read ISC criteria from PRD body
+  6. **NEVER claim "subagent results are lost"** — they survive compaction in OpenCode's SQLite database, indexed by `parent_id`
+
+- **SAME-SESSION:** Task was worked on earlier THIS session (in working memory) → Skip search entirely. Use working memory context directly.
+
+- **POST-COMPACTION (legacy fallback):** If session tools unavailable →
+  1. Read the most recent PRD from `~/.opencode/MEMORY/WORK/` (by mtime) — it has all state
+  2. PRD frontmatter has `phase`, `progress` (legacy) or `last_phase`, `verification_summary` (v1.0.0 canonical), `effort_level`, `mode`, `task`/`id`, `slug`, `started`/`created`, `updated` (optional: `iteration`)
+  3. PRD body has criteria checkboxes, decisions, verification evidence
+  4. `~/.opencode/MEMORY/STATE/work.json` has the registry of all sessions (populated by read-only PRDSync + PRDStateSync hooks)
+
+**Subagent Session Recovery Tools (OpenCode-Native):**
+
+OpenCode stores ALL subagent sessions persistently, indexed by `parent_id`. Data SURVIVES compaction:
+
+- **PRD stores:** `parent_session_id` — The OpenCode session ID (one per Algorithm run)
+- **`session_registry`** — Lists all subagent sessions for a given parent session
+- **`session_results(session_id)`** — Gets output from a specific subagent
+
+**Recovery Flow:**
+```json
+// Step 1: Read PRD frontmatter → get parent_session_id
+// Step 2: List all subagents for this session
+session_registry: {}
+
+// Step 3: Get specific subagent results  
+session_results: { "session_id": "ses_child456" }
+```
+
+**Key Principle:** 
+- One `parent_session_id` in PRD frontmatter
+- Zero-to-many child sessions in OpenCode's SQLite (indexed by `parent_id`)
+- Subagent data is NEVER lost during compaction
 
 ### PRD.md Format
 
