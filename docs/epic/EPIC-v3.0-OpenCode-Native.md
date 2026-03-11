@@ -174,6 +174,7 @@ Works well, but doesn't adapt to task type within an agent.
 ## 🟢 The Fix: Five New Work Packages
 
 ### WP-N1: Session Registry (P0 — Critical)
+**Status:** ✅ Complete — PR #50 merged into `dev`
 **Effort:** 3-4h | **Branch:** `feature/wp-n1-session-registry`
 
 **Deliverables:**
@@ -218,6 +219,7 @@ Works well, but doesn't adapt to task type within an agent.
 ---
 
 ### WP-N2: Compaction Intelligence (P0 — Critical)
+**Status:** ✅ Complete — PR #51 merged into `dev`
 **Effort:** 4-6h | **Branch:** `feature/wp-n2-compaction-intelligence`
 
 **The Problem in Detail:**
@@ -278,6 +280,7 @@ so the LLM *includes* this critical context in its summary.
 ---
 
 ### WP-N3: Algorithm Awareness Update (P0 — Critical)
+**Status:** ✅ Complete — PR #52+#53 merged into `dev`
 **Effort:** 2-3h | **Branch:** `feature/wp-n3-algorithm-awareness`
 
 **The Problem:** Even with WP-N1 and WP-N2 implemented, the Algorithm (AGENTS.md + PAI skill)
@@ -318,6 +321,7 @@ doesn't *know* these tools exist. It won't use `session_registry` unless it's ta
 ---
 
 ### WP-N4: LSP + Fork Documentation (P1)
+**Status:** ✅ Complete — PR #53 merged into `dev`
 **Effort:** 2h | **Branch:** `feature/wp-n4-lsp-fork`
 
 **Deliverables:**
@@ -345,6 +349,7 @@ doesn't *know* these tools exist. It won't use `session_registry` unless it's ta
 ---
 
 ### WP-N5: Epic + Plan Update (P1 — Documentation)
+**Status:** 🔄 In Progress — PR #54 (this WP)
 **Effort:** 1h | **Branch:** part of WP-N1 (parallel documentation work)
 
 **Deliverables:**
