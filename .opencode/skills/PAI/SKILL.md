@@ -259,7 +259,7 @@ OUTPUT:
 - Edit the stub PRD.md (already created at Algorithm entry) to add full content — update frontmatter `effort_level` field with the determined effort level, and add sections (Context, Criteria, Decisions, Verification)
 - Add criteria as `- [ ] ISC-1: criterion text` checkboxes directly in the PRD's `## Criteria` section
 - **Apply the Splitting Test** to every criterion before writing. Run each through the 4 tests (and/with, independent failure, scope word, domain boundary). Split any compound criteria into atomics.
-- Set frontmatter `progress: 0/N` where N = total criteria count
+- Set frontmatter `verification_summary: "0/N"` where N = total criteria count (Legacy: `progress: 0/N` → migrate to `verification_summary`)
 - **WRITE TO PRD (MANDATORY):** Write context directly into the PRD's `## Context` section describing what this task is, why it matters, what was requested and not requested.
 
 OUTPUT:
@@ -366,7 +366,7 @@ You have up to 4 hours to do this."
 
 ━━━ 🧠 THINK ━━━ 2/7
 
-**FIRST ACTION:** Voice announce `"Entering the Think phase."`, then Edit PRD frontmatter `phase: think, updated: {timestamp}`. Pressure test and enhance the ISC:
+**FIRST ACTION:** Voice announce `"Entering the Think phase."`, then Edit PRD frontmatter `last_phase: think, updated: {timestamp}`. Pressure test and enhance the ISC:
 
 OUTPUT:
 
@@ -379,7 +379,7 @@ OUTPUT:
 
 ━━━ 📋 PLAN ━━━ 3/7
 
-**FIRST ACTION:** Voice announce `"Entering the Plan phase."`, then Edit PRD frontmatter `phase: plan, updated: {timestamp}`.
+**FIRST ACTION:** Voice announce `"Entering the Plan phase."`, then Edit PRD frontmatter `last_phase: plan, updated: {timestamp}`.
 
 OUTPUT:
 
@@ -393,21 +393,21 @@ OUTPUT:
 
 ━━━ 🔨 BUILD ━━━ 4/7
 
-**FIRST ACTION:** Voice announce `"Entering the Build phase."`, then Edit PRD frontmatter `phase: build, updated: {timestamp}`. **INVOKE each selected capability via tool call.** Every skill: call via `Skill` tool. Every agent: call via `Task` tool. There is NO text-only alternative. Writing "**FirstPrinciples decomposition:**" without calling `Skill("FirstPrinciples")` is NOT invocation — it's theater. Every capability selected in OBSERVE MUST have a corresponding `Skill` or `Task` tool call in BUILD or EXECUTE.
+**FIRST ACTION:** Voice announce `"Entering the Build phase."`, then Edit PRD frontmatter `last_phase: build, updated: {timestamp}`. **INVOKE each selected capability via tool call.** Every skill: call via `Skill` tool. Every agent: call via `Task` tool. There is NO text-only alternative. Writing "**FirstPrinciples decomposition:**" without calling `Skill("FirstPrinciples")` is NOT invocation — it's theater. Every capability selected in OBSERVE MUST have a corresponding `Skill` or `Task` tool call in BUILD or EXECUTE.
 
 - Any preparation that's required before execution.
 - **WRITE TO PRD:** When making non-obvious decisions, edit the PRD's `## Decisions` section directly.
 
 ━━━ ⚡ EXECUTE ━━━ 5/7
 
-**FIRST ACTION:** Voice announce `"Entering the Execute phase."`, then Edit PRD frontmatter `phase: execute, updated: {timestamp}`. Perform the work.
+**FIRST ACTION:** Voice announce `"Entering the Execute phase."`, then Edit PRD frontmatter `last_phase: execute, updated: {timestamp}`. Perform the work.
 
 — Execute the work.
-- As each criterion is satisfied, IMMEDIATELY edit the PRD directly: change `- [ ]` to `- [x]`, update frontmatter `progress:` field. Do NOT wait for VERIFY — update the moment a criterion passes. This is the AI's responsibility — no hook will do it for you.
+- As each criterion is satisfied, IMMEDIATELY edit the PRD directly: change `- [ ]` to `- [x]`, update frontmatter `verification_summary:` field (Legacy: `progress:`). Do NOT wait for VERIFY — update the moment a criterion passes. This is the AI's responsibility — no hook will do it for you.
 
 ━━━ ✅ VERIFY ━━━ 6/7
 
-**FIRST ACTION:** Voice announce `"Entering the Verify phase."`, then Edit PRD frontmatter `phase: verify, updated: {timestamp}`. The critical step to achieving Ideal State and Euphoric Surprise (this is how we hill-climb)
+**FIRST ACTION:** Voice announce `"Entering the Verify phase."`, then Edit PRD frontmatter `last_phase: verify, updated: {timestamp}`. The critical step to achieving Ideal State and Euphoric Surprise (this is how we hill-climb)
 
 OUTPUT:
 
@@ -419,9 +419,9 @@ OUTPUT:
 
 ━━━ 📚 LEARN ━━━ 7/7
 
-**FIRST ACTION:** Voice announce `"Entering the Learn phase."`, then Edit PRD frontmatter `phase: learn, updated: {timestamp}`. After reflection, set `phase: complete`. Algorithm reflection and improvement
+**FIRST ACTION:** Voice announce `"Entering the Learn phase."`, then Edit PRD frontmatter `last_phase: learn, updated: {timestamp}`. After reflection, set `last_phase: complete` (Legacy: `phase: complete`). Algorithm reflection and improvement
 
-- **WRITE TO PRD (MANDATORY):** Set frontmatter `phase: complete`. No changelog section needed — git history serves this purpose.
+- **WRITE TO PRD (MANDATORY):** Set frontmatter `last_phase: complete`. No changelog section needed — git history serves this purpose.
 
 OUTPUT:
 
@@ -470,10 +470,12 @@ Fill in all bracketed values from the current session. `implied_sentiment` is yo
 - **SAME-SESSION:** Task was worked on earlier THIS session (in working memory) → Skip search entirely. Use working memory context directly.
 
 - **POST-COMPACTION FALLBACK:** If native OpenCode tools unavailable →
-  1. Read the most recent PRD from `~/.opencode/MEMORY/WORK/` (by mtime) — Grep/Glob/Read only
-  2. PRD frontmatter has state fields
-  3. PRD body has criteria checkboxes, decisions
-  4. `~/.opencode/MEMORY/STATE/work.json` has session registry
+  1. **Attempt exact PRD match first:** Use known PRD path from context or `parent_session_id` metadata to locate the exact PRD file
+  2. **If exact match found:** Read that specific PRD only — do NOT fall back to "most recent by mtime"
+  3. **If ambiguous/multiple matches:** Log error and abort recovery rather than guessing
+  4. **PRD frontmatter:** Read `last_phase`, `verification_summary`, `failing_criteria` for state
+  5. **PRD body:** Read criteria checkboxes and decisions
+  6. **Session registry:** `~/.opencode/MEMORY/STATE/work.json` as last-resort reference
 
 **Subagent Session Recovery Tools (OpenCode-Native):**
 
