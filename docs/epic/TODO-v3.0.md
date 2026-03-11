@@ -417,12 +417,28 @@ graph TD
 **Branch:** `feature/wp-n5-plan-update` (or part of N1)
 
 - [ ] Update EPIC-v3.0-Synthesis-Architecture.md — WP-N section
-- [ ] Update OPTIMIZED-PR-PLAN.md — PR #N1..#N4 as upcoming
+- [ ] Update OPTIMIZED-PR-PLAN.md — PR #N1..#N5 as upcoming
 - [ ] Update TODO-v3.0.md — this file (make N1 active)
-- [ ] Update ADR README — ensure all 16 ADRs indexed
+- [ ] Update ADR README — ensure all 17 ADRs indexed
+
+---
+
+### WP-N6: System Self-Awareness — ⏳ Planned
+**Branch:** `feature/wp-n6-system-awareness`
+**Spec:** ADR-017
+**Dependencies:** WP-N3 (Algorithm Awareness) + WP-N4 (LSP/Fork documented)
+**Goal:** Algorithm understands its operating environment
+
+- [ ] Create `.opencode/skills/OpenCodeSystem/SKILL.md` with USE WHEN triggers
+- [ ] Create `SystemArchitecture.md` — PAI-OpenCode 3.0 structure
+- [ ] Create `ToolReference.md` — all native + MCP tools
+- [ ] Create `Configuration.md` — settings.json, opencode.json, model routing
+- [ ] Create `Troubleshooting.md` — self-diagnostic checklist
+- [ ] Create ADR-017: System Self-Awareness
+- [ ] Integration test: Algorithm consults skill when stuck
 
 ---
 
 *Created: 2026-03-06*
-*Updated: 2026-03-10 — WP-A through WP-D merged; WP-E in review; WP-N1..N5 native transformation defined*
+*Updated: 2026-03-11 — WP-N1 complete; WP-N2..N6 sequential execution defined; WP-N6 System Awareness added*
 *Basis: GAP-ANALYSIS-v3.0.md + EPIC-v3.0-Synthesis-Architecture.md + EPIC-v3.0-OpenCode-Native.md*
