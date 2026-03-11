@@ -28,11 +28,8 @@ function buildPrdContext(sessionId: string): string | null {
 	try {
 		const stateDir = getStateDir();
 
-		// Check session-scoped work state
-		let stateFile = path.join(stateDir, `current-work-${sessionId}.json`);
-		if (!fs.existsSync(stateFile)) {
-			stateFile = path.join(stateDir, "current-work.json");
-		}
+		// Check session-scoped work state ONLY (no fallback to prevent cross-session leak)
+		const stateFile = path.join(stateDir, `current-work-${sessionId}.json`);
 		if (!fs.existsSync(stateFile)) return null;
 
 		const state = JSON.parse(fs.readFileSync(stateFile, "utf-8"));
@@ -92,11 +89,16 @@ function buildPrdContext(sessionId: string): string | null {
 
 /**
  * Build additional context about current Algorithm state.
+ * Reads session-specific algorithm state to prevent cross-session bleed.
  */
-function buildAlgorithmContext(): string | null {
+function buildAlgorithmContext(sessionId: string): string | null {
 	try {
 		const stateDir = getStateDir();
-		const algorithmStatePath = path.join(stateDir, "algorithm-state.json");
+		// Session-specific state file to prevent cross-session bleed
+		const algorithmStatePath = path.join(
+			stateDir,
+			`algorithm-state-${sessionId}.json`,
+		);
 		if (!fs.existsSync(algorithmStatePath)) return null;
 
 		const state = JSON.parse(fs.readFileSync(algorithmStatePath, "utf-8"));
@@ -146,8 +148,8 @@ export async function injectCompactionContext(
 			injectedCount++;
 		}
 
-		// 3. Algorithm State
-		const algCtx = buildAlgorithmContext();
+		// 3. Algorithm State (session-specific to prevent cross-session bleed)
+		const algCtx = buildAlgorithmContext(input.sessionID);
 		if (algCtx) {
 			output.context.push(algCtx);
 			injectedCount++;
