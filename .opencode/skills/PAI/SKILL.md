@@ -119,7 +119,7 @@ These are direct, synchronous calls. Do not send to background. The voice notifi
 **The AI writes ALL PRD content directly using Write/Edit tools.** PRD.md in `~/.opencode/MEMORY/WORK/{slug}/` is the single source of truth. The AI is the sole writer — no hooks, no indirection.
 
 **What the AI writes directly:**
-- YAML frontmatter (canonical v1.0.0 schema: `prd`, `id`, `status`, `mode`, `effort_level`, `created`, `updated`; optional: `iteration`, `maxIterations`, `loopStatus`, `last_phase`, `failing_criteria`, `verification_summary`, `parent`, `children`)
+- YAML frontmatter (canonical v1.0.0 schema: `prd`, `id`, `status`, `mode`, `effort_level`, `created`, `updated`; optional: `parent_session_id`, `iteration`, `maxIterations`, `loopStatus`, `last_phase`, `failing_criteria`, `verification_summary`, `parent`, `children`)
 - Legacy schema (deprecated): `task`, `slug`, `effort`, `phase`, `progress`, `mode`, `started`, `updated` — migrate to canonical on next edit
 - All prose sections (Context, Criteria, Decisions, Verification)
 - Criteria checkboxes (`- [ ] ISC-1: text` and `- [x] ISC-1: text`)
@@ -224,11 +224,14 @@ loopStatus: null
 last_phase: null
 failing_criteria: []
 verification_summary: "0/0"
+parent_session_id: {OpenCode session ID}  # ← Key for subagent recovery
 parent: null
 children: []
 ---
 ```
 The effort level defaults to `Standard` here and gets refined later in OBSERVE after reverse engineering.
+
+**Critical:** The `parent_session_id` field captures the OpenCode session ID at PRD creation. This single ID enables recovery of ALL subagent sessions via `session_registry` after compaction.
 
 **Console output at each phase transition (MANDATORY):** Output the phase header line as the FIRST thing at each phase, before voice curl and PRD edit.
 
@@ -256,7 +259,7 @@ OUTPUT:
 - Edit the stub PRD.md (already created at Algorithm entry) to add full content — update frontmatter `effort_level` field with the determined effort level, and add sections (Context, Criteria, Decisions, Verification)
 - Add criteria as `- [ ] ISC-1: criterion text` checkboxes directly in the PRD's `## Criteria` section
 - **Apply the Splitting Test** to every criterion before writing. Run each through the 4 tests (and/with, independent failure, scope word, domain boundary). Split any compound criteria into atomics.
-- Set frontmatter `progress: 0/N` where N = total criteria count
+- Set frontmatter `verification_summary: "0/N"` where N = total criteria count (Legacy: `progress: 0/N` → migrate to `verification_summary`)
 - **WRITE TO PRD (MANDATORY):** Write context directly into the PRD's `## Context` section describing what this task is, why it matters, what was requested and not requested.
 
 OUTPUT:
@@ -363,7 +366,7 @@ You have up to 4 hours to do this."
 
 ━━━ 🧠 THINK ━━━ 2/7
 
-**FIRST ACTION:** Voice announce `"Entering the Think phase."`, then Edit PRD frontmatter `phase: think, updated: {timestamp}`. Pressure test and enhance the ISC:
+**FIRST ACTION:** Voice announce `"Entering the Think phase."`, then Edit PRD frontmatter `last_phase: think, updated: {timestamp}`. Pressure test and enhance the ISC:
 
 OUTPUT:
 
@@ -376,7 +379,7 @@ OUTPUT:
 
 ━━━ 📋 PLAN ━━━ 3/7
 
-**FIRST ACTION:** Voice announce `"Entering the Plan phase."`, then Edit PRD frontmatter `phase: plan, updated: {timestamp}`.
+**FIRST ACTION:** Voice announce `"Entering the Plan phase."`, then Edit PRD frontmatter `last_phase: plan, updated: {timestamp}`.
 
 OUTPUT:
 
@@ -390,21 +393,21 @@ OUTPUT:
 
 ━━━ 🔨 BUILD ━━━ 4/7
 
-**FIRST ACTION:** Voice announce `"Entering the Build phase."`, then Edit PRD frontmatter `phase: build, updated: {timestamp}`. **INVOKE each selected capability via tool call.** Every skill: call via `Skill` tool. Every agent: call via `Task` tool. There is NO text-only alternative. Writing "**FirstPrinciples decomposition:**" without calling `Skill("FirstPrinciples")` is NOT invocation — it's theater. Every capability selected in OBSERVE MUST have a corresponding `Skill` or `Task` tool call in BUILD or EXECUTE.
+**FIRST ACTION:** Voice announce `"Entering the Build phase."`, then Edit PRD frontmatter `last_phase: build, updated: {timestamp}`. **INVOKE each selected capability via tool call.** Every skill: call via `Skill` tool. Every agent: call via `Task` tool. There is NO text-only alternative. Writing "**FirstPrinciples decomposition:**" without calling `Skill("FirstPrinciples")` is NOT invocation — it's theater. Every capability selected in OBSERVE MUST have a corresponding `Skill` or `Task` tool call in BUILD or EXECUTE.
 
 - Any preparation that's required before execution.
 - **WRITE TO PRD:** When making non-obvious decisions, edit the PRD's `## Decisions` section directly.
 
 ━━━ ⚡ EXECUTE ━━━ 5/7
 
-**FIRST ACTION:** Voice announce `"Entering the Execute phase."`, then Edit PRD frontmatter `phase: execute, updated: {timestamp}`. Perform the work.
+**FIRST ACTION:** Voice announce `"Entering the Execute phase."`, then Edit PRD frontmatter `last_phase: execute, updated: {timestamp}`. Perform the work.
 
 — Execute the work.
-- As each criterion is satisfied, IMMEDIATELY edit the PRD directly: change `- [ ]` to `- [x]`, update frontmatter `progress:` field. Do NOT wait for VERIFY — update the moment a criterion passes. This is the AI's responsibility — no hook will do it for you.
+- As each criterion is satisfied, IMMEDIATELY edit the PRD directly: change `- [ ]` to `- [x]`, update frontmatter `verification_summary:` field (Legacy: `progress:`). Do NOT wait for VERIFY — update the moment a criterion passes. This is the AI's responsibility — no hook will do it for you.
 
 ━━━ ✅ VERIFY ━━━ 6/7
 
-**FIRST ACTION:** Voice announce `"Entering the Verify phase."`, then Edit PRD frontmatter `phase: verify, updated: {timestamp}`. The critical step to achieving Ideal State and Euphoric Surprise (this is how we hill-climb)
+**FIRST ACTION:** Voice announce `"Entering the Verify phase."`, then Edit PRD frontmatter `last_phase: verify, updated: {timestamp}`. The critical step to achieving Ideal State and Euphoric Surprise (this is how we hill-climb)
 
 OUTPUT:
 
@@ -416,9 +419,9 @@ OUTPUT:
 
 ━━━ 📚 LEARN ━━━ 7/7
 
-**FIRST ACTION:** Voice announce `"Entering the Learn phase."`, then Edit PRD frontmatter `phase: learn, updated: {timestamp}`. After reflection, set `phase: complete`. Algorithm reflection and improvement
+**FIRST ACTION:** Voice announce `"Entering the Learn phase."`, then Edit PRD frontmatter `last_phase: learn, updated: {timestamp}`. After reflection, set `last_phase: complete` (Legacy: `phase: complete`). Algorithm reflection and improvement
 
-- **WRITE TO PRD (MANDATORY):** Set frontmatter `phase: complete`. No changelog section needed — git history serves this purpose.
+- **WRITE TO PRD (MANDATORY):** Set frontmatter `last_phase: complete`. No changelog section needed — git history serves this purpose.
 
 OUTPUT:
 
@@ -452,15 +455,58 @@ Fill in all bracketed values from the current session. `implied_sentiment` is yo
 
 ### Context Recovery
 
-If after compaction you don't know your current phase or criteria status:
-1. Read the most recent PRD from `~/.opencode/MEMORY/WORK/` (by mtime) — it has all state
-2. PRD frontmatter has `phase`, `progress` (legacy) or `last_phase`, `verification_summary` (v1.0.0 canonical), `effort_level`, `mode`, `task`/`id`, `slug`, `started`/`created`, `updated` (optional: `iteration`)
-3. PRD body has criteria checkboxes, decisions, verification evidence
-4. `~/.opencode/MEMORY/STATE/work.json` has the registry of all sessions (populated by read-only PRDSync + PRDStateSync hooks)
+**Recovery Mode Detection (check FIRST — this runs BEFORE Algorithm OBSERVE phase):**
+
+> ⚠️ **CRITICAL:** This recovery step runs **before** the Algorithm OBSERVE phase begins. The OBSERVE phase has a hard rule: "No tool calls except TaskCreate, voice curls, and CONTEXT RECOVERY (Grep/Glob/Read only)". During **this pre-OBSERVE recovery step only**, you may use OpenCode-native recovery tools (`session_registry`, `session_results`) in addition to Grep/Glob/Read. Once OBSERVE starts, fall back to the standard OBSERVE rules.
+
+- **POST-COMPACTION:** Context was compressed mid-session → Run this recovery **before** starting Algorithm OBSERVE phase:
+  1. **Read PRD frontmatter** (Grep/Read allowed) — get `parent_session_id` 
+  2. **Call `session_registry`** tool — OpenCode-native recovery (whitelisted for post-compaction)
+  3. **Call `session_results(session_id)`** — OpenCode-native recovery (whitelisted for post-compaction)
+  4. Run env var/shell state audit: verify auth tokens, working directory
+  5. Read ISC criteria from PRD body (Grep/Read)
+  6. **NEVER claim "subagent results are lost"** — they survive compaction in OpenCode's SQLite database
+
+- **SAME-SESSION:** Task was worked on earlier THIS session (in working memory) → Skip search entirely. Use working memory context directly.
+
+- **POST-COMPACTION FALLBACK:** If native OpenCode tools unavailable →
+  1. **Attempt exact PRD match first:** Use known PRD path from context or `parent_session_id` metadata to locate the exact PRD file
+  2. **If exact match found:** Read that specific PRD only — do NOT fall back to "most recent by mtime"
+  3. **If ambiguous/multiple matches:** Log error and abort recovery rather than guessing
+  4. **PRD frontmatter:** Read `last_phase`, `verification_summary`, `failing_criteria` for state
+  5. **PRD body:** Read criteria checkboxes and decisions
+  6. **Session registry:** `~/.opencode/MEMORY/STATE/work.json` as last-resort reference
+
+**Subagent Session Recovery Tools (OpenCode-Native):**
+
+OpenCode stores ALL subagent sessions persistently, indexed by `parent_id`. Data SURVIVES compaction:
+
+- **PRD stores:** `parent_session_id` — The OpenCode session ID (one per Algorithm run)
+- **`session_registry`** — Lists all subagent sessions for a given parent session
+- **`session_results(session_id)`** — Gets output from a specific subagent
+
+**Recovery Flow:**
+```json
+// Step 1: Read PRD frontmatter → extract parent_session_id field
+// Example: parent_session_id: "ses_abc123"
+
+// Step 2: List all subagents for this parent session
+// session_registry uses parent_session_id from context automatically
+session_registry: {}
+// Returns: All subagents where parent_id = "ses_abc123"
+
+// Step 3: Get specific subagent results using session_id from Step 2
+session_results: { "session_id": "ses_child456" }
+```
+
+**Key Principle:** 
+- One `parent_session_id` in PRD frontmatter
+- Zero-to-many child sessions in OpenCode's SQLite (indexed by `parent_id`)
+- Subagent data is NEVER lost during compaction
 
 ### PRD.md Format
 
-**Frontmatter (Canonical v1.0.0):** 12 fields — `prd`, `id`, `status`, `mode`, `effort_level`, `created`, `updated`. Optional: `iteration`, `maxIterations`, `loopStatus`, `last_phase`, `failing_criteria`, `verification_summary`, `parent`, `children`.
+**Frontmatter (Canonical v1.0.0):** 16 fields — Required: `prd`, `id`, `status`, `mode`, `effort_level`, `created`, `updated`. Optional: `parent_session_id`, `iteration`, `maxIterations`, `loopStatus`, `last_phase`, `failing_criteria`, `verification_summary`, `parent`, `children`.
 
 **Frontmatter (Legacy, migrate to v1.0.0):** 8 fields — `task`, `slug`, `effort`, `phase`, `progress`, `mode`, `started`, `updated`. Map to canonical: `task`→`id`, `effort`→`effort_level`, `started`→`created`, `phase`/`progress`→`last_phase`/`verification_summary`.
 
@@ -483,6 +529,7 @@ mode: interactive
 effort_level: Standard
 created: {YYYY-MM-DD}
 updated: {YYYY-MM-DD}
+parent_session_id: {OpenCode session ID}  # Key for subagent recovery
 iteration: 0
 maxIterations: 128
 loopStatus: null
@@ -565,6 +612,7 @@ Each entry: date, decision, rationale, alternatives considered.}
 | `effort_level` | string | Effort level for this task (or per-iteration effort level for loop mode) |
 | `created` | date | Creation date |
 | `updated` | date | Last modification date |
+| `parent_session_id` | string | OpenCode session ID — enables subagent recovery via `session_registry` |
 | `iteration` | number | Current iteration count (0 = not started) |
 | `maxIterations` | number | Loop ceiling (default 128) |
 | `loopStatus` | string\|null | `null`, `running`, `paused`, `stopped`, `completed`, `failed` |
