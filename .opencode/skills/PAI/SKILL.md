@@ -455,9 +455,9 @@ Fill in all bracketed values from the current session. `implied_sentiment` is yo
 
 ### Context Recovery
 
-**Recovery Mode Detection (check FIRST — before Algorithm OBSERVE phase):**
+**Recovery Mode Detection (check FIRST — this runs BEFORE Algorithm OBSERVE phase):**
 
-> ⚠️ **CRITICAL:** The OBSERVE phase has a hard rule: "No tool calls except TaskCreate, voice curls, and CONTEXT RECOVERY (Grep/Glob/Read)". **POST-COMPACTION recovery runs BEFORE OBSERVE**, not during it. Use OpenCode-native recovery tools only in this pre-OBSERVE recovery step.
+> ⚠️ **CRITICAL:** This recovery step runs **before** the Algorithm OBSERVE phase begins. The OBSERVE phase has a hard rule: "No tool calls except TaskCreate, voice curls, and CONTEXT RECOVERY (Grep/Glob/Read only)". During **this pre-OBSERVE recovery step only**, you may use OpenCode-native recovery tools (`session_registry`, `session_results`) in addition to Grep/Glob/Read. Once OBSERVE starts, fall back to the standard OBSERVE rules.
 
 - **POST-COMPACTION:** Context was compressed mid-session → Run this recovery **before** starting Algorithm OBSERVE phase:
   1. **Read PRD frontmatter** (Grep/Read allowed) — get `parent_session_id` 
@@ -500,7 +500,7 @@ session_results: { "session_id": "ses_child456" }
 
 ### PRD.md Format
 
-**Frontmatter (Canonical v1.0.0):** 13 fields — `prd`, `id`, `status`, `mode`, `effort_level`, `created`, `updated`. Optional: `parent_session_id`, `iteration`, `maxIterations`, `loopStatus`, `last_phase`, `failing_criteria`, `verification_summary`, `parent`, `children`.
+**Frontmatter (Canonical v1.0.0):** 16 fields — Required: `prd`, `id`, `status`, `mode`, `effort_level`, `created`, `updated`. Optional: `parent_session_id`, `iteration`, `maxIterations`, `loopStatus`, `last_phase`, `failing_criteria`, `verification_summary`, `parent`, `children`.
 
 **Frontmatter (Legacy, migrate to v1.0.0):** 8 fields — `task`, `slug`, `effort`, `phase`, `progress`, `mode`, `started`, `updated`. Map to canonical: `task`→`id`, `effort`→`effort_level`, `started`→`created`, `phase`/`progress`→`last_phase`/`verification_summary`.
 
