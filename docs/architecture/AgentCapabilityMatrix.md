@@ -264,3 +264,16 @@ jq '.mcp | keys' opencode.json
 - `docs/architecture/ToolReference.md` — full tool catalog with usage examples
 - `docs/architecture/Configuration.md` — `opencode.json` schema reference
 - `AGENTS.md` — Algorithm operating instructions (CAPABILITIES SELECTION section)
+
+---
+
+## Installer Preset Coverage (WP-N9)
+
+The installer generates `opencode.json` for 4 provider presets. Each preset configures the orchestrator and all agent model routes:
+
+| Preset | Orchestrator | Quick Tier | Standard Tier | Advanced Tier |
+|--------|-------------|------------|---------------|---------------|
+| **anthropic** | Claude Opus 4.6 | Claude Haiku 3.5 | Claude Sonnet 4.5 | Claude Opus 4.6 |
+| **zen** | Claude Opus 4.6 (via Zen) | GLM 4.7 | Kimi K2.5 | Claude Sonnet 4.5 |
+| **openrouter** | Kimi K2.5 (via OpenRouter) | GLM 4.7 | Kimi K2.5 | Claude Sonnet 4.5 |
+| **openai** | GPT-4o | GPT-4o-mini | GPT-4o | GPT-4.1 |
