@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [3.0.0] - Unreleased
+## [3.0.0] - 2026-03-12
 
 ### Breaking Changes
 - Plugin system migrated from hooks to event-driven architecture (WP-A)
@@ -17,35 +17,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-#### Plugin Event Bus (WP-A)
-- **6 Plugin Handlers** — prd-sync, session-cleanup, last-response-cache, relationship-memory, question-tracking, agent-execution-guard
-- **7 Bus Events** — session.compacted, session.error, permission.asked, command.executed, installation.update.available, session.updated, session.created
-- **Event-Driven Architecture** — cleaner code, better testability, unified handler registration
+#### Session Registry (WP-N1) — PR #50
+- **`session_registry` custom tool** — Lists all active sessions with IDs and metadata
+- **`session_results` custom tool** — Fetches output from a named session
+- OpenCode-native session awareness for post-compaction context recovery
 
-#### Security Layer (WP-B)
-- **Prompt Injection Guard** — `plugins/handlers/prompt-injection-guard.ts` with `injection-patterns.ts` library
-- **Input Sanitizer** — `plugins/lib/sanitizer.ts` for pre-processing protection
-- **Sensitivity Levels** — low/medium/high security modes
-- **Pattern Detection** — 200+ known injection patterns from v4.0.3 upstream
+#### Compaction Intelligence (WP-N2) — PR #51
+- **`experimental.session.compacting` hook** — Detects compaction events in real time
+- **Context injection on resume** — Automatically re-injects PAI context after compaction
+- Prevents silent context loss mid-session
 
-#### Core PAI System (WP-C)
-- **Missing Skills** — AudioEditor, Delegation, Research/Templates, Agents/ClaudeResearcherContext
-- **PAI Flat Docs** — 9 files: CLI.md, CLIFIRSTARCHITECTURE.md, DOCUMENTATIONINDEX.md, FLOWS.md, PAIAGENTSYSTEM.md, README.md, SYSTEM_USER_EXTENDABILITY.md, THEFABRICSYSTEM.md, THENOTIFICATIONSYSTEM.md
-- **PAI Subdirectories** — ACTIONS/, FLOWS/, PIPELINES/
-- **BuildOpenCode.ts** — OpenCode-native version of BuildCLAUDE.ts
-- **Telos/USMetrics Flatten** — Fixed nested skill structure
+#### Algorithm Awareness (WP-N3) — PR #52+#53
+- **SKILL.md CONTEXT RECOVERY** — Uses `session_registry` + `session_results` for post-compaction awareness
+- **PRD `parent_session_id`** — Links child PRDs back to originating session
+- Full Algorithm v1.8.0 context continuity across compaction boundaries
 
-#### Installer & Migration (WP-D)
-- **PAI-Install** — Complete port from upstream v4.0.3 (shell, CLI, engine, Electron GUI)
-- **Migration Script** — `Tools/migration-v2-to-v3.ts` with `--dry-run`, `--force`, `--backup-dir`
-- **UPGRADE.md** — Step-by-step v2→v3 migration guide
+#### LSP + Fork Documentation (WP-N4) — PR #53
+- **AGENTS.md LSP section** — Documents OpenCode's Language Server Protocol integration
+- **Fork documentation** — `Steffen025/opencode` fork relationship and model-tiers branch explained
+- **Installer `.env` setup** — API key configuration documented
 
-#### DB Health Tooling (WP-F)
-- **DB Utils Library** — `plugins/lib/db-utils.ts` with getDbSizeMB(), getSessionsOlderThan(), archiveSessions(), vacuumDb()
-- **Session Cleanup Extension** — Automatic DB health warnings (>500MB, >90 days)
-- **Standalone Archive Tool** — `Tools/db-archive.ts` with --dry-run, --vacuum, --restore
-- **Custom Command** — `/db-archive` for in-session DB stats
-- **Maintenance Guide** — `docs/DB-MAINTENANCE.md`
+#### Plan Update (WP-N5) — PR #54
+- **All planning docs synced** — TODO-v3.0.md, OPTIMIZED-PR-PLAN.md reflect WP-N1..N4 complete
+- Progress diagrams updated
+
+#### System Self-Awareness (WP-N6) — PR #55
+- **OpenCodeSystem skill** — Self-referential skill for system introspection
+- **4 architecture reference docs** — SystemArchitecture.md, ToolReference.md, Configuration.md, Troubleshooting.md
+- **ADR-017** — System self-awareness architectural decision
+
+#### roborev + Biome CI (WP-N7) — PR #56
+- **roborev plugin handler** — `plugins/handlers/roborev-trigger.ts` for AI code review
+- **CodeReview skill** — `skills/CodeReview/SKILL.md` for in-session code review
+- **GitHub Actions CI** — `.github/workflows/code-quality.yml` runs Biome on every PR
+- **ADR-018** — roborev + Biome CI architectural decision
+
+#### Obsidian Formatting Guidelines (WP-N8) — PR #57
+- **FormattingGuidelines.md** — Obsidian frontmatter, callouts, Mermaid, code block patterns
+- **AgentCapabilityMatrix.md** — All agent types, model tiers, tool/MCP access, decision rules
+
+#### Installer opencode.json Fix (WP-N9) — PR #58
+- **4 provider presets** — anthropic, zen, openrouter, openai (was 3)
+- **opencode.json generation** — Correct provider-specific config per preset
+- `principalName` populated from username during install
+
+#### Docs Consolidation (WP-N10) — PR #59
+- **CHANGELOG.md** — Released, WP-N1..N10 Added sections with correct WP titles
+- **CONTRIBUTING.md** — Skills structure updated to hierarchical `Category/SkillName/`
+- **INSTALL.md** — 4 provider presets documented
+- **README.md** — Broken links to non-existent files removed
+- **Planning docs deleted** — GAP-ANALYSIS-v3.0.md, EPIC-v3.0-OpenCode-Native.md, OPENCODE-NATIVE-RESEARCH.md (completed, no longer needed)
 
 ### Changed
 - Skills organization: flat → hierarchical (Category/Skill)
@@ -634,5 +655,4 @@ See `.opencode/voice-server/README.md` for full documentation.
 **Links:**
 - [PAI v3.0 Upstream](https://github.com/danielmiessler/Personal_AI_Infrastructure)
 - [OpenCode](https://github.com/anomalyco/opencode)
-- [ROADMAP.md](ROADMAP.md)
 - [Upstream Sync Spec](docs/specs/UPSTREAM-SYNC-v1.8.0-SPEC.md)
