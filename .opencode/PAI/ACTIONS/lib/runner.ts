@@ -140,8 +140,17 @@ async function dispatchToCloud<TInput, TOutput>(
   const startTime = Date.now();
 
   // Worker URL pattern: pai-{category}-{name}.{subdomain}.workers.dev
+  // CF_ACCOUNT_SUBDOMAIN is required — a missing/default value produces an invalid URL.
+  const subdomain = process.env.CF_ACCOUNT_SUBDOMAIN;
+  if (!subdomain) {
+    return {
+      success: false,
+      error: "CF_ACCOUNT_SUBDOMAIN environment variable is required for cloud execution. " +
+        "Set it to your Cloudflare account subdomain (e.g. 'myaccount' for myaccount.workers.dev).",
+      metadata: { durationMs: Date.now() - startTime, action: name, mode: "cloud" },
+    };
+  }
   const workerName = name.replace("/", "-");
-  const subdomain = process.env.CF_ACCOUNT_SUBDOMAIN || 'workers';
   const workerUrl = `https://pai-${workerName}.${subdomain}.workers.dev`;
 
   // Setup timeout with AbortController
