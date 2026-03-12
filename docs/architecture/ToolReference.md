@@ -98,7 +98,7 @@ Registered by `pai-unified.ts` plugin. Available in every session.
 
 **Input args:**
 - `mode` (optional, default `"dirty"`): `"dirty"` | `"last-commit"` | `"fix"` | `"refine"`
-- `path` (optional): file path or glob to focus the review
+- `path` (optional): file path or glob to focus the review — only valid for mode `"dirty"` and `"last-commit"`; rejected with an error for mode `"fix"` or `"refine"`
 
 **Returns:** roborev output with review findings or confirmation that review passed.
 
