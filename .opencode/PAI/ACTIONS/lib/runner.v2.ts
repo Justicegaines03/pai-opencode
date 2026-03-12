@@ -10,7 +10,7 @@
  */
 
 import { readFile, readdir } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import type {
   ActionManifest,
   ActionImplementation,
@@ -135,11 +135,15 @@ export async function loadImplementation<TInput, TOutput>(
 /**
  * Containment check: ensure resolved path stays under baseDir.
  * Prevents path traversal via symlinks or ".." in name after resolution.
+ * Uses path.sep for cross-platform compatibility (works on Windows too).
  */
 function isContained(baseDir: string, candidatePath: string): boolean {
   const resolvedBase = resolve(baseDir);
   const resolvedCandidate = resolve(candidatePath);
-  return resolvedCandidate.startsWith(`${resolvedBase}/`) || resolvedCandidate === resolvedBase;
+  return (
+    resolvedCandidate.startsWith(resolvedBase + sep) ||
+    resolvedCandidate === resolvedBase
+  );
 }
 
 /**
@@ -204,6 +208,40 @@ export async function findAction(name: string): Promise<string | null> {
 }
 
 /**
+ * Simple input field spec used in the simplified (non-JSON-Schema) format.
+ */
+interface SimpleFieldSpec {
+  type?: string;
+  required?: boolean;
+}
+
+/**
+ * Validate input against a simplified field spec map.
+ * Checks required fields and basic type matching.
+ * Returns an array of error strings (empty = valid).
+ */
+function validateSimplifiedInput(
+  input: Record<string, unknown>,
+  spec: Record<string, SimpleFieldSpec>
+): string[] {
+  const errors: string[] = [];
+  for (const [field, fieldSpec] of Object.entries(spec)) {
+    const value = input[field];
+    if (fieldSpec.required && (value === undefined || value === null)) {
+      errors.push(`Missing required input: ${field}`);
+      continue;
+    }
+    if (value !== undefined && value !== null && fieldSpec.type) {
+      const actualType = Array.isArray(value) ? "array" : typeof value;
+      if (actualType !== fieldSpec.type) {
+        errors.push(`Invalid type for '${field}': expected ${fieldSpec.type}, got ${actualType}`);
+      }
+    }
+  }
+  return errors;
+}
+
+/**
  * Run an action with capability injection
  */
 export async function runAction<TInput = unknown, TOutput = unknown>(
@@ -234,14 +272,15 @@ export async function runAction<TInput = unknown, TOutput = unknown>(
     const manifest = await loadManifest(actionPath);
     const implementation = await loadImplementation<TInput, TOutput>(actionPath);
 
-    // Validate required input fields (simplified — no ajv for new format)
+    // Validate input
     if (manifest.input && !manifest.input.type) {
-      // New simplified format: { field: { type, required } }
-      const inputObj = input as Record<string, unknown>;
-      for (const [field, spec] of Object.entries(manifest.input as Record<string, { required?: boolean }>)) {
-        if (spec.required && (inputObj[field] === undefined || inputObj[field] === null)) {
-          return { success: false, error: `Missing required input: ${field}` };
-        }
+      // Simplified format: { field: { type, required } } — validate required + types
+      const errors = validateSimplifiedInput(
+        input as Record<string, unknown>,
+        manifest.input as Record<string, SimpleFieldSpec>
+      );
+      if (errors.length > 0) {
+        return { success: false, error: errors.join("; ") };
       }
     } else if (manifest.input?.type === "object") {
       // Legacy JSON Schema format — use ajv
