@@ -74,7 +74,9 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const inputFile = args.find((a) => !a.startsWith("--"));
   const outputFlag = args.indexOf("--output");
-  const outputPath = outputFlag !== -1 ? args[outputFlag + 1] : undefined;
+  const outputCandidate = outputFlag !== -1 ? args[outputFlag + 1] : undefined;
+  // Reject if the next token is itself a flag (starts with "--") or missing
+  const outputPath = outputCandidate && !outputCandidate.startsWith("--") ? outputCandidate : undefined;
   const aggressive = args.includes("--aggressive");
 
   if (!inputFile) {
@@ -160,7 +162,8 @@ async function main(): Promise<void> {
 
     for (let i = startIdx; i < endIdx && i < chunks.length; i++) {
       const word = chunks[i].text;
-      currentLine += word;
+      // Whisper chunks do not include trailing spaces — add separator explicitly
+      currentLine += currentLine.length > 0 ? " " + word : word;
 
       const wordCount = currentLine.trim().split(/\s+/).length;
       if (wordCount >= 15 || i === endIdx - 1 || i === chunks.length - 1) {
@@ -245,8 +248,11 @@ If no edits found in a section, return: []`;
     );
 
     try {
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 120_000);
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           "x-api-key": apiKey,
@@ -264,6 +270,7 @@ If no edits found in a section, return: []`;
           ],
         }),
       });
+      clearTimeout(fetchTimeout);
 
       if (!response.ok) {
         const err = await response.text();

@@ -20,8 +20,9 @@
 import { readdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { spawnSync } from "child_process";
+import { homedir } from "os";
 
-const HOME = process.env.HOME!;
+const HOME = process.env.HOME ?? homedir();
 const CLAUDE_DIR = join(HOME, ".claude");
 
 // =============================================================================
@@ -322,7 +323,7 @@ function countWorkItems(): number {
       if (entry.isDirectory()) count++;
     }
   } catch {}
-  return count > 100 ? "100+" as any : count;
+  return count > 100 ? 100 : count;
 }
 
 function countLearnings(): number {
@@ -655,8 +656,24 @@ function createNormalBanner(stats: SystemStats): string {
 // Main
 // =============================================================================
 
+const MODE_MIN_WIDTH: Record<DisplayMode, number> = {
+  nano: 20,
+  micro: 40,
+  mini: 60,
+  normal: 85,
+};
+
 function createBanner(forceMode?: DisplayMode): string {
   const mode = forceMode || getDisplayMode();
+  // When a mode is forced, ensure terminal width is at least the minimum for that mode
+  // so that internal `repeat()` calls never receive a negative count.
+  if (forceMode) {
+    const minWidth = MODE_MIN_WIDTH[forceMode];
+    const actual = getTerminalWidth();
+    if (actual < minWidth) {
+      process.env.COLUMNS = String(minWidth);
+    }
+  }
   const stats = getStats();
 
   switch (mode) {

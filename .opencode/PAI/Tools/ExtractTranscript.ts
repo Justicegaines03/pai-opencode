@@ -143,7 +143,7 @@ function getFileSizeMB(filePath: string): number {
 
 /**
  * Transcribe audio file using OpenAI Whisper API
- * Automatically splits large files if needed
+ * Caller is responsible for splitting files larger than 25 MB before calling this function
  */
 async function transcribeFile(
   filePath: string,

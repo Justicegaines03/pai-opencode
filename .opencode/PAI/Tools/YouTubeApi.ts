@@ -97,6 +97,9 @@ async function getChannel(): Promise<void> {
     id: CHANNEL_ID
   })
 
+  if (!data.items?.length) {
+    throw new Error(`Channel not found for ID: ${CHANNEL_ID}`)
+  }
   const ch = data.items[0]
   console.log(`\n${colors.bold}${colors.cyan}Channel: ${ch.snippet.title}${colors.reset}`)
   console.log(`${colors.dim}${ch.snippet.customUrl}${colors.reset}\n`)
@@ -129,7 +132,12 @@ async function getRecentVideos(count: number = 10): Promise<void> {
     type: 'video'
   })
 
-  const videoIds = search.items.map(v => v.id.videoId).join(',')
+  const videoIds = search.items.map(v => v.id.videoId).filter(Boolean).join(',')
+
+  if (!videoIds) {
+    console.log('No videos found.')
+    return
+  }
 
   // Get stats
   const stats = await apiGet<VideosResponse>('/videos', {
@@ -255,9 +263,11 @@ switch (cmd) {
   case 'channel':
     await getChannel()
     break
-  case 'videos':
-    await getRecentVideos(parseInt(args[0]) || 10)
+  case 'videos': {
+    const count = parseInt(args[0], 10)
+    await getRecentVideos(Number.isFinite(count) && count > 0 ? count : 10)
     break
+  }
   case 'video':
     if (!args[0]) {
       console.error(`${colors.red}Error: video ID or title required${colors.reset}`)

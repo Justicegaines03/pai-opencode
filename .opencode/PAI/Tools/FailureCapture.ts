@@ -50,6 +50,7 @@ interface TranscriptEntry {
 }
 
 interface ToolCall {
+  id?: string;
   name: string;
   input: unknown;
   output?: string;
@@ -124,6 +125,7 @@ function parseTranscript(transcriptPath: string): {
             for (const block of entry.message.content as any[]) {
               if (block.type === 'tool_use') {
                 toolCalls.push({
+                  id: block.id,
                   name: block.name,
                   input: block.input,
                   timestamp: entry.timestamp,
@@ -133,11 +135,15 @@ function parseTranscript(transcriptPath: string): {
           }
         }
 
-        // Capture tool results
+        // Capture tool results — match by tool_use_id first, fall back to last unmatched
         if (entry.type === 'tool_result' || entry.type === 'tool_output') {
-          const lastToolCall = toolCalls[toolCalls.length - 1];
-          if (lastToolCall && !lastToolCall.output) {
-            lastToolCall.output = contentToText((entry as any).content || (entry as any).output);
+          const resultEntry = entry as any;
+          const toolUseId: string | undefined = resultEntry.tool_use_id;
+          const matchedCall = toolUseId
+            ? toolCalls.find(tc => tc.id === toolUseId && !tc.output)
+            : toolCalls[toolCalls.length - 1];
+          if (matchedCall && !matchedCall.output) {
+            matchedCall.output = contentToText(resultEntry.content || resultEntry.output);
           }
         }
       } catch {
@@ -266,9 +272,9 @@ function getPSTComponents(): {
 export async function captureFailure(input: FailureCaptureInput): Promise<string | null> {
   const { transcriptPath, rating, sentimentSummary, detailedContext, sessionId } = input;
 
-  // Only capture ratings 1-3
-  if (rating > 3) {
-    console.error(`[FailureCapture] Rating ${rating} is above threshold (1-3), skipping`);
+  // Only capture ratings 1-3; reject invalid values (NaN, negative, out of range)
+  if (!Number.isInteger(rating) || rating < 1 || rating > 3) {
+    console.error(`[FailureCapture] Rating ${rating} is outside valid threshold (1-3), skipping`);
     return null;
   }
 
@@ -283,9 +289,10 @@ export async function captureFailure(input: FailureCaptureInput): Promise<string
   // Generate description
   const description = await generateDescription(sentimentSummary, conversations, toolCalls);
 
-  // Create directory structure
+  // Create directory structure — include ms suffix to avoid collisions at the same second
   const { year, month, day, hours, minutes, seconds } = getPSTComponents();
-  const timestamp = `${year}-${month}-${day}-${hours}${minutes}${seconds}`;
+  const ms = String(Date.now() % 1000).padStart(3, "0");
+  const timestamp = `${year}-${month}-${day}-${hours}${minutes}${seconds}-${ms}`;
   const dirName = `${timestamp}_${description}`;
   const yearMonth = `${year}-${month}`;
 
@@ -528,6 +535,9 @@ if (import.meta.main) {
       if (results.errors.length > 0) {
         console.error(`[FailureCapture] Errors: ${results.errors.join(', ')}`);
       }
+    }).catch(err => {
+      console.error(`[FailureCapture] Migration failed: ${err}`);
+      process.exit(1);
     });
   } else if (args.length >= 3) {
     const [transcriptPath, rating, sentimentSummary, detailedContext] = args;
@@ -542,6 +552,9 @@ if (import.meta.main) {
       } else {
         process.exit(1);
       }
+    }).catch(err => {
+      console.error(`[FailureCapture] Unexpected error: ${err}`);
+      process.exit(1);
     });
   } else {
     console.log(`Usage:
