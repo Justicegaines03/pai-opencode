@@ -1,8 +1,8 @@
 ---
 title: PAI-OpenCode v3.0 - Corrected PR Plan
-description: v3.0 COMPLETE — All 19 WPs shipped (PR #42–#59)
+description: v3.0 COMPLETE — All 19 WPs shipped (PR #42–#59), tag + release pending post-merge
 version: "3.0-native-1"
-status: complete
+status: archived
 authors: [Jeremy]
 date: 2026-03-10
 tags: [architecture, migration, v3.0, PR-strategy, native-transformation]
@@ -228,7 +228,7 @@ Current state (dev branch):
 | Open PRs | 2 (C, D) | 1 (#55) | **0 — all merged** |
 | Remaining native work | Not planned | WP-N6 in progress | **NONE — v3.0 complete** |
 
-**Status:** v3.0 COMPLETE. All 19 WPs shipped (PR #42–#59). Tag v3.0.0 released.
+**Status:** v3.0 COMPLETE. All 19 WPs shipped (PR #42–#59). Tag v3.0.0 and GitHub release pending post-merge.
 
 **Granular task list:** `docs/epic/TODO-v3.0.md`
 
