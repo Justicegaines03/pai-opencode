@@ -31,7 +31,7 @@ updated: 2026-03-12
 
 ## Plugin Not Loading
 
-```
+```text
 □ Does .opencode/plugins/pai-unified.ts exist?
     → NO: Run PAI installer or restore from git
 
@@ -57,7 +57,7 @@ updated: 2026-03-12
 
 `session_registry` and `session_results` not available:
 
-```
+```text
 □ Is the plugin loaded? (See Plugin Not Loading above)
 
 □ Check pai-unified.ts for tool: { } registration block
@@ -77,7 +77,7 @@ updated: 2026-03-12
 
 Context was compacted and working memory is lost:
 
-```
+```text
 □ Use session_registry tool immediately
     → Call: session_registry (no arguments needed)
     → Returns: list of recent sessions with IDs and task descriptions
@@ -106,7 +106,7 @@ See AGENTS.md "Session Recovery" section for the full CONTEXT RECOVERY protocol.
 
 Wrong model being used for an agent:
 
-```
+```text
 □ Check opencode.json agent section
     → cat opencode.json | grep -A 10 '"AgentName"'
     → Verify model field matches expected
@@ -134,7 +134,7 @@ Full model table: `docs/architecture/Configuration.md`
 
 Files being written to wrong location:
 
-```
+```text
 □ CRITICAL: This is OpenCode, NOT Claude Code
     → CORRECT: ~/.opencode/
     → WRONG:   ~/.claude/ or ~/.Claude/
@@ -163,7 +163,7 @@ Files being written to wrong location:
 
 A skill's USE WHEN condition matches but skill isn't being loaded:
 
-```
+```text
 □ Is the skill in skill-index.json?
     → grep -n "SkillName" .opencode/skills/skill-index.json
     → If missing: add entry with name, path, triggers, fullDescription
@@ -187,7 +187,7 @@ A skill's USE WHEN condition matches but skill isn't being loaded:
 
 Bun or build errors:
 
-```
+```text
 □ Always use bun, never npm/yarn/pnpm
     → bun install (not npm install)
     → bun run dev (not npm run dev)
@@ -213,7 +213,7 @@ Bun or build errors:
 
 Task tool not spawning agents or agents failing:
 
-```
+```text
 □ Is subagent_type valid?
     → Valid types: Algorithm, Architect, Engineer, explore, Intern, Writer,
       DeepResearcher, GeminiResearcher, GrokResearcher, PerplexityResearcher,
