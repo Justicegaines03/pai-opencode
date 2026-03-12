@@ -74,6 +74,7 @@ async function runRoborev(args: string[]): Promise<ReviewResult> {
 		const { stdout, stderr } = await execFile("roborev", args, {
 			encoding: "utf-8",
 			timeout: 120_000, // 2 minutes — roborev calls the LLM
+			maxBuffer: 10 * 1024 * 1024, // 10 MiB — large reviews can exceed the 1 MiB default
 			cwd: process.cwd(),
 			signal: AbortSignal.timeout(120_000),
 		});
@@ -112,11 +113,11 @@ async function runRoborev(args: string[]): Promise<ReviewResult> {
 		// This is the normal "findings" case: exit code 1 + review output in stdout/stderr.
 		const captured = [error.stdout, error.stderr].filter(Boolean).join("\n").trim();
 		if (captured) {
-			const exitCode =
-				(err as NodeJS.ErrnoException & { code?: number | string }).code ===
-				"ERR_CHILD_PROCESS_STDIO_MAXBUFFER"
-					? 1
-					: ((err as { status?: number }).status ?? 1);
+			// error.code is a number (the child's exit code) for normal non-zero exits.
+			// It is a string (e.g. "ERR_CHILD_PROCESS_STDIO_MAXBUFFER", "ENOENT") for
+			// Node-level errors. error.status is undefined for promisified execFile.
+			const rawCode = (error as NodeJS.ErrnoException).code;
+			const exitCode = typeof rawCode === "number" ? rawCode : 1;
 			fileLog(`[roborev] Exited with code ${exitCode}, output length: ${captured.length}`, "info");
 			return { success: false, output: captured, exitCode };
 		}
