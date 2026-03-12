@@ -52,7 +52,7 @@ Configured in `opencode.json` under `permission:`:
 
 ---
 
-## Custom PAI Tools (WP-N1)
+## Custom PAI Tools (WP-N1 + WP-N7)
 
 Registered by `pai-unified.ts` plugin. Available in every session.
 
@@ -84,6 +84,30 @@ Registered by `pai-unified.ts` plugin. Available in every session.
 **Input:** Session ID from `session_registry` output.
 
 **Returns:** Full session results including completed ISC criteria, decisions made, artifacts created.
+
+---
+
+### `code_review` (WP-N7)
+
+**Purpose:** Runs roborev AI code review on changed files. Surfaces quality issues, architectural violations, and style inconsistencies based on `.roborev.toml` guidelines.
+
+**When to use:**
+- VERIFY phase: as evidence of code quality before marking ISC criterion complete
+- After BUILD: to catch issues before committing
+- Before creating a PR: for final quality check
+
+**Input args:**
+- `mode` (optional, default `"dirty"`): `"dirty"` | `"last-commit"` | `"fix"` | `"refine"`
+- `path` (optional): file path or glob to focus the review — only valid for mode `"dirty"` and `"last-commit"`; rejected with an error for mode `"fix"` or `"refine"`
+
+**Returns:** roborev output with review findings or confirmation that review passed.
+
+**Requires roborev installed:** If roborev is not in PATH, returns installation instructions.
+
+**Example:**
+```text
+Use code_review tool with mode="dirty" to review uncommitted changes.
+```
 
 ---
 
@@ -156,6 +180,33 @@ Need prior session context?
     ├── Step 1: session_registry (list sessions)
     └── Step 2: session_results (get details)
 
+Need to verify code quality?
+    └── code_review (mode="dirty" for uncommitted, mode="last-commit" for last commit)
+```
+
+<details>
+<summary>code_review mode selection (Mermaid)</summary>
+
+```mermaid
+flowchart TD
+    Start([Need code review?]) --> Q1{What to review?}
+    Q1 -->|Uncommitted / working tree changes| D[code_review\nmode='dirty']
+    Q1 -->|Last git commit| LC[code_review\nmode='last-commit']
+    Q1 -->|Apply findings from last review| F[code_review\nmode='fix']
+    Q1 -->|Auto-fix loop until review passes| R[code_review\nmode='refine']
+
+    D -->|Optional: narrow to file/glob| DP[add path argument]
+    LC -->|Optional: narrow to file/glob| LCP[add path argument]
+
+    style Start fill:#e8f0fe,stroke:#333
+    style Q1 fill:#fff3e0,stroke:#333
+    style D fill:#e8f5e9,stroke:#333
+    style LC fill:#e8f5e9,stroke:#333
+```
+
+</details>
+
+```text
 Need to delegate complex work?
     └── task (with subagent_type, full context, effort level)
 

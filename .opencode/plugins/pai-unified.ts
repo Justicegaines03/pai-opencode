@@ -38,35 +38,32 @@
  * - PRD sync, session cleanup, last response cache,
  *   relationship memory, question tracking
  *
+ * v3.0-WP-N7 HANDLERS (added 2026-03-12):
+ * - roborev-trigger: code_review custom tool for AI-powered code review
+ *
  * IMPORTANT: This plugin NEVER uses console.log!
  * All logging goes through file-logger.ts to prevent TUI corruption.
  *
  * @module pai-unified
  */
 
+import * as fs from "node:fs";
+import * as path from "node:path";
 import type { Hooks, Plugin } from "@opencode-ai/plugin";
-import * as fs from "fs";
-import * as path from "path";
 import { captureAgentOutput, isTaskTool } from "./handlers/agent-capture";
 import { validateAgentExecution } from "./handlers/agent-execution-guard";
 // v3.0 HANDLERS
 import { trackAlgorithmState } from "./handlers/algorithm-tracker";
-import {
-	checkForUpdates,
-	formatUpdateNotification,
-} from "./handlers/check-version";
+import { checkForUpdates } from "./handlers/check-version";
+import { injectCompactionContext } from "./handlers/compaction-intelligence";
 import { detectEffortLevel } from "./handlers/format-reminder";
 import { handleImplicitSentiment } from "./handlers/implicit-sentiment";
 import { runIntegrityCheck } from "./handlers/integrity-check";
 import { validateISC } from "./handlers/isc-validator";
-import {
-	cacheLastResponse,
-	readLastResponse,
-} from "./handlers/last-response-cache";
+import { cacheLastResponse, readLastResponse } from "./handlers/last-response-cache";
 import { extractLearningsFromWork } from "./handlers/learning-capture";
 import {
 	emitAgentComplete,
-	emitAgentSpawn,
 	emitAssistantMessage,
 	emitContextLoaded,
 	emitExplicitRating,
@@ -83,29 +80,23 @@ import {
 } from "./handlers/observability-emitter";
 // WP-A: New handlers (PR #A)
 import { syncPRDToRegistry } from "./handlers/prd-sync";
-import {
-	extractAskUserQuestionAnswer,
-	trackQuestionAnswered,
-} from "./handlers/question-tracking";
+import { extractAskUserQuestionAnswer, trackQuestionAnswered } from "./handlers/question-tracking";
 import { captureRating, detectRating } from "./handlers/rating-capture";
 import { captureRelationshipMemory } from "./handlers/relationship-memory";
 import { handleResponseCapture } from "./handlers/response-capture";
+import { codeReviewTool } from "./handlers/roborev-trigger";
 import { validateSecurity } from "./handlers/security-validator";
 import { cleanupSession } from "./handlers/session-cleanup";
-import { validateSkillInvocation } from "./handlers/skill-guard";
-import { restoreSkillFiles } from "./handlers/skill-restore";
-import { handleTabState } from "./handlers/tab-state";
-import { handleUpdateCounts } from "./handlers/update-counts";
 import {
 	captureSubagentSession,
 	sessionRegistryTool,
 	sessionResultsTool,
 } from "./handlers/session-registry";
-import { injectCompactionContext } from "./handlers/compaction-intelligence";
-import {
-	extractVoiceCompletion,
-	handleVoiceNotification,
-} from "./handlers/voice-notification";
+import { validateSkillInvocation } from "./handlers/skill-guard";
+import { restoreSkillFiles } from "./handlers/skill-restore";
+import { handleTabState } from "./handlers/tab-state";
+import { handleUpdateCounts } from "./handlers/update-counts";
+import { extractVoiceCompletion, handleVoiceNotification } from "./handlers/voice-notification";
 import {
 	appendToThread,
 	completeWorkSession,
@@ -142,13 +133,11 @@ const sessionAssistantMessages = new Map<string, string[]>();
 
 /** Helper: get or create message buffer for a session */
 function getUserMessages(sessionId: string): string[] {
-	if (!sessionUserMessages.has(sessionId))
-		sessionUserMessages.set(sessionId, []);
+	if (!sessionUserMessages.has(sessionId)) sessionUserMessages.set(sessionId, []);
 	return sessionUserMessages.get(sessionId)!;
 }
 function getAssistantMessages(sessionId: string): string[] {
-	if (!sessionAssistantMessages.has(sessionId))
-		sessionAssistantMessages.set(sessionId, []);
+	if (!sessionAssistantMessages.has(sessionId)) sessionAssistantMessages.set(sessionId, []);
 	return sessionAssistantMessages.get(sessionId)!;
 }
 
@@ -312,9 +301,7 @@ async function loadMinimalBootstrap(): Promise<string | null> {
 		// Combine all context
 		const fullContext = contextParts.join("\n\n");
 		const size = Buffer.byteLength(fullContext, "utf-8");
-		fileLog(
-			`Bootstrap loaded: ${size} bytes (${userContextLoaded} user files)`,
-		);
+		fileLog(`Bootstrap loaded: ${size} bytes (${userContextLoaded} user files)`);
 
 		return `<system-reminder>\nPAI CONTEXT (Lazy Loading Bootstrap)\n\n${fullContext}\n\n---\nSkills load on-demand via OpenCode skill tool. User context auto-loaded if exists.\n</system-reminder>`;
 	} catch (error) {
@@ -333,15 +320,13 @@ async function loadMinimalBootstrap(): Promise<string | null> {
 async function appendEffortToMeta(
 	sessionPath: string,
 	level: string,
-	budget: string,
+	budget: string
 ): Promise<void> {
 	const metaPath = path.join(sessionPath, "META.yaml");
 	let content = await fs.promises.readFile(metaPath, "utf-8");
 	// Only append if not already present
 	if (!content.includes("effort_level:")) {
-		content =
-			content.trimEnd() +
-			`\neffort_level: ${level}\neffort_budget: ${budget}\n`;
+		content = `${content.trimEnd()}\neffort_level: ${level}\neffort_budget: ${budget}\n`;
 		await fs.promises.writeFile(metaPath, content);
 	}
 }
@@ -352,14 +337,14 @@ async function appendEffortToMeta(
  * Exports all hooks in a single plugin for OpenCode.
  * Implements PAI v2.4 hook functionality.
  */
-export const PaiUnified: Plugin = async (ctx) => {
+export const PaiUnified: Plugin = async (_ctx) => {
 	// Clear log at plugin load (new session)
 	clearLog();
 	fileLog("=== PAI-OpenCode Plugin Loaded ===");
 	fileLog(`Working directory: ${process.cwd()}`);
 	fileLog("Hooks: Context, Security, Work, Ratings, Agents, Learning");
 	fileLog(
-		"v3.0 Handlers: Algorithm Tracker, Agent Guard, Skill Guard, Version Check, Integrity Check, Effort Level",
+		"v3.0 Handlers: Algorithm Tracker, Agent Guard, Skill Guard, Version Check, Integrity Check, Effort Level"
 	);
 
 	const hooks: Hooks = {
@@ -368,9 +353,11 @@ export const PaiUnified: Plugin = async (ctx) => {
 		// ═══════════════════════════════════════════════════════════════
 
 		// WP-N1: Custom tools for session recovery AFTER compaction
+		// WP-N7: code_review tool via roborev
 		tool: {
 			session_registry: sessionRegistryTool,
 			session_results: sessionResultsTool,
+			code_review: codeReviewTool,
 		},
 
 		// WP-N2: Context Injection (WÄHREND compaction)
@@ -434,10 +421,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 		"permission.ask": async (input, output) => {
 			try {
 				fileLog(`>>> PERMISSION.ASK CALLED <<<`, "info");
-				fileLog(
-					`permission.ask input: ${JSON.stringify(input).substring(0, 200)}`,
-					"debug",
-				);
+				fileLog(`permission.ask input: ${JSON.stringify(input).substring(0, 200)}`, "debug");
 
 				// Extract tool info from Permission input
 				const tool = (input as any).tool || "unknown";
@@ -463,8 +447,6 @@ export const PaiUnified: Plugin = async (ctx) => {
 							reason: result.reason || "Requires confirmation",
 						}).catch(() => {});
 						break;
-
-					case "allow":
 					default:
 						// Don't modify output.status - let it proceed
 						fileLog(`ALLOWED: ${tool}`, "debug");
@@ -485,10 +467,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 		"tool.execute.before": async (input, output) => {
 			fileLog(`Tool before: ${input.tool}`, "debug");
 			// Args are in OUTPUT, not input! OpenCode API quirk.
-			fileLog(
-				`output.args: ${JSON.stringify(output.args ?? {}).substring(0, 500)}`,
-				"debug",
-			);
+			fileLog(`output.args: ${JSON.stringify(output.args ?? {}).substring(0, 500)}`, "debug");
 
 			// Security validation - throws error to block dangerous commands
 			const result = await validateSecurity({
@@ -519,10 +498,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 			fileLog(`Security check passed for ${input.tool}`, "debug");
 
 			// === AGENT EXECUTION GUARD (v3.0) ===
-			if (
-				input.tool === "mcp_task" ||
-				input.tool.toLowerCase().includes("task")
-			) {
+			if (input.tool === "mcp_task" || input.tool.toLowerCase().includes("task")) {
 				try {
 					const guardResult = await validateAgentExecution(output.args ?? {});
 					if (!guardResult.allowed) {
@@ -534,10 +510,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 			}
 
 			// === SKILL GUARD (v3.0) ===
-			if (
-				input.tool === "mcp_skill" ||
-				input.tool.toLowerCase().includes("skill")
-			) {
+			if (input.tool === "mcp_skill" || input.tool.toLowerCase().includes("skill")) {
 				try {
 					const skillName = (output.args as any)?.name || "unknown";
 					const context = (output.args as any)?.context || "";
@@ -564,9 +537,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 
 				// Emit tool execution
 				const args = (input as any).args || (output as any).args || {};
-				const resultLength = output.result
-					? JSON.stringify(output.result).length
-					: 0;
+				const resultLength = output.result ? JSON.stringify(output.result).length : 0;
 				emitToolExecute({
 					tool: input.tool,
 					args,
@@ -594,11 +565,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 					}
 
 					// WP-N1: Capture subagent session to registry
-					await captureSubagentSession(
-						input.sessionID,
-						input.args,
-						output,
-					);
+					await captureSubagentSession(input.sessionID, input.args, output);
 				}
 
 				// === ALGORITHM TRACKER (v3.0) ===
@@ -608,13 +575,10 @@ export const PaiUnified: Plugin = async (ctx) => {
 						input.tool,
 						(input as any).args || (output as any).args || {},
 						output.result,
-						sessionId,
+						sessionId
 					);
 				} catch (error) {
-					fileLogError(
-						"[AlgorithmTracker] Tracking failed (non-blocking)",
-						error,
-					);
+					fileLogError("[AlgorithmTracker] Tracking failed (non-blocking)", error);
 				}
 
 				// === PRD SYNC (WP-A) ===
@@ -646,19 +610,10 @@ export const PaiUnified: Plugin = async (ctx) => {
 				// When AskUserQuestion tool completes, record the Q&A pair.
 				try {
 					const args = (output as any).args || (input as any).args || {};
-					const qa = extractAskUserQuestionAnswer(
-						input.tool,
-						args,
-						output.result,
-					);
+					const qa = extractAskUserQuestionAnswer(input.tool, args, output.result);
 					if (qa) {
 						const sessionId = (input as any).sessionId || "unknown";
-						await trackQuestionAnswered(
-							qa.question,
-							qa.answer,
-							sessionId,
-							(input as any).callID,
-						);
+						await trackQuestionAnswered(qa.question, qa.answer, sessionId, (input as any).callID);
 					}
 				} catch (error) {
 					fileLogError("[QuestionTracking] Track failed (non-blocking)", error);
@@ -682,14 +637,8 @@ export const PaiUnified: Plugin = async (ctx) => {
 		"chat.message": async (input, output) => {
 			try {
 				// DEBUG: Log full structures to diagnose Issue #6
-				fileLog(
-					`[chat.message] input keys: ${Object.keys(input).join(", ")}`,
-					"debug",
-				);
-				fileLog(
-					`[chat.message] output keys: ${Object.keys(output).join(", ")}`,
-					"debug",
-				);
+				fileLog(`[chat.message] input keys: ${Object.keys(input).join(", ")}`, "debug");
+				fileLog(`[chat.message] output keys: ${Object.keys(output).join(", ")}`, "debug");
 
 				// FIXED: Read from output.message, NOT input.message!
 				// See: https://github.com/Steffen025/pai-opencode/issues/6
@@ -705,18 +654,12 @@ export const PaiUnified: Plugin = async (ctx) => {
 				}
 
 				// DEBUG: Log message structure
-				fileLog(
-					`[chat.message] message keys: ${Object.keys(message).join(", ")}`,
-					"debug",
-				);
-				fileLog(
-					`[chat.message] message.content type: ${typeof message.content}`,
-					"debug",
-				);
+				fileLog(`[chat.message] message keys: ${Object.keys(message).join(", ")}`, "debug");
+				fileLog(`[chat.message] message.content type: ${typeof message.content}`, "debug");
 				if (message.content) {
 					fileLog(
 						`[chat.message] message.content: ${JSON.stringify(message.content).substring(0, 200)}`,
-						"debug",
+						"debug"
 					);
 				}
 
@@ -736,15 +679,12 @@ export const PaiUnified: Plugin = async (ctx) => {
 				if (wasMessageRecentlyProcessed(content)) {
 					fileLog(
 						`[chat.message] Skipping duplicate message: ${content.substring(0, 50)}...`,
-						"debug",
+						"debug"
 					);
 					return;
 				}
 
-				fileLog(
-					`[chat.message] User: ${content.substring(0, 100)}...`,
-					"debug",
-				);
+				fileLog(`[chat.message] User: ${content.substring(0, 100)}...`, "debug");
 
 				// === AUTO-WORK CREATION ===
 				// Create work session on first user prompt if none exists
@@ -762,17 +702,14 @@ export const PaiUnified: Plugin = async (ctx) => {
 							await appendEffortToMeta(
 								workResult.session.path,
 								effortResult.level,
-								effortResult.budget,
+								effortResult.budget
 							);
 							fileLog(
 								`[EffortLevel] Written to META: ${effortResult.level} (${effortResult.budget})`,
-								"info",
+								"info"
 							);
 						} catch (error) {
-							fileLogError(
-								"[EffortLevel] META write failed (non-blocking)",
-								error,
-							);
+							fileLogError("[EffortLevel] META write failed (non-blocking)", error);
 						}
 					}
 				} else if (currentSession) {
@@ -804,27 +741,18 @@ export const PaiUnified: Plugin = async (ctx) => {
 						const effortResult = await detectEffortLevel(content);
 						fileLog(
 							`[EffortLevel] Detected: ${effortResult.level} (${effortResult.budget})`,
-							"info",
+							"info"
 						);
 					} catch (error) {
-						fileLogError(
-							"[EffortLevel] Detection failed (non-blocking)",
-							error,
-						);
+						fileLogError("[EffortLevel] Detection failed (non-blocking)", error);
 					}
 				}
 
 				// === FORMAT REMINDER ===
 				// For non-trivial prompts, nudge towards Algorithm format
 				// (Not blocking, just logging for awareness)
-				if (
-					content.length > 100 &&
-					!content.toLowerCase().includes("trivial")
-				) {
-					fileLog(
-						"Non-trivial prompt detected, Algorithm format recommended",
-						"debug",
-					);
+				if (content.length > 100 && !content.toLowerCase().includes("trivial")) {
+					fileLog("Non-trivial prompt detected, Algorithm format recommended", "debug");
 				}
 			} catch (error) {
 				fileLogError("chat.message handler failed", error);
@@ -847,8 +775,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 					fileLog("=== Session Started ===", "info");
 
 					// Initialize fresh buffers for new session (Map-based — no global reset)
-					const newSessionId =
-						(input.event as any)?.properties?.info?.id || "unknown";
+					const newSessionId = (input.event as any)?.properties?.info?.id || "unknown";
 					sessionUserMessages.set(newSessionId, []);
 					sessionAssistantMessages.set(newSessionId, []);
 
@@ -861,10 +788,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 					try {
 						const restoreResult = await restoreSkillFiles();
 						if (restoreResult.restored.length > 0) {
-							fileLog(
-								`Skill restore: ${restoreResult.restored.length} files restored`,
-								"info",
-							);
+							fileLog(`Skill restore: ${restoreResult.restored.length} files restored`, "info");
 						}
 					} catch (error) {
 						fileLogError("Skill restore failed", error);
@@ -877,7 +801,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 						if (updateResult.updateAvailable) {
 							fileLog(
 								`[VersionCheck] Update available: ${updateResult.currentVersion} → ${updateResult.latestVersion}`,
-								"info",
+								"info"
 							);
 						}
 					} catch (error) {
@@ -886,10 +810,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 				}
 
 				// === SESSION END ===
-				if (
-					eventType.includes("session.ended") ||
-					eventType.includes("session.idle")
-				) {
+				if (eventType.includes("session.ended") || eventType.includes("session.idle")) {
 					fileLog("=== Session Ending ===", "info");
 
 					// WORK COMPLETION LEARNING
@@ -897,10 +818,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 					try {
 						const learningResult = await extractLearningsFromWork();
 						if (learningResult.success && learningResult.learnings.length > 0) {
-							fileLog(
-								`Extracted ${learningResult.learnings.length} learnings`,
-								"info",
-							);
+							fileLog(`Extracted ${learningResult.learnings.length} learnings`, "info");
 
 							// Emit learning captured for each learning
 							learningResult.learnings.forEach((learning: any) => {
@@ -918,10 +836,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 					try {
 						const healthResult = await runIntegrityCheck();
 						if (!healthResult.healthy) {
-							fileLog(
-								`[IntegrityCheck] Issues found: ${healthResult.issues.join(", ")}`,
-								"warn",
-							);
+							fileLog(`[IntegrityCheck] Issues found: ${healthResult.issues.join(", ")}`, "warn");
 						} else {
 							fileLog("[IntegrityCheck] System healthy", "info");
 						}
@@ -955,15 +870,10 @@ export const PaiUnified: Plugin = async (ctx) => {
 					try {
 						const eventData = (input as any).event;
 						const sessionId =
-							eventData?.properties?.sessionID ||
-							eventData?.properties?.id ||
-							undefined;
+							eventData?.properties?.sessionID || eventData?.properties?.id || undefined;
 						await cleanupSession(sessionId);
 					} catch (error) {
-						fileLogError(
-							"[SessionCleanup] Cleanup failed (non-blocking)",
-							error,
-						);
+						fileLogError("[SessionCleanup] Cleanup failed (non-blocking)", error);
 					}
 
 					// === RELATIONSHIP MEMORY (WP-A) ===
@@ -976,16 +886,13 @@ export const PaiUnified: Plugin = async (ctx) => {
 							"unknown";
 						await captureRelationshipMemory(
 							[...getUserMessages(endedSessionId)],
-							[...getAssistantMessages(endedSessionId)],
+							[...getAssistantMessages(endedSessionId)]
 						);
 						// Cleanup to prevent memory leaks
 						sessionUserMessages.delete(endedSessionId);
 						sessionAssistantMessages.delete(endedSessionId);
 					} catch (error) {
-						fileLogError(
-							"[RelationshipMemory] Capture failed (non-blocking)",
-							error,
-						);
+						fileLogError("[RelationshipMemory] Capture failed (non-blocking)", error);
 					}
 
 					// Emit session end
@@ -1009,13 +916,10 @@ export const PaiUnified: Plugin = async (ctx) => {
 								if (iscResult.algorithmDetected) {
 									fileLog(
 										`[ISC Validation] Algorithm detected, ${iscResult.criteriaCount} criteria found`,
-										"info",
+										"info"
 									);
 									if (iscResult.warnings.length > 0) {
-										fileLog(
-											`[ISC Validation] Warnings: ${iscResult.warnings.join(", ")}`,
-											"warn",
-										);
+										fileLog(`[ISC Validation] Warnings: ${iscResult.warnings.join(", ")}`, "warn");
 									}
 
 									// Emit ISC validation
@@ -1036,7 +940,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 								if (voiceCompletion) {
 									fileLog(
 										`[Voice] Found completion: "${voiceCompletion.substring(0, 50)}..."`,
-										"info",
+										"info"
 									);
 									await handleVoiceNotification(voiceCompletion, sessionId);
 
@@ -1050,28 +954,18 @@ export const PaiUnified: Plugin = async (ctx) => {
 									try {
 										await handleTabState(voiceCompletion, "completed");
 									} catch (error) {
-										fileLogError(
-											"[TabState] Failed to update tab state (non-blocking)",
-											error,
-										);
+										fileLogError("[TabState] Failed to update tab state (non-blocking)", error);
 									}
 								} else {
-									fileLog(
-										"[Voice] No voice completion found in response",
-										"debug",
-									);
+									fileLog("[Voice] No voice completion found in response", "debug");
 								}
 							} catch (error) {
-								fileLogError(
-									"[Voice] Voice notification failed (non-blocking)",
-									error,
-								);
+								fileLogError("[Voice] Voice notification failed (non-blocking)", error);
 							}
 
 							// Emit assistant message
 							const hasVoiceLine = !!extractVoiceCompletion(responseText);
-							const hasISC =
-								responseText.includes("🤖") || responseText.includes("OBSERVE");
+							const hasISC = responseText.includes("🤖") || responseText.includes("OBSERVE");
 							emitAssistantMessage({
 								content_length: responseText.length,
 								has_voice_line: hasVoiceLine,
@@ -1083,10 +977,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 							try {
 								await handleResponseCapture(responseText, sessionId);
 							} catch (error) {
-								fileLogError(
-									"[Capture] Response capture failed (non-blocking)",
-									error,
-								);
+								fileLogError("[Capture] Response capture failed (non-blocking)", error);
 							}
 
 							// === ASSISTANT THREAD CAPTURE (Phase 2 — Issue #24) ===
@@ -1097,14 +988,11 @@ export const PaiUnified: Plugin = async (ctx) => {
 									await appendToThread(`**Assistant:** ${responseText}`);
 									fileLog(
 										`[Thread] Assistant response appended (${responseText.length} chars)`,
-										"debug",
+										"debug"
 									);
 								}
 							} catch (error) {
-								fileLogError(
-									"[Thread] Assistant capture failed (non-blocking)",
-									error,
-								);
+								fileLogError("[Thread] Assistant capture failed (non-blocking)", error);
 							}
 
 							// Buffer assistant response for relationship memory (session-scoped)
@@ -1121,10 +1009,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 								const cacheSessionId = (input as any).sessionID || "unknown";
 								await cacheLastResponse(responseText, cacheSessionId);
 							} catch (error) {
-								fileLogError(
-									"[LastResponseCache] Cache write failed (non-blocking)",
-									error,
-								);
+								fileLogError("[LastResponseCache] Cache write failed (non-blocking)", error);
 							}
 						}
 					}
@@ -1146,10 +1031,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 						// Fix Issue #28: also check event properties parts
 						const eventParts = eventData?.properties?.parts;
 						userText = extractTextContent(message, eventParts);
-						fileLog(
-							`[message.updated] User message: "${userText.substring(0, 100)}..."`,
-							"debug",
-						);
+						fileLog(`[message.updated] User message: "${userText.substring(0, 100)}..."`, "debug");
 					}
 
 					// Process user message if we found it
@@ -1159,29 +1041,20 @@ export const PaiUnified: Plugin = async (ctx) => {
 						if (wasMessageRecentlyProcessed(userText)) {
 							fileLog(
 								`[message.updated] Skipping duplicate message: ${userText.substring(0, 50)}...`,
-								"debug",
+								"debug"
 							);
 							return; // Skip this event
 						}
 
-						fileLog(
-							`[USER MESSAGE] Content: "${userText.substring(0, 100)}..."`,
-							"info",
-						);
+						fileLog(`[USER MESSAGE] Content: "${userText.substring(0, 100)}..."`, "info");
 
 						// === EXPLICIT RATING CAPTURE ===
 						const rating = detectRating(userText);
 						if (rating) {
 							fileLog(`[RATING DETECTED] Score: ${rating}`, "info");
-							const ratingResult = await captureRating(
-								userText,
-								"user message",
-							);
+							const ratingResult = await captureRating(userText, "user message");
 							if (ratingResult.success && ratingResult.rating) {
-								fileLog(
-									`Rating captured: ${ratingResult.rating.score}/10`,
-									"info",
-								);
+								fileLog(`Rating captured: ${ratingResult.rating.score}/10`, "info");
 
 								// Emit explicit rating
 								emitExplicitRating({
@@ -1199,13 +1072,11 @@ export const PaiUnified: Plugin = async (ctx) => {
 								// Read last response for context (ADR-009: OpenCode-native replacement
 								// for Claude-Code's transcriptPath pattern)
 								const lastResponse =
-									(await readLastResponse((input as any).sessionID).catch(
-										() => null,
-									)) ?? undefined;
+									(await readLastResponse((input as any).sessionID).catch(() => null)) ?? undefined;
 								const sentimentResult = await handleImplicitSentiment(
 									userText,
 									sessionId,
-									lastResponse,
+									lastResponse
 								);
 
 								// Emit implicit sentiment if captured
@@ -1219,10 +1090,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 									}).catch(() => {});
 								}
 							} catch (error) {
-								fileLogError(
-									"[ImplicitSentiment] Failed (non-blocking)",
-									error,
-								);
+								fileLogError("[ImplicitSentiment] Failed (non-blocking)", error);
 							}
 						}
 
@@ -1238,10 +1106,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 						if (!currentSession && !isTrivialMessage(userText)) {
 							const workResult = await createWorkSession(userText);
 							if (workResult.success && workResult.session) {
-								fileLog(
-									`Work session started: ${workResult.session.id}`,
-									"info",
-								);
+								fileLog(`Work session started: ${workResult.session.id}`, "info");
 
 								// === EFFORT LEVEL IN META (Phase 4 — Issue #24) ===
 								try {
@@ -1249,17 +1114,14 @@ export const PaiUnified: Plugin = async (ctx) => {
 									await appendEffortToMeta(
 										workResult.session.path,
 										effortResult.level,
-										effortResult.budget,
+										effortResult.budget
 									);
 									fileLog(
 										`[EffortLevel] Written to META: ${effortResult.level} (${effortResult.budget})`,
-										"info",
+										"info"
 									);
 								} catch (error) {
-									fileLogError(
-										"[EffortLevel] META write failed (non-blocking)",
-										error,
-									);
+									fileLogError("[EffortLevel] META write failed (non-blocking)", error);
 								}
 							}
 						} else if (currentSession) {
@@ -1284,16 +1146,13 @@ export const PaiUnified: Plugin = async (ctx) => {
 				// Output: Speichert Learnings für spätere Nutzung
 				// Unterscheidung: [Compaction:Post] vs [Compaction:Pre] (bei WP-N2 Hook)
 				if (eventType === "session.compacted") {
-					fileLog(
-						"[Compaction:Post] Context compaction detected — rescuing learnings",
-						"info",
-					);
+					fileLog("[Compaction:Post] Context compaction detected — rescuing learnings", "info");
 					try {
 						const learningResult = await extractLearningsFromWork();
 						if (learningResult.success && learningResult.learnings.length > 0) {
 							fileLog(
 								`[Compaction:Post] Rescued ${learningResult.learnings.length} learnings`,
-								"info",
+								"info"
 							);
 						} else {
 							fileLog("[Compaction:Post] No learnings to rescue", "debug");
@@ -1301,10 +1160,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 					} catch (error) {
 						fileLogError("[Compaction:Post] Learning rescue failed", error);
 					}
-					fileLog(
-						`[Compaction:Post] Compaction completed at ${new Date().toISOString()}`,
-						"info",
-					);
+					fileLog(`[Compaction:Post] Compaction completed at ${new Date().toISOString()}`, "info");
 				}
 
 				// === SESSION ERROR ===
@@ -1312,13 +1168,9 @@ export const PaiUnified: Plugin = async (ctx) => {
 				if (eventType === "session.error") {
 					const eventData = input.event as any;
 					const errMsg =
-						eventData?.properties?.error ||
-						eventData?.properties?.message ||
-						"unknown error";
+						eventData?.properties?.error || eventData?.properties?.message || "unknown error";
 					const sessionId =
-						eventData?.properties?.sessionID ||
-						eventData?.properties?.id ||
-						"unknown";
+						eventData?.properties?.sessionID || eventData?.properties?.id || "unknown";
 					fileLog(`[SessionError] Session ${sessionId}: ${errMsg}`, "error");
 				}
 
@@ -1331,12 +1183,11 @@ export const PaiUnified: Plugin = async (ctx) => {
 					const props = eventData?.properties || {};
 					const permId = props.id || "unknown";
 					const permission = props.permission || "unknown";
-					const patterns =
-						(props.patterns || []).slice(0, 3).join(", ") || "none";
+					const patterns = (props.patterns || []).slice(0, 3).join(", ") || "none";
 					const via = props.tool ? `tool/${props.tool.callID}` : "no-tool";
 					fileLog(
 						`[PermissionAudit] id=${permId} permission=${permission} patterns=[${patterns}] via=${via}`,
-						"info",
+						"info"
 					);
 				}
 
@@ -1347,10 +1198,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 					const props = eventData?.properties || {};
 					const cmdName = props.name || "unknown";
 					const cmdArgs = (props.arguments || "").slice(0, 100);
-					fileLog(
-						`[CommandTracker] /${cmdName}${cmdArgs ? ` ${cmdArgs}` : ""}`,
-						"info",
-					);
+					fileLog(`[CommandTracker] /${cmdName}${cmdArgs ? ` ${cmdArgs}` : ""}`, "info");
 				}
 
 				// === OPENCODE UPDATE AVAILABLE ===
@@ -1358,10 +1206,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 				// Complements our check-version.ts (which checks PAI-OpenCode releases).
 				if (eventType === "installation.update.available") {
 					const eventData = input.event as any;
-					const version =
-						eventData?.properties?.version ||
-						eventData?.properties?.tag ||
-						"unknown";
+					const version = eventData?.properties?.version || eventData?.properties?.tag || "unknown";
 					fileLog(`[UpdateAvailable] OpenCode ${version} available`, "info");
 				}
 
@@ -1415,10 +1260,10 @@ export const PaiUnified: Plugin = async (ctx) => {
 				output.env = output.env || {};
 
 				// PAI runtime context (not in .env — dynamically computed per call)
-				output.env["PAI_CONTEXT"] = "1";
-				output.env["PAI_SESSION_ID"] = sessionId;
-				output.env["PAI_WORK_DIR"] = workDir;
-				output.env["PAI_VERSION"] = "3.0";
+				output.env.PAI_CONTEXT = "1";
+				output.env.PAI_SESSION_ID = sessionId;
+				output.env.PAI_WORK_DIR = workDir;
+				output.env.PAI_VERSION = "3.0";
 
 				// Explicit passthrough for keys that PAI scripts may need in Bash
 				// These are already in process.env via Bun .env loading, but we
@@ -1437,10 +1282,7 @@ export const PaiUnified: Plugin = async (ctx) => {
 					}
 				}
 
-				fileLog(
-					`[shell.env] Context injected for session ${sessionId}`,
-					"debug",
-				);
+				fileLog(`[shell.env] Context injected for session ${sessionId}`, "debug");
 			} catch (error) {
 				// Non-blocking — never fail a bash call due to env injection
 				fileLogError("[shell.env] Env injection failed (non-blocking)", error);
