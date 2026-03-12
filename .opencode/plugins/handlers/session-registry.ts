@@ -58,7 +58,7 @@ function readRegistry(sessionId: string): SubagentRegistry {
 			}
 			return data;
 		} catch {
-			// Corrupted file — start fresh
+			fileLog(`[session-registry] Corrupted registry file at ${filePath} — starting fresh`, "warn");
 		}
 	}
 	return {
@@ -107,19 +107,6 @@ function writeRegistryAtomic(
 			if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
 		} catch {}
 		return false;
-	}
-}
-
-/**
- * @deprecated Use writeRegistryAtomic directly instead.
- * This helper silently drops CAS failures (lost-write on concurrent access).
- * Callers should call readRegistry + writeRegistryAtomic with retry logic.
- */
-function _writeRegistry(sessionId: string, registry: SubagentRegistry): void {
-	const current = readRegistry(sessionId);
-	const ok = writeRegistryAtomic(sessionId, registry, current.version);
-	if (!ok) {
-		fileLog("[session-registry] _writeRegistry: CAS failed (version mismatch) — write dropped", "warn");
 	}
 }
 

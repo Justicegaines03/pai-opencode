@@ -182,6 +182,7 @@ async function sendElevenLabs(message: string, sessionId: string): Promise<boole
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(payload),
+			signal: AbortSignal.timeout(1000),
 		});
 
 		if (!response.ok) {
@@ -228,6 +229,11 @@ interface GoogleTTSRequest {
 }
 
 async function sendGoogleTTS(message: string, sessionId: string): Promise<boolean> {
+	if (!isMacOS()) {
+		fileLog("[Voice:Google] Skipping — afplay requires macOS", "debug");
+		return false;
+	}
+
 	const settings = getSettings();
 	const googleApiKey = settings.env?.GOOGLE_TTS_API_KEY || process.env.GOOGLE_TTS_API_KEY;
 
@@ -271,6 +277,7 @@ async function sendGoogleTTS(message: string, sessionId: string): Promise<boolea
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(requestBody),
+			signal: AbortSignal.timeout(10000),
 		});
 
 		if (!response.ok) {
@@ -335,6 +342,7 @@ async function isElevenLabsAvailable(): Promise<boolean> {
 }
 
 function isGoogleTTSConfigured(): boolean {
+	if (!isMacOS()) return false;
 	const settings = getSettings();
 	return !!(settings.env?.GOOGLE_TTS_API_KEY || process.env.GOOGLE_TTS_API_KEY);
 }
