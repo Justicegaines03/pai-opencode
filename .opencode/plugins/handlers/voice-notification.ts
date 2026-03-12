@@ -293,7 +293,7 @@ async function sendGoogleTTS(message: string, sessionId: string): Promise<boolea
 		writeFileSync(tempFile, audioBuffer);
 
 		try {
-			await execAsync(`afplay "${tempFile}"`);
+			await execFileAsync("afplay", [tempFile]);
 		} finally {
 			// Cleanup temp file
 			try {

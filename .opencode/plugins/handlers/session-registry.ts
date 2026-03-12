@@ -110,10 +110,17 @@ function writeRegistryAtomic(
 	}
 }
 
-// Legacy non-atomic write for compatibility (no CAS check)
+/**
+ * @deprecated Use writeRegistryAtomic directly instead.
+ * This helper silently drops CAS failures (lost-write on concurrent access).
+ * Callers should call readRegistry + writeRegistryAtomic with retry logic.
+ */
 function _writeRegistry(sessionId: string, registry: SubagentRegistry): void {
 	const current = readRegistry(sessionId);
-	writeRegistryAtomic(sessionId, registry, current.version);
+	const ok = writeRegistryAtomic(sessionId, registry, current.version);
+	if (!ok) {
+		fileLog("[session-registry] _writeRegistry: CAS failed (version mismatch) — write dropped", "warn");
+	}
 }
 
 // --- Task Tool Output Parser ---

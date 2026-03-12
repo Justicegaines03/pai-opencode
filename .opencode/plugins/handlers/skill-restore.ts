@@ -42,10 +42,18 @@ export async function restoreSkillFiles(): Promise<RestoreResult> {
 		}
 
 		// Find modified SKILL.md files in .opencode/skills/
-		const statusOutput = execSync(
-			'git status --porcelain ".opencode/skills/**/SKILL.md" 2>/dev/null || true',
-			{ encoding: "utf-8" }
-		).trim();
+		let statusOutput: string;
+		try {
+			statusOutput = execSync('git status --porcelain ".opencode/skills/**/SKILL.md"', {
+				encoding: "utf-8",
+				stdio: ["pipe", "pipe", "pipe"],
+			}).trim();
+		} catch (error) {
+			const msg = error instanceof Error ? error.message : String(error);
+			fileLogError("[skill-restore] git status failed", new Error(msg));
+			result.success = false;
+			return result;
+		}
 
 		if (!statusOutput) {
 			fileLog("No modified SKILL.md files found", "debug");
