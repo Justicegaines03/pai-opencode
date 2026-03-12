@@ -224,8 +224,7 @@ export async function stepInstallPAI(
 			default: state.collected.provider || "zen",
 			[state.collected.provider || "zen"]: {
 				// apiKey is stored in .env, not here
-				modelTier: state.collected.modelTier || "standard",
-				models: state.collected.models || [],
+				// model strings are written to opencode.json via PROVIDER_MODELS
 			},
 		},
 	};
@@ -260,7 +259,7 @@ ${providerEnvVar}=${state.collected.apiKey || ""}
 	onProgress(95, "Created .env with secure permissions...");
 	
 	// Generate opencode.json — full agent-tier structure matching the repo template
-	const provider = (state.collected.provider || "anthropic") as ProviderName;
+	const provider = (state.collected.provider || "zen") as ProviderName;
 	const tiers = PROVIDER_MODELS[provider] ?? PROVIDER_MODELS.anthropic;
 
 	/**
@@ -344,12 +343,12 @@ ${providerEnvVar}=${state.collected.apiKey || ""}
 				let currentTarget: string;
 				try {
 					currentTarget = realpathSync(globalOpencodeLink);
-				} catch (err) {
-					// Symlink target doesn't exist (broken symlink)
-					// Remove and recreate
+				} catch {
+					// Symlink target doesn't exist (broken symlink) — remove and recreate
 					unlinkSync(globalOpencodeLink);
 					symlinkSync(localOpencodeDir, globalOpencodeLink, "dir");
-					continue;
+					// Symlink is now correct; nothing more to do in this block
+					return;
 				}
 				
 				if (currentTarget !== localOpencodeDir) {
