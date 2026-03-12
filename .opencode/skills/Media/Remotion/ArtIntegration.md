@@ -5,7 +5,7 @@
 ## Before Creating Any Video Content
 
 1. **Load Art preferences:**
-   ```
+   ```text
    ~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Art/PREFERENCES.md
    ```
 
@@ -20,13 +20,13 @@
 | Human-scale in vast spaces | Typography hierarchy, spacing |
 
 3. **Use Theme Constants:**
-   ```
-   ~/.opencode/skills/Remotion/Tools/Theme.ts
+   ```text
+   ~/.opencode/skills/Media/Remotion/Tools/Theme.ts
    ```
 
 4. **Reference images** (when visual style reference needed):
-   ```
-   ~/.opencode/skills/Art/Examples/
+   ```text
+   ~/.opencode/skills/Media/Art/Examples/
    ```
 
 ## PAI Theme Quick Reference
