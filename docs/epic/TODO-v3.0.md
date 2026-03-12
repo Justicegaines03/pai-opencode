@@ -1,7 +1,7 @@
 ---
 title: PAI-OpenCode v3.0 — Task List
 description: Granular, immediately actionable tasks for the remaining PRs until v3.0 release
-status: active
+status: archived
 date: 2026-03-10
 ---
 
@@ -9,7 +9,7 @@ date: 2026-03-10
 
 > [!NOTE]
 > **Basis:** Gap-Analysis 2026-03-06 | Reference: `GAP-ANALYSIS-v3.0.md` | Plan: `OPTIMIZED-PR-PLAN.md`
-> **Updated:** 2026-03-12 — WP-N1 through WP-N5 complete (PR #50–#54). WP-N6 in progress.
+> **Updated:** 2026-03-12 — WP-N1 through WP-N10 complete (PR #50–#61). v3.0 DONE.
 
 ---
 
