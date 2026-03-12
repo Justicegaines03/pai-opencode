@@ -119,11 +119,12 @@ export interface ProviderConfig {
 // Re-export for consumers that imported these from this module
 export { PROVIDER_MODELS, PROVIDER_LABELS } from "./provider-models.ts";
 
-// Legacy aliases kept for CLI quick-install.ts compatibility
-export const ZEN_FREE_MODELS = PROVIDER_MODELS.zen;
-export const ANTHROPIC_MODELS = PROVIDER_MODELS.anthropic;
-export const OPENROUTER_MODELS = PROVIDER_MODELS.openrouter;
-export const OPENAI_MODELS = PROVIDER_MODELS.openai;
+// Legacy aliases kept for CLI quick-install.ts compatibility.
+// Spread into new objects so mutations by consumers cannot corrupt PROVIDER_MODELS.
+export const ZEN_FREE_MODELS = { ...PROVIDER_MODELS.zen };
+export const ANTHROPIC_MODELS = { ...PROVIDER_MODELS.anthropic };
+export const OPENROUTER_MODELS = { ...PROVIDER_MODELS.openrouter };
+export const OPENAI_MODELS = { ...PROVIDER_MODELS.openai };
 
 export async function stepProviderConfig(
 	state: InstallState,
