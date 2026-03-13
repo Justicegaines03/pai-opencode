@@ -107,24 +107,26 @@ Die 11 PRs (PR-01 bis PR-11) decken den **Diff zwischen main und dev** ab — al
 
 **Die 6 schweren Fälle (alle in PR-12):**
 
-#### 4a. THEHOOKSYSTEM.md (48 Treffer — SCHWERSTER FALL)
+#### 4a. THEHOOKSYSTEM.md — zwei Instanzen, beide löschen
 
-**Problem:** Beschreibt komplett das Claude Code Hook-System:
-- Claude Code `hooks` in `settings.json` (event → command mapping)
-- Hooks wie `PreToolUse`, `PostToolUse`, `Notification`
-- Shell-basierte Hook-Ausführung
+**Situation:** Es gibt ZWEI THEHOOKSYSTEM.md Dateien und EINE THEPLUGINSYSTEM.md — alle auf main und dev identisch:
 
-**OpenCode-Realität:** OpenCode hat ein Plugin-System (`pai-unified.ts`), kein Hook-System.
-- Events: `session.created`, `session.compacted`, `tool.execute.before`, `tool.execute.after`, `message.received`
-- Handler in `plugins/handlers/*.ts`
-- Event-Bus statt Shell-Hooks
+| Datei | Pfad | Status | Aktion |
+|-------|------|--------|--------|
+| `THEHOOKSYSTEM.md` | `.opencode/PAI/` | ❌ Claude Code Version (`~/.claude/hooks/`, 1327 Zeilen) | **LÖSCHEN** |
+| `THEHOOKSYSTEM.md` | `.opencode/skills/PAI/SYSTEM/` | ⚠️ Übergangsversion (`~/.opencode/hooks/`, 1323 Zeilen) | **LÖSCHEN** |
+| `THEPLUGINSYSTEM.md` | `.opencode/skills/PAI/SYSTEM/` | ✅ Existiert! (363 Zeilen, Stand Jan 2026) | **UPDATEN** |
 
-**Lösung:** Dieses Dokument muss **komplett umgeschrieben** werden:
-- Neue Struktur: "Das OpenCode Plugin-System"
-- Alle Hook-Referenzen → Plugin-Event-Referenzen
-- Alle `settings.json hooks` → `pai-unified.ts` Event-Bus
-- Claude Code `PreToolUse/PostToolUse` → OpenCode `tool.execute.before/after`
-- ⏱️ **Geschätzter Aufwand: 2-3 Stunden** (umfangreiches Dokument, viele Querverweise)
+**OpenCode-Realität:** Das Plugin-System hat sich seit Januar 2026 weiterentwickelt:
+- 27 Handler in `plugins/handlers/*.ts` (THEPLUGINSYSTEM.md kennt nur Stand Jan 2026)
+- `pai-unified.ts` als zentraler Event-Bus
+- Adapter-Schicht in `plugins/adapters/`, Lib-Utilities in `plugins/lib/`
+
+**Lösung:**
+- DELETE `.opencode/PAI/THEHOOKSYSTEM.md` (Claude Code Version)
+- DELETE `.opencode/skills/PAI/SYSTEM/THEHOOKSYSTEM.md` (obsolete Übergangsversion)
+- UPDATE `.opencode/skills/PAI/SYSTEM/THEPLUGINSYSTEM.md` — neue Handler dokumentieren, Stand aktualisieren
+- ⏱️ **Geschätzter Aufwand: 1-2 Stunden** (Update statt Neuerstellung — Basis existiert bereits)
 
 #### 4b. MEMORYSYSTEM.md (20 Treffer)
 
@@ -273,7 +275,9 @@ git checkout -b release/v3.0-pr12-claude-semantic-cleanup main
 
 | Datei | Kategorie(n) | Aufwand | Typ |
 |-------|-------------|---------|-----|
-| `.opencode/PAI/THEHOOKSYSTEM.md` | 4a, 1, 2 | 🔴 2-3h | REWRITE |
+| `.opencode/PAI/THEHOOKSYSTEM.md` | 4a | ⚡ 5min | DELETE (Claude Code Version) |
+| `.opencode/skills/PAI/SYSTEM/THEHOOKSYSTEM.md` | 4a | ⚡ 5min | DELETE (obsolete Übergangsversion) |
+| `.opencode/skills/PAI/SYSTEM/THEPLUGINSYSTEM.md` | 4a | ⚠️ 1-2h | UPDATE (27 Handler dokumentieren) |
 | `.opencode/PAI/MEMORYSYSTEM.md` | 4b, 1, 8 | 🔴 1-2h | REWRITE |
 | `.opencode/PAI/TOOLS.md` | 4c, 1, 3 | ⚠️ 1-2h | REWRITE |
 | `.opencode/PAI/SKILLSYSTEM.md` | 4d, 1, 2 | ⚠️ 1h | PARTIAL REWRITE |
@@ -290,8 +294,8 @@ git checkout -b release/v3.0-pr12-claude-semantic-cleanup main
 | `.opencode/plugins/lib/identity.ts` | 1 | ⚡ 5min | MECHANICAL |
 | `.opencode/skills/Agents/Tools/LoadAgentContext.ts` | 6 | ⚡ 10min | RENAME VAR |
 
-**Gesamt: 16 Dateien, geschätzt 8-12 Stunden Arbeit**
-**Davon 3 schwere Rewrites (THEHOOKSYSTEM, MEMORYSYSTEM, TOOLS) = 4-7 Stunden**
+**Gesamt: 18 Dateien (16 MODIFY/RENAME + 2 DELETE), geschätzt 8-12 Stunden Arbeit**
+**Davon 2 DELETE + 1 UPDATE (THEHOOKSYSTEM×2 löschen, THEPLUGINSYSTEM updaten) + 2 schwere Rewrites (MEMORYSYSTEM, TOOLS) = 4-7 Stunden**
 
 ### PR-12 Abhängigkeiten
 
@@ -309,7 +313,7 @@ Wenn 16 Dateien + heavy Rewrites zu viel für einen CodeRabbit-Review sind:
 | Sub-PR | Dateien | Fokus |
 |--------|---------|-------|
 | PR-12a | 8 mechanische .ts Dateien + LoadAgentContext.ts | Triviale Pfad-Fixes + Variable rename |
-| PR-12b | THEHOOKSYSTEM.md + MEMORYSYSTEM.md + TOOLS.md | Die 3 schweren Rewrites |
+| PR-12b | DELETE 2× THEHOOKSYSTEM.md + UPDATE THEPLUGINSYSTEM.md + MEMORYSYSTEM.md + TOOLS.md | 2 DELETEs + 1 UPDATE + 2 schwere Rewrites |
 | PR-12c | SKILLSYSTEM.md + ACTIONS.md + README.md + CLI.md + PRDFORMAT.md + Algorithm/v3.7.0.md + BuildCLAUDE.ts | Mittlere Edits + BuildCLAUDE Rename |
 
 ---
@@ -417,7 +421,8 @@ Die bestehende DoD aus V3.0-COMPLETION-PLAN.md wird erweitert:
 - [ ] Kein `~/.claude/` Pfad in .ts/.md Dateien (außer Migration-Docs + PAI-Install Detection)
 - [ ] Kein `CLAUDE.md` als Datei-Referenz (außer Migration-Docs)
 - [ ] Kein `claude -p` in ausführbarem Code
-- [ ] THEHOOKSYSTEM.md beschreibt OpenCode Plugin-System (nicht Claude Code Hooks)
+- [ ] Beide THEHOOKSYSTEM.md gelöscht (`.opencode/PAI/` + `.opencode/skills/PAI/SYSTEM/`)
+- [ ] THEPLUGINSYSTEM.md aktualisiert (27 Handler, Stand 2026-03)
 - [ ] MEMORYSYSTEM.md referenziert OpenCode Session-DB (nicht projects/{uuid}.jsonl)
 - [ ] TOOLS.md listet OpenCode-native Tools
 - [ ] SKILLSYSTEM.md referenziert AGENTS.md (nicht CLAUDE.md)
@@ -430,12 +435,12 @@ Die bestehende DoD aus V3.0-COMPLETION-PLAN.md wird erweitert:
 
 ## Zeitplan-Empfehlung
 
-```
+```text
 Woche 1: PR-01 + PR-02 + PR-12a (mechanische .ts Fixes)
           PR-03 + PR-04 + PR-05 (parallel — Skill Reorgs sind reine Renames)
 
 Woche 2: PR-06 + PR-07 + PR-08
-          PR-12b (THEHOOKSYSTEM + MEMORYSYSTEM + TOOLS Rewrites)
+          PR-12b (DELETE 2× THEHOOKSYSTEM + UPDATE THEPLUGINSYSTEM + MEMORYSYSTEM + TOOLS)
           PR-09
 
 Woche 3: PR-10 (ERST nach PR-03 bis PR-08 gemerged)
