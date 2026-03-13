@@ -1,9 +1,19 @@
+---
+status: READY TO EXECUTE
+created: 2026-03-13
+purpose: Detaillierter Plan für die semantische Claude→OpenCode Bereinigung
+tags:
+  - v3.0
+  - claude-cleanup
+  - pr-12
+---
+
 # Claude→OpenCode — Vollständiger Bereinigungsplan
 
-> **Status:** READY TO EXECUTE
-> **Erstellt:** 2026-03-13
+> [!info] Status
+> **Status:** READY TO EXECUTE | **Erstellt:** 2026-03-13
 > **Zweck:** Detaillierter Plan für die semantische Claude→OpenCode Bereinigung,
-> integriert in die 11+1 Pull Requests des v3.0 Completion Plans.
+> integriert in die 12 Pull Requests des v3.0 Completion Plans.
 
 ---
 
@@ -449,6 +459,42 @@ Woche 3: PR-10 (ERST nach PR-03 bis PR-08 gemerged)
 
 Woche 4: Verifikation, v3.0.0 Tag
 ```
+
+<details>
+<summary>Gantt-Diagramm (klicken zum Erweitern)</summary>
+
+```mermaid
+gantt
+    title v3.0 PR-Zeitplan (12 PRs)
+    dateFormat  YYYY-MM-DD
+    axisFormat  Woche %W
+
+    section Woche 1
+    PR-01 PAI-Install         :w1a, 2026-03-17, 2d
+    PR-02 Core + Plugins      :w1b, 2026-03-17, 2d
+    PR-12a Mechanische Fixes  :w1c, 2026-03-17, 1d
+    PR-03 Thinking Skills     :w1d, 2026-03-18, 2d
+    PR-04 Security Skills     :w1e, 2026-03-18, 2d
+    PR-05 Fabric Teil 1       :w1f, 2026-03-18, 2d
+
+    section Woche 2
+    PR-06 Fabric Teil 2       :w2a, 2026-03-24, 2d
+    PR-07 Fabric Teil 3       :w2b, 2026-03-24, 2d
+    PR-08 Utilities + Scraping:w2c, 2026-03-25, 2d
+    PR-12b Schwere Rewrites   :w2d, 2026-03-24, 3d
+    PR-09 Neue Skills         :w2e, 2026-03-26, 2d
+
+    section Woche 3
+    PR-10 Deletions           :crit, w3a, after w2a, 2d
+    PR-12c Mittlere Edits     :w3b, 2026-03-31, 2d
+    PR-11 Root + Docs         :w3c, 2026-04-01, 2d
+
+    section Woche 4
+    Verifikation              :w4a, 2026-04-07, 2d
+    v3.0.0 Tag                :milestone, w4b, 2026-04-09, 0d
+```
+
+</details>
 
 ---
 
