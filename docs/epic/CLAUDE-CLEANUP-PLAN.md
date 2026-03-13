@@ -400,8 +400,8 @@ Gelöschte Dateien brauchen keine Claude-Bereinigung.
 | PR-09 | — | — | — | — |
 | PR-10 | — | — | — | — |
 | PR-11 | ~3 Dateien | — | 1 Datei (AGENTS.md) | ⚡ 20min |
-| **PR-12** | **6 Dateien** | **2 Dateien** | **8 Dateien (3 HEAVY)** | **🔴 8-12h** |
-| **GESAMT** | ~30 Dateien | 3 Dateien | 10 Dateien | **~10-14h** |
+| **PR-12** | **6 Dateien** | **2 Dateien** | **10 Dateien (3 HEAVY)** | **🔴 8-12h** |
+| **GESAMT** | ~30 Dateien | 3 Dateien | 12 Dateien | **~10-14h** |
 
 ---
 
