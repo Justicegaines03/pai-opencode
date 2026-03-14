@@ -216,12 +216,14 @@ exec bun "${join(paiDir, "PAI", "Tools", "pai.ts")}" "$@"
 	const isFish = userShell.includes("fish");
 	const rcFile = userShell.includes("bash") ? ".bashrc" : isFish ? ".config/fish/config.fish" : ".zshrc";
 	const rcPath = join(homedir(), rcFile);
-	// Escape single quotes in the path so the alias is safe for all shell quote styles
+	// Escape internal single quotes using POSIX '\'' technique.
+	// escapedPath is used directly inside a single-quoted string in aliasLine —
+	// the outer single quotes come from aliasLine itself, NOT from escapedPath.
 	const rawPath = join(paiDir, "PAI", "Tools", "pai.ts");
-	const quotedPath = `'${rawPath.replace(/'/g, "'\\''")}'`;
+	const escapedPath = rawPath.replace(/'/g, "'\\''");
 	const aliasLine = isFish
-		? `alias pai 'bun ${quotedPath}'`
-		: `alias pai='bun ${quotedPath}'`;
+		? `alias pai 'bun ${escapedPath}'`
+		: `alias pai='bun ${escapedPath}'`;
 	const marker = "# PAI alias (v3)";
 	
 	try {

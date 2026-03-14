@@ -17,7 +17,15 @@ process.on("unhandledRejection", (err: any) => {
 import { resolve, relative, join, extname } from "path";
 import { handleWsMessage, addClient, removeClient } from "./routes";
 
-const PORT = parseInt(process.env.PAI_INSTALL_PORT || "1337");
+const _rawPort = parseInt(process.env.PAI_INSTALL_PORT ?? "", 10);
+const PORT = Number.isInteger(_rawPort) && _rawPort >= 1 && _rawPort <= 65535
+  ? _rawPort
+  : (() => {
+      if (process.env.PAI_INSTALL_PORT !== undefined) {
+        console.warn(`[PAI Installer] Invalid PAI_INSTALL_PORT "${process.env.PAI_INSTALL_PORT}", falling back to 1337`);
+      }
+      return 1337;
+    })();
 const PUBLIC_DIR = join(import.meta.dir, "..", "public");
 
 // ─── MIME Types ──────────────────────────────────────────────────
@@ -106,10 +114,13 @@ const server = Bun.serve({
       });
     }
 
-    // SPA fallback: only for HTML navigation requests, not missing assets
-    // Avoids serving text/html for missing .js/.css which confuses module loaders
+    // SPA fallback: only for HTML navigation requests with no file extension.
+    // Paths like /missing.js or /app.css have extensions → return 404.
+    // Paths like /dashboard or / have no extension → serve index.html for SPA routing.
+    const pathname = url.pathname;
+    const hasExtension = extname(pathname) !== "";
     const acceptsHtml = req.method === "GET" && (req.headers.get("accept") ?? "").includes("text/html");
-    if (acceptsHtml) {
+    if (acceptsHtml && !hasExtension) {
       const indexPath = join(PUBLIC_DIR, "index.html");
       const indexFile = Bun.file(indexPath);
       if (await indexFile.exists()) {

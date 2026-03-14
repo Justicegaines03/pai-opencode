@@ -296,8 +296,18 @@ export function isUpdateNeeded(): {
 			reason: "No existing installation",
 		};
 	}
-	
-	const currentVersion = getCurrentVersion();
+
+	let currentVersion: string;
+	try {
+		currentVersion = getCurrentVersion();
+	} catch (err) {
+		return {
+			needed: true,
+			currentVersion: "unknown",
+			targetVersion: TARGET_VERSION,
+			reason: `Version read error: ${err instanceof Error ? err.message : String(err)}`,
+		};
+	}
 	
 	if (currentVersion === "unknown") {
 		return {
