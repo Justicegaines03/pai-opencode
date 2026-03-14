@@ -12,7 +12,6 @@ process.on("unhandledRejection", (err: any) => {
   console.error("[PAI Installer] Unhandled rejection:", err?.message || err);
 });
 
-import { existsSync, readFileSync, statSync } from "fs";
 import { resolve, relative, join, extname } from "path";
 import { handleWsMessage, addClient, removeClient } from "./routes";
 
@@ -87,15 +86,17 @@ const server = Bun.serve({
       return new Response("Forbidden", { status: 403 });
     }
 
-    if (existsSync(fullPath)) {
-      // Don't serve directories
-      if (statSync(fullPath).isDirectory()) {
+    // Async file serving using Bun-native APIs
+    const file = Bun.file(fullPath);
+    if (await file.exists()) {
+      // Don't serve directories (check via size - directories have size 0 in Bun)
+      const stat = await file.stat();
+      if (stat && stat.isDirectory()) {
         return new Response("Not Found", { status: 404 });
       }
       const ext = extname(fullPath);
       const mime = MIME_TYPES[ext] || "application/octet-stream";
-      const content = readFileSync(fullPath);
-      return new Response(content, {
+      return new Response(file, {
         headers: {
           "content-type": mime,
           "cache-control": "no-cache, no-store, must-revalidate",
@@ -105,8 +106,9 @@ const server = Bun.serve({
 
     // Fallback to index.html for SPA routing
     const indexPath = join(PUBLIC_DIR, "index.html");
-    if (existsSync(indexPath)) {
-      return new Response(readFileSync(indexPath), {
+    const indexFile = Bun.file(indexPath);
+    if (await indexFile.exists()) {
+      return new Response(indexFile, {
         headers: { "content-type": "text/html", "cache-control": "no-cache" },
       });
     }

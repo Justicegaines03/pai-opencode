@@ -32,22 +32,6 @@ let installationRunning = false;
 // Request timeout: 5 minutes (prevent memory leaks from abandoned requests)
 const REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
 
-function setRequestTimeout(id: string): void {
-	const timeout = setTimeout(() => {
-		const pending = pendingRequests.get(id);
-		if (pending) {
-			pending.resolve(""); // Resolve empty on timeout
-			pendingRequests.delete(id);
-		}
-	}, REQUEST_TIMEOUT_MS);
-	
-	const existing = pendingRequests.get(id);
-	if (existing) {
-		clearTimeout(existing.timeout);
-	}
-	pendingRequests.set(id, { resolve: pendingRequests.get(id)?.resolve || (() => {}), timeout });
-}
-
 // ─── Broadcasting ────────────────────────────────────────────────
 
 function broadcast(msg: ServerMessage, originSocket?: any): void {

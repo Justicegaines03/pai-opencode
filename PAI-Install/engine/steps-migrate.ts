@@ -5,7 +5,7 @@
  * 5-step migration flow with explicit user consent and backup.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, cpSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { InstallState } from "./types";
@@ -57,6 +57,8 @@ export async function stepCreateBackup(
 ): Promise<{ success: boolean; backupPath: string; error?: string }> {
 	onProgress(10, "Creating backup...");
 	
+	const paiDir = join(homedir(), ".opencode");
+	
 	// Check if backup already exists
 	const finalBackupDir = backupDir || join(
 		homedir(),
@@ -69,6 +71,35 @@ export async function stepCreateBackup(
 			backupPath: finalBackupDir,
 			error: `Backup already exists at ${finalBackupDir}`,
 		};
+	}
+	
+	// Create the backup directory
+	onProgress(30, "Creating backup directory...");
+	try {
+		mkdirSync(finalBackupDir, { recursive: true });
+	} catch (err) {
+		return {
+			success: false,
+			backupPath: finalBackupDir,
+			error: `Failed to create backup directory: ${err instanceof Error ? err.message : String(err)}`,
+		};
+	}
+	
+	// Copy the entire .opencode directory to backup
+	if (existsSync(paiDir)) {
+		onProgress(50, "Copying files to backup location...");
+		try {
+			cpSync(paiDir, finalBackupDir, { recursive: true });
+			onProgress(80, "Backup created successfully");
+		} catch (err) {
+			return {
+				success: false,
+				backupPath: finalBackupDir,
+				error: `Failed to copy files to backup: ${err instanceof Error ? err.message : String(err)}`,
+			};
+		}
+	} else {
+		onProgress(80, "No existing installation to backup");
 	}
 	
 	// Store backup path in state
@@ -148,11 +179,61 @@ export async function stepMigrationDone(
 	result: MigrationResult,
 	onProgress: (percent: number, message: string) => void
 ): Promise<void> {
+	const paiDir = join(homedir(), ".opencode");
+	
 	onProgress(95, "Finalizing migration...");
 	
-	// Update version marker
-	// Ensure wrapper is installed
-	// Update .zshrc if needed
+	// 1. Write/update version marker
+	onProgress(96, "Writing version marker...");
+	const versionFile = join(paiDir, ".version");
+	try {
+		writeFileSync(versionFile, "3.0.0\n", "utf-8");
+	} catch (err) {
+		// Non-fatal - version can be detected from settings.json
+		console.warn("Could not write version file:", err);
+	}
+	
+	// 2. Install CLI wrapper
+	onProgress(97, "Installing CLI wrapper...");
+	const wrapperDir = join(homedir(), ".local", "bin");
+	const wrapperPath = join(wrapperDir, "pai");
+	const wrapperContent = `#!/bin/bash
+# PAI-OpenCode CLI Wrapper
+exec bun "${join(paiDir, "PAI", "Tools", "pai.ts")}" "$@"
+`;
+	try {
+		mkdirSync(wrapperDir, { recursive: true });
+		writeFileSync(wrapperPath, wrapperContent, { mode: 0o755 });
+	} catch (err) {
+		// Non-fatal - shell alias will still work
+		console.warn("Could not install CLI wrapper:", err);
+	}
+	
+	// 3. Update shell rc file with alias/PATH
+	onProgress(98, "Updating shell configuration...");
+	const userShell = process.env.SHELL || "/bin/zsh";
+	const isFish = userShell.includes("fish");
+	const rcFile = userShell.includes("bash") ? ".bashrc" : isFish ? ".config/fish/config.fish" : ".zshrc";
+	const rcPath = join(homedir(), rcFile);
+	const aliasLine = isFish
+		? `alias pai 'bun ${join(paiDir, "PAI", "Tools", "pai.ts")}'`
+		: `alias pai='bun ${join(paiDir, "PAI", "Tools", "pai.ts")}'`;
+	const marker = "# PAI alias (v3)";
+	
+	try {
+		let content = "";
+		if (existsSync(rcPath)) {
+			content = require("fs").readFileSync(rcPath, "utf-8");
+			// Remove old PAI aliases
+			content = content.replace(/^#\s*(?:PAI|CORE)\s*alias.*\n.*alias pai=.*\n?/gm, "");
+			content = content.replace(/^alias pai=.*\n?/gm, "");
+			content = content.replace(/^alias pai\s+.*\n?/gm, "");
+		}
+		content = content.trimEnd() + `\n\n${marker}\n${aliasLine}\n`;
+		writeFileSync(rcPath, content);
+	} catch (err) {
+		console.warn("Could not update shell rc file:", err);
+	}
 	
 	onProgress(100, "Migration complete!");
 }
@@ -206,13 +287,13 @@ export async function runMigration(
 
   // Step 4: Build Binary
   emit({ event: "step_start", step: "build" });
-  // Use static import (already imported at line 13)
-  await buildOpenCodeBinary({
-    onProgress: async (message, percent) => {
-      emit({ event: "progress", step: "build", percent, detail: message });
-    },
-    skipIfExists: false,
-  });
+  const binaryResult = await stepBinaryUpdate(state, (percent, message) => {
+    emit({ event: "progress", step: "build", percent, detail: message });
+  }, false);
+  
+  if (!binaryResult.success) {
+    throw new Error(`Binary build failed: ${binaryResult.error || "Unknown error"}`);
+  }
   emit({ event: "step_complete", step: "build" });
 
   // Step 5: Verify Migration

@@ -6,13 +6,9 @@
  * Preserves all user settings and customizations.
  */
 
-import { existsSync, readFileSync, writeFileSync, copyFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
-
-const execAsync = promisify(exec);
 
 // ═══════════════════════════════════════════════════════════
 // Configuration

@@ -161,14 +161,25 @@ app.whenReady().then(async () => {
   createWindow();
 });
 
+// ─── Server Process Cleanup (Cross-Platform) ──────────────────────
+
+function killServerProcess(proc) {
+  try {
+    if (process.platform === 'win32') {
+      proc.kill('SIGTERM');
+    } else {
+      // On Unix, kill the process group (negative PID) to catch child processes
+      process.kill(-proc.pid, 'SIGTERM');
+    }
+  } catch (e) {
+    // Fallback: kill the process directly
+    try { proc.kill('SIGTERM'); } catch (_) {}
+  }
+}
+
 app.on("window-all-closed", () => {
   if (serverProcess) {
-    // Try to kill the process group first (catches child processes)
-    try {
-      process.kill(-serverProcess.pid, 'SIGTERM');
-    } catch (e) {
-      serverProcess.kill('SIGTERM');
-    }
+    killServerProcess(serverProcess);
     serverProcess = null;
   }
   app.quit();
@@ -176,12 +187,7 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   if (serverProcess) {
-    // Try to kill the process group first (catches child processes)
-    try {
-      process.kill(-serverProcess.pid, 'SIGTERM');
-    } catch (e) {
-      serverProcess.kill('SIGTERM');
-    }
+    killServerProcess(serverProcess);
     serverProcess = null;
   }
 });

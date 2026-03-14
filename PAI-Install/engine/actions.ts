@@ -4,7 +4,7 @@
  * Each action takes state + event emitter, performs work, returns result.
  */
 
-import { execSync, spawn } from "child_process";
+import { exec, spawn } from "child_process";
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, unlinkSync, chmodSync, lstatSync, cpSync, rmSync, copyFileSync, statSync } from "fs";
 import { homedir } from "os";
 import { join, basename, dirname } from "path";
@@ -104,12 +104,16 @@ function findExistingVoiceConfig(): { voiceId: string; aiName: string; source: s
   return null;
 }
 
-function tryExec(cmd: string, timeout = 30000): string | null {
-  try {
-    return execSync(cmd, { timeout, stdio: ["pipe", "pipe", "pipe"] }).toString().trim();
-  } catch {
-    return null;
-  }
+async function tryExec(cmd: string, timeout = 30000): Promise<string | null> {
+  return new Promise((resolve) => {
+    exec(cmd, { timeout }, (error, stdout, stderr) => {
+      if (error) {
+        resolve(null);
+      } else {
+        resolve(stdout.toString().trim());
+      }
+    });
+  });
 }
 
 // ─── User Context Migration (v2.5/v3.0 → v4.x) ─────────────────
@@ -291,7 +295,7 @@ export async function runPrerequisites(
 
     if (det.os.platform === "darwin") {
       if (det.tools.brew.installed) {
-        const result = tryExec("brew install git", 120000);
+        const result = await tryExec("brew install git", 120000);
         if (result !== null) {
           await emit({ event: "message", content: "Git installed via Homebrew." });
         } else {
@@ -302,9 +306,11 @@ export async function runPrerequisites(
       }
     } else {
       // Linux
-      const pkgMgr = tryExec("which apt-get") ? "apt-get" : tryExec("which yum") ? "yum" : null;
+      const aptResult = await tryExec("which apt-get");
+      const yumResult = await tryExec("which yum");
+      const pkgMgr = aptResult ? "apt-get" : yumResult ? "yum" : null;
       if (pkgMgr) {
-        tryExec(`sudo ${pkgMgr} install -y git`, 120000);
+        await tryExec(`sudo ${pkgMgr} install -y git`, 120000);
         await emit({ event: "message", content: `Git installed via ${pkgMgr}.` });
       }
     }
@@ -315,7 +321,7 @@ export async function runPrerequisites(
   // Bun should already be installed by bootstrap script, but verify
   if (!det.tools.bun.installed) {
     await emit({ event: "progress", step: "prerequisites", percent: 40, detail: "Installing Bun..." });
-    const result = tryExec("curl -fsSL https://bun.sh/install | bash", 60000);
+    const result = await tryExec("curl -fsSL https://bun.sh/install | bash", 60000);
     if (result !== null) {
       // Update PATH
       const bunBin = join(homedir(), ".bun", "bin");
@@ -330,21 +336,15 @@ export async function runPrerequisites(
   if (!det.tools.claude.installed) {
     await emit({ event: "progress", step: "prerequisites", percent: 70, detail: "Installing OpenCode..." });
 
-    // Try npm first (most common), then bun
-    const npmResult = tryExec("npm install -g @anthropic-ai/claude-code", 120000);
-    if (npmResult !== null) {
-      await emit({ event: "message", content: "OpenCode installed via npm." });
+    // Use bun only (per PAI stack preferences)
+    const result = await tryExec("bun install -g @anthropic-ai/claude-code", 120000);
+    if (result !== null) {
+      await emit({ event: "message", content: "OpenCode installed via bun." });
     } else {
-      // Try with bun
-      const bunResult = tryExec("bun install -g @anthropic-ai/claude-code", 120000);
-      if (bunResult !== null) {
-        await emit({ event: "message", content: "OpenCode installed via bun." });
-      } else {
-        await emit({
-          event: "message",
-          content: "Could not install OpenCode automatically. Please install manually: npm install -g @anthropic-ai/claude-code",
-        });
-      }
+      await emit({
+        event: "message",
+        content: "Could not install OpenCode automatically. Please install manually: bun install -g @anthropic-ai/claude-code",
+      });
     }
   } else {
     await emit({ event: "progress", step: "prerequisites", percent: 80, detail: `OpenCode found: v${det.tools.claude.version}` });
@@ -471,7 +471,7 @@ export async function runRepository(
     // Check if it's a git repo
     const isGitRepo = existsSync(join(paiDir, ".git"));
     if (isGitRepo) {
-      const pullResult = tryExec(`cd "${paiDir}" && git pull origin main 2>&1`, 60000);
+      const pullResult = await tryExec(`cd "${paiDir}" && git pull origin main 2>&1`, 60000);
       if (pullResult !== null) {
         await emit({ event: "message", content: "PAI repository updated from GitHub." });
       } else {
@@ -488,7 +488,7 @@ export async function runRepository(
       mkdirSync(paiDir, { recursive: true });
     }
 
-    const cloneResult = tryExec(
+    const cloneResult = await tryExec(
       `git clone https://github.com/Steffen025/pai-opencode.git "${paiDir}" 2>&1`,
       120000
     );
@@ -499,7 +499,7 @@ export async function runRepository(
       // If clone fails (dir not empty), try to init and pull
       await emit({ event: "progress", step: "repository", percent: 50, detail: "Directory exists, trying alternative approach..." });
 
-      const initResult = tryExec(`cd "${paiDir}" && git init && git remote add origin https://github.com/Steffen025/pai-opencode.git && git fetch origin && git checkout -b main origin/main 2>&1`, 120000);
+      const initResult = await tryExec(`cd "${paiDir}" && git init && git remote add origin https://github.com/Steffen025/pai-opencode.git && git fetch origin && git checkout -b main origin/main 2>&1`, 120000);
       if (initResult !== null) {
         await emit({ event: "message", content: "PAI repository initialized and synced." });
       } else {
@@ -759,11 +759,11 @@ export async function runConfiguration(
     for (const dir of scriptDirs) {
       if (existsSync(dir)) {
         // Make .sh files and bun scripts executable
-        tryExec(`find "${dir}" -type f \( -name "*.sh" -o -name "*.ts" -o -name "*.js" \) -exec chmod +x {} \; 2>/dev/null`, 5000);
+        await tryExec(`find "${dir}" -type f \\( -name "*.sh" -o -name "*.ts" -o -name "*.js" \\) -exec chmod +x {} \\; 2>/dev/null`, 5000);
       }
     }
     // Ensure main directories are readable/executable (dirs need +x to be traversable)
-    tryExec(`chmod 755 "${paiDir}" "${join(paiDir, "Tools")}" "${join(paiDir, "PAI-Install")}" 2>/dev/null`, 5000);
+    await tryExec(`chmod 755 "${paiDir}" "${join(paiDir, "Tools")}" "${join(paiDir, "PAI-Install")}" 2>/dev/null`, 5000);
   } catch {
     // Non-fatal
   }
@@ -797,14 +797,14 @@ async function stopVoiceServer(emit: EngineEventHandler): Promise<void> {
 
   // Kill only processes that look like our Bun voice server (check process name)
   // First, find PIDs listening on port 8888
-  const pids = tryExec(`lsof -ti:8888 -sTCP:LISTEN 2>/dev/null`, 5000);
+  const pids = await tryExec(`lsof -ti:8888 -sTCP:LISTEN 2>/dev/null`, 5000);
   if (pids) {
     for (const pid of pids.trim().split("\n")) {
       if (!pid) continue;
       // Verify it's a Bun process (our voice server) before killing
-      const procName = tryExec(`ps -p ${pid} -o comm= 2>/dev/null`, 2000);
+      const procName = await tryExec(`ps -p ${pid} -o comm= 2>/dev/null`, 2000);
       if (procName?.includes("bun")) {
-        tryExec(`kill -9 ${pid} 2>/dev/null`, 2000);
+        await tryExec(`kill -9 ${pid} 2>/dev/null`, 2000);
       }
     }
   }
@@ -812,7 +812,7 @@ async function stopVoiceServer(emit: EngineEventHandler): Promise<void> {
   // Unload existing LaunchAgent if present
   const plistPath = join(homedir(), "Library", "LaunchAgents", "com.pai.voice-server.plist");
   if (existsSync(plistPath)) {
-    tryExec(`launchctl unload "${plistPath}" 2>/dev/null`, 5000);
+    await tryExec(`launchctl unload "${plistPath}" 2>/dev/null`, 5000);
   }
 
   // Wait for it to actually stop
