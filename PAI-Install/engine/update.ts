@@ -117,7 +117,7 @@ function detectChanges(currentVersion: string, targetVersion: string): string[] 
 async function updateSkills(
 	sourceDir: string,
 	onProgress?: (message: string) => void
-): Promise<void> {
+): Promise<boolean> {
 	onProgress?.("Checking for skill updates...");
 	
 	// In a real implementation, this would:
@@ -126,21 +126,24 @@ async function updateSkills(
 	// 3. Add new skills
 	// 4. Preserve user customizations
 	
-	// For now, placeholder
+	// For now, placeholder - return true if changes were made
 	onProgress?.("Skills up to date");
+	return false;
 }
 
 async function updateCoreFiles(
 	sourceDir: string,
 	onProgress?: (message: string) => void
-): Promise<void> {
+): Promise<boolean> {
 	onProgress?.("Updating core files...");
 	
 	// Update PAI/ docs if needed
 	// Update plugins if needed
 	// Update hooks if needed
 	
+	// For now, placeholder - return true if changes were made
 	onProgress?.("Core files updated");
+	return false;
 }
 
 async function updateBinaryIfNeeded(
@@ -203,11 +206,11 @@ export async function updateV3(
 		
 		// 3. Update skills (10-40%)
 		await onProgress?.("Updating skills...", 20);
-		await updateSkills(PAI_DIR, (msg) => onProgress?.(msg, 30));
+		const skillsUpdated = await updateSkills(PAI_DIR, (msg) => onProgress?.(msg, 30));
 		
 		// 4. Update core files (40-70%)
 		await onProgress?.("Updating core files...", 50);
-		await updateCoreFiles(PAI_DIR, (msg) => onProgress?.(msg, 60));
+		const coreUpdated = await updateCoreFiles(PAI_DIR, (msg) => onProgress?.(msg, 60));
 		
 		// 5. Update binary if needed (70-90%)
 		let binaryUpdated = false;
@@ -219,10 +222,14 @@ export async function updateV3(
 		}
 		result.binaryUpdated = binaryUpdated;
 		
-		// 6. Update version marker (90%)
+		// 6. Update version marker only if changes were applied (90%)
 		await onProgress?.("Finalizing...", 90);
-		setCurrentVersion(TARGET_VERSION);
-		result.newVersion = TARGET_VERSION;
+		if (skillsUpdated || coreUpdated || binaryUpdated) {
+			setCurrentVersion(TARGET_VERSION);
+			result.newVersion = TARGET_VERSION;
+		} else {
+			result.newVersion = currentVersion;
+		}
 		
 		// Done (100%)
 		await onProgress?.("Update complete!", 100);

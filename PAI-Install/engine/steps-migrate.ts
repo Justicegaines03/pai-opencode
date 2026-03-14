@@ -206,7 +206,7 @@ export async function runMigration(
 
   // Step 4: Build Binary
   emit({ event: "step_start", step: "build" });
-  const { buildOpenCodeBinary } = await import("./build-opencode");
+  // Use static import (already imported at line 13)
   await buildOpenCodeBinary({
     onProgress: async (message, percent) => {
       emit({ event: "progress", step: "build", percent, detail: message });

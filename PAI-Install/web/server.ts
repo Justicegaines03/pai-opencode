@@ -12,7 +12,7 @@ process.on("unhandledRejection", (err: any) => {
   console.error("[PAI Installer] Unhandled rejection:", err?.message || err);
 });
 
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import { resolve, relative, join, extname } from "path";
 import { handleWsMessage, addClient, removeClient } from "./routes";
 
@@ -88,6 +88,10 @@ const server = Bun.serve({
     }
 
     if (existsSync(fullPath)) {
+      // Don't serve directories
+      if (statSync(fullPath).isDirectory()) {
+        return new Response("Not Found", { status: 404 });
+      }
       const ext = extname(fullPath);
       const mime = MIME_TYPES[ext] || "application/octet-stream";
       const content = readFileSync(fullPath);

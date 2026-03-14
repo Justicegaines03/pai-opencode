@@ -273,9 +273,10 @@ export function handleWsMessage(ws: any, raw: string): void {
         broadcast({ type: "error", message: "Installation already in progress" });
         break;
       }
-      if (!installState && selectedMode) {
+      const modeToUse = state.selectedMode;
+      if (!installState && modeToUse) {
         installationRunning = true;
-        startInstallation(selectedMode).finally(() => {
+        startInstallation(modeToUse).finally(() => {
           installationRunning = false;
         });
       }
@@ -372,4 +373,11 @@ export function removeClient(ws: any): void {
 
 export function getState(): InstallState | null {
   return installState;
+}
+
+// ─── Step Status Helper ───────────────────────────────────────────
+
+function getStepStatuses(state: InstallState | null): { id: string; status: string }[] {
+  if (!state?.completedSteps) return [];
+  return state.completedSteps.map((id: string) => ({ id, status: "completed" }));
 }

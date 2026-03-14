@@ -75,6 +75,8 @@ if [ "${1:-}" = "--cli" ]; then
 else
 	# GUI mode (default) - runs from electron subdirectory
 	cd "$INSTALLER_DIR/electron"
-	bun install --silent 2>/dev/null || true
+	if ! bun install 2>&1 | tee /tmp/pai-install-deps.log; then
+		echo "⚠️  Warning: bun install had issues. Check /tmp/pai-install-deps.log"
+	fi
 	exec bunx electron .
 fi

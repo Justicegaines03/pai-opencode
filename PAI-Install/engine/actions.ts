@@ -5,9 +5,9 @@
  */
 
 import { execSync, spawn } from "child_process";
-import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, unlinkSync, chmodSync, lstatSync, cpSync, rmSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, unlinkSync, chmodSync, lstatSync, cpSync, rmSync, copyFileSync, statSync } from "fs";
 import { homedir } from "os";
-import { join, basename } from "path";
+import { join, basename, dirname } from "path";
 import type { InstallState, EngineEventHandler, DetectionResult } from "./types";
 import { PAI_VERSION, ALGORITHM_VERSION } from "./types";
 import { detectSystem, validateElevenLabsKey } from "./detect";
@@ -187,8 +187,36 @@ async function migrateUserContext(
       await emit({ event: "message", content: `Migrated ${copied} user context files from ${label} to PAI/USER.` });
     }
 
+    // Check for conflicts before removing legacy directory
+    let hasConflicts = false;
+    try {
+      const legacyFiles = readdirSync(legacyDir, { withFileTypes: true });
+      for (const entry of legacyFiles) {
+        if (entry.isFile()) {
+          const legacyFile = join(legacyDir, entry.name);
+          const newUserFile = join(newUserDir, entry.name);
+          if (existsSync(newUserFile)) {
+            const legacyContent = readFileSync(legacyFile, "utf-8");
+            const newContent = readFileSync(newUserFile, "utf-8");
+            if (legacyContent !== newContent) {
+              hasConflicts = true;
+              break;
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore errors during conflict check
+    }
+
     // Replace legacy dir with symlink so skill-relative paths still work
     try {
+      if (hasConflicts) {
+        // Create backup before removing
+        const backupPath = `${legacyDir}.backup-${Date.now()}`;
+        cpSync(legacyDir, backupPath, { recursive: true });
+        await emit({ event: "message", content: `Conflicts detected. Backup created at ${backupPath}.` });
+      }
       rmSync(legacyDir, { recursive: true });
       // Symlink target is relative: from skills/PAI/ or skills/CORE/ → ../../PAI/USER
       symlinkSync(join("..", "..", "PAI", "USER"), legacyDir);
@@ -679,7 +707,12 @@ export async function runConfiguration(
         }
         symlinkSync(envPath, symlinkPath);
       } catch {
-        // Permission error or path conflict
+        // Symlink failed (permission error or path conflict) — fall back to copy
+        try {
+          copyFileSync(envPath, symlinkPath);
+        } catch {
+          // Copy also failed — non-fatal, continue
+        }
       }
     }
   }
@@ -688,16 +721,26 @@ export async function runConfiguration(
   await emit({ event: "progress", step: "configuration", percent: 80, detail: "Setting up shell alias..." });
 
   const userShell = process.env.SHELL || "/bin/zsh";
-  const rcFile = userShell.includes("bash") ? ".bashrc" : userShell.includes("fish") ? ".config/fish/config.fish" : ".zshrc";
+  const isFish = userShell.includes("fish");
+  const rcFile = userShell.includes("bash") ? ".bashrc" : isFish ? ".config/fish/config.fish" : ".zshrc";
   const rcPath = join(homedir(), rcFile);
-  const aliasLine = `alias pai='bun ${join(paiDir, "PAI", "Tools", "pai.ts")}'`;
+  // Fish uses space-separated alias syntax, bash/zsh use equals
+  const aliasLine = isFish
+    ? `alias pai 'bun ${join(paiDir, "PAI", "Tools", "pai.ts")}'`
+    : `alias pai='bun ${join(paiDir, "PAI", "Tools", "pai.ts")}'`;
   const marker = "# PAI alias";
+
+  if (isFish) {
+    // Ensure fish config directory exists
+    mkdirSync(dirname(rcPath), { recursive: true });
+  }
 
   if (existsSync(rcPath)) {
     let content = readFileSync(rcPath, "utf-8");
     // Remove any existing pai alias (old CORE or PAI paths, any marker variant)
     content = content.replace(/^#\s*(?:PAI|CORE)\s*alias.*\n.*alias pai=.*\n?/gm, "");
     content = content.replace(/^alias pai=.*\n?/gm, "");
+    content = content.replace(/^alias pai\s+.*\n?/gm, ""); // Fish syntax
     // Add fresh alias
     content = content.trimEnd() + `\n\n${marker}\n${aliasLine}\n`;
     writeFileSync(rcPath, content);
@@ -1067,7 +1110,12 @@ export async function runVoiceSetup(
           else continue;
         }
         symlinkSync(envPath, sp);
-      } catch { /* non-fatal */ }
+      } catch {
+        // Symlink failed — fall back to copy
+        try {
+          copyFileSync(envPath, sp);
+        } catch { /* non-fatal */ }
+      }
     }
   }
 

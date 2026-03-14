@@ -137,14 +137,8 @@ export async function runUpdate(
   });
   emit({ event: "step_complete", step: "pull" });
 
-  // Step 3: Rebuild & Verify
+  // Step 3: Verify (binary already built in stepApplyUpdate)
   emit({ event: "step_start", step: "rebuild" });
-  await buildOpenCodeBinary({
-    onProgress: async (message, percent) => {
-      emit({ event: "progress", step: "rebuild", percent, detail: message });
-    },
-    skipIfExists: false,
-  });
   await stepUpdateDone(state, updateResult, (percent, message) => {
     emit({ event: "progress", step: "rebuild", percent, detail: message });
   });

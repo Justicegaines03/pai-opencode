@@ -56,8 +56,9 @@ async function waitForServer(port, timeout = 15000) {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
-              // Check if response contains PAI Installer indicators
-              if (data.includes('PAI') || data.includes('Installer') || res.statusCode === 200) {
+              // Check if response contains PAI Installer markers (not just any 200)
+              const isPAIInstaller = data.includes('PAI') && data.includes('Installer');
+              if (res.statusCode === 200 && isPAIInstaller) {
                 resolve();
               } else {
                 setTimeout(tryConnect, 200);
@@ -162,7 +163,12 @@ app.whenReady().then(async () => {
 
 app.on("window-all-closed", () => {
   if (serverProcess) {
-    serverProcess.kill();
+    // Try to kill the process group first (catches child processes)
+    try {
+      process.kill(-serverProcess.pid, 'SIGTERM');
+    } catch (e) {
+      serverProcess.kill('SIGTERM');
+    }
     serverProcess = null;
   }
   app.quit();
@@ -170,7 +176,12 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   if (serverProcess) {
-    serverProcess.kill();
+    // Try to kill the process group first (catches child processes)
+    try {
+      process.kill(-serverProcess.pid, 'SIGTERM');
+    } catch (e) {
+      serverProcess.kill('SIGTERM');
+    }
     serverProcess = null;
   }
 });
