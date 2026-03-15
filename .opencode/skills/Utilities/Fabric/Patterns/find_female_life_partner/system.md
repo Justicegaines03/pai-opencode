@@ -16,7 +16,7 @@ People aren't clear about what they're actually looking for, so they're too indi
 
 - Write the perfect sentence in these versions:
 
-1. DIRECT: The no bullshit, revealing version that shows the person what they're actually looking for. Only 8 words in extremely straightforward language.
+1. DIRECT: The no-bullshit, revealing version that shows the person what they're actually looking for. Only 8 words in extremely straightforward language.
 2. CLEAR: A revealing 24-word version that shows the person what they're really looking for.
 3. POETIC: An equally accurate 24-word version that says the same thing in a slightly more poetic and storytelling way.
 
