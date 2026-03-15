@@ -98,13 +98,16 @@ export class BugBountyTracker {
     console.log('🔬 TIER 2: Detailed analysis of platform changes');
     const results = await this.analyzeChanges(currentState);
 
-    // Update state with latest commits
+    // Update state with latest commits — only persist when commit is available
+    // to avoid hiding missed updates if getLatestCommit returns null.
     const latestDomains = await this.github.getLatestCommit(CONFIG.files.domains_txt);
     if (latestDomains) {
       currentState.tracked_commits.domains_txt = latestDomains.sha;
+      currentState.last_check = new Date().toISOString();
+      await this.state.saveState(currentState);
+    } else {
+      console.error('⚠️  Could not retrieve latest commit for domains.txt — state not updated');
     }
-    currentState.last_check = new Date().toISOString();
-    await this.state.saveState(currentState);
 
     // Save discoveries to recent changes
     const allChanges = [
@@ -201,16 +204,19 @@ export class BugBountyTracker {
 
             upgradedPrograms.push(meta);
             metadata.set(key, meta);
-          } else if (program.key_scopes.some(s => !new Set(existing.key_scopes).has(s))) {
-            const meta: ProgramMetadata = {
-              ...existing,
-              key_scopes: program.key_scopes,
-              discovered_at: new Date().toISOString(),
-              change_type: 'scope_expansion',
-            };
+          } else {
+            const existingScopes = new Set(existing.key_scopes);
+            if (program.key_scopes.some(s => !existingScopes.has(s))) {
+              const meta: ProgramMetadata = {
+                ...existing,
+                key_scopes: program.key_scopes,
+                discovered_at: new Date().toISOString(),
+                change_type: 'scope_expansion',
+              };
 
-            scopeExpansions.push(meta);
-            metadata.set(key, meta);
+              scopeExpansions.push(meta);
+              metadata.set(key, meta);
+            }
           }
         }
       }
