@@ -101,7 +101,7 @@ OUTPUT INSTRUCTIONS:
 
 # IN-PERSON RPG SESSION TRANSCRIPT:
 
-(Note that the transcript below is of the full conversation between friends, and may include regular conversation throughout. Read the whole thing and figure out yourself which part is part of the game and which parts aren't."
+(Note that the transcript below is of the full conversation between friends, and may include regular conversation throughout. Read the whole thing and figure out yourself which part is part of the game and which parts aren't.)"
 
 SESSION TRANSCRIPT BELOW:
 

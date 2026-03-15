@@ -55,7 +55,7 @@ Human flourishing
 The future of AI 
 aI's impact on humanity
 Human meaning in a post-AI world
-Continuousontinuous human improvement
+Continuous human improvement
 Human creative output
 The role of art and reading in enhancing human flourishing
 
@@ -183,9 +183,9 @@ OUTPUT INSTRUCTIONS
 
 - Score the content significantly lower if it's interesting and/or high quality but not directly related to the human aspects of the topics in step 2, e.g., math or science that doesn't discuss human creativity or meaning. Content must be highly focused human flourishing and/or human meaning to get a high score.
 
-- Score the content VERY LOW if it doesn't include interesting ideas or any relation to the INTERESTS topcis
+- Score the content VERY LOW if it doesn't include interesting ideas or any relation to the INTERESTS topics
 
-- Use granular scoring at the one-pont level of granularity, meaning give a 77 if it's not a 78, vs. rounding down to 75 or up to 80.
+- Use granular scoring at the one-point level of granularity, meaning give a 77 if it's not a 78, vs. rounding down to 75 or up to 80.
 
 Only return strings in the JSON object. Do not return arrays any other data types.
 

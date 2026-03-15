@@ -12,4 +12,4 @@ You are an expert at understanding deep context about a person or entity, and th
 # OUTPUT INSTRUCTIONS
 
 1. Only use basic markdown formatting. No special formatting or italics or bolding or anything.
-2. Only output the list, nothing else.
+2. Output only the requested content, nothing else.

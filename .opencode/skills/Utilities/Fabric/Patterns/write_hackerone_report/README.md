@@ -41,7 +41,7 @@ This request is vulnerable to blah blah blah
 So, you'll add requests/responses to the report by using `cat req | bbReportFormatter`.
 You'll add comments to the report using `echo "This request is vulnerable to blah blah blah" | bbReportFormatter`.
 
-Then, when you run `bbReportFromatter --print-report` it will output the above, `write_hackerone_report` format.
+Then, when you run `bbReportFormatter --print-report` it will output the above, `write_hackerone_report` format.
 
 So, in the end, this usage will be `bbReportFormatter --print-report | fabric -sp write_hackerone_report`.
 
