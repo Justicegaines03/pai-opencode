@@ -195,9 +195,10 @@ export class BugBountyTracker {
         } else {
           // Check for upgrades or scope changes
           if (!existing.offers_bounties && program.offers_bounties) {
+            // Spread program (not existing) so fresh fields like key_scopes,
+            // max_severity, name and url are captured in the cached snapshot.
             const meta: ProgramMetadata = {
-              ...existing,
-              offers_bounties: true,
+              ...program,
               discovered_at: new Date().toISOString(),
               change_type: 'upgraded_to_paid',
             };
