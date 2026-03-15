@@ -5,6 +5,8 @@ import { StateManager } from './state.js';
 import { CONFIG } from './config.js';
 import type { DiscoveryResult, ProgramMetadata, TrackerState } from './types.js';
 
+const PLATFORMS = ['hackerone', 'bugcrowd', 'intigriti', 'yeswehack'] as const;
+
 export class BugBountyTracker {
   private github = new GitHubClient();
   private state = new StateManager();
@@ -58,7 +60,7 @@ export class BugBountyTracker {
 
     const currentState = await this.state.loadState();
 
-    const PLATFORM_COUNT = 4; // hackerone, bugcrowd, intigriti, yeswehack
+    const PLATFORM_COUNT = PLATFORMS.length;
 
     if (!currentState.initialized) {
       console.log('⚠️  Tracker not initialized. Run initialization first.');
@@ -143,7 +145,7 @@ export class BugBountyTracker {
     const metadata = await this.state.loadMetadata();
 
     // Check each platform
-    const platforms = ['hackerone', 'bugcrowd', 'intigriti', 'yeswehack'] as const;
+    const platforms = PLATFORMS;
 
     for (const platform of platforms) {
       console.log(`  Checking ${platform}...`);
@@ -199,7 +201,7 @@ export class BugBountyTracker {
 
             upgradedPrograms.push(meta);
             metadata.set(key, meta);
-          } else if (program.key_scopes.some(s => !existing.key_scopes.includes(s))) {
+          } else if (program.key_scopes.some(s => !new Set(existing.key_scopes).has(s))) {
             const meta: ProgramMetadata = {
               ...existing,
               key_scopes: program.key_scopes,
