@@ -118,7 +118,7 @@ function validateTextBoxPosition(slideData, bodyDimensions) {
 }
 
 // Helper: Add background to slide
-async function addBackground(slideData, targetSlide, tmpDir) {
+async function addBackground(slideData, targetSlide) {
   if (slideData.background.type === 'image' && slideData.background.path) {
     let imagePath = slideData.background.path.startsWith('file://')
       ? slideData.background.path.replace('file://', '')
@@ -183,7 +183,6 @@ function addElements(slideData, targetSlide, pres) {
         paraSpaceAfter: el.style.paraSpaceAfter,
         margin: el.style.margin
       };
-      if (el.style.margin) listOptions.margin = el.style.margin;
       targetSlide.addText(el.items, listOptions);
     } else {
       // Check if text is single-line (height suggests one line)
@@ -557,7 +556,7 @@ async function extractSlideData(page) {
       }
 
       // Extract placeholder elements (for charts, etc.)
-      if (el.className && el.className.includes('placeholder')) {
+      if (el.classList && el.classList.contains('placeholder')) {
         const rect = el.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) {
           errors.push(
@@ -596,7 +595,7 @@ async function extractSlideData(page) {
       }
 
       // Extract DIVs with backgrounds/borders as shapes
-      const isContainer = el.tagName === 'DIV' && !textTags.includes(el.tagName);
+      const isContainer = el.tagName === 'DIV';
       if (isContainer) {
         const computed = window.getComputedStyle(el);
         const hasBg = computed.backgroundColor && computed.backgroundColor !== 'rgba(0, 0, 0, 0)';
@@ -900,7 +899,8 @@ async function extractSlideData(page) {
 async function html2pptx(htmlFile, pres, options = {}) {
   const {
     tmpDir = process.env.TMPDIR || '/tmp',
-    slide = null
+    slide = null,
+    debug = false
   } = options;
 
   try {
@@ -920,10 +920,11 @@ async function html2pptx(htmlFile, pres, options = {}) {
 
     try {
       const page = await browser.newPage();
-      page.on('console', (msg) => {
-        // Log the message text to your test runner's console
-        console.log(`Browser console: ${msg.text()}`);
-      });
+      if (debug) {
+        page.on('console', (msg) => {
+          console.log(`Browser console: ${msg.text()}`);
+        });
+      }
 
       await page.goto(`file://${filePath}`);
 
@@ -968,7 +969,7 @@ async function html2pptx(htmlFile, pres, options = {}) {
 
     const targetSlide = slide || pres.addSlide();
 
-    await addBackground(slideData, targetSlide, tmpDir);
+    await addBackground(slideData, targetSlide);
     addElements(slideData, targetSlide, pres);
 
     return { slide: targetSlide, placeholders: slideData.placeholders };

@@ -2,13 +2,16 @@
 """Unpack and format XML contents of Office files (.docx, .pptx, .xlsx)"""
 
 import random
+import shutil
 import sys
 import defusedxml.minidom
 import zipfile
 from pathlib import Path
 
 # Get command line arguments
-assert len(sys.argv) == 3, "Usage: python unpack.py <office_file> <output_dir>"
+if len(sys.argv) != 3:
+    print("Usage: python unpack.py <office_file> <output_dir>", file=sys.stderr)
+    sys.exit(1)
 input_file, output_dir = sys.argv[1], sys.argv[2]
 
 # Extract and format (safe extraction — guards against zip-slip)
@@ -28,7 +31,8 @@ with zipfile.ZipFile(input_file) as zf:
             member_path.mkdir(parents=True, exist_ok=True)
         else:
             member_path.parent.mkdir(parents=True, exist_ok=True)
-            member_path.write_bytes(zf.read(member.filename))
+            with zf.open(member) as src, member_path.open("wb") as dst:
+                shutil.copyfileobj(src, dst)
 
 # Pretty print all XML files
 xml_files = list(output_path.rglob("*.xml")) + list(output_path.rglob("*.rels"))
