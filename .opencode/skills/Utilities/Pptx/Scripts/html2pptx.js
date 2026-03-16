@@ -118,7 +118,7 @@ function validateTextBoxPosition(slideData, bodyDimensions) {
 }
 
 // Helper: Add background to slide
-async function addBackground(slideData, targetSlide) {
+function addBackground(slideData, targetSlide) {
   if (slideData.background.type === 'image' && slideData.background.path) {
     let imagePath = slideData.background.path.startsWith('file://')
       ? slideData.background.path.replace('file://', '')
@@ -937,7 +937,9 @@ async function html2pptx(htmlFile, pres, options = {}) {
 
       slideData = await extractSlideData(page);
     } finally {
-      await browser.close();
+      await browser.close().catch((err) => {
+        console.error('browser.close() failed:', err);
+      });
     }
 
     // Collect all validation errors
@@ -969,7 +971,7 @@ async function html2pptx(htmlFile, pres, options = {}) {
 
     const targetSlide = slide || pres.addSlide();
 
-    await addBackground(slideData, targetSlide);
+    addBackground(slideData, targetSlide);
     addElements(slideData, targetSlide, pres);
 
     return { slide: targetSlide, placeholders: slideData.placeholders };
