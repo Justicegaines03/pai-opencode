@@ -647,6 +647,10 @@ class Document:
         pack_document(self.original_path, self.original_docx, validate=False)
 
         self.word_path = self.unpacked_path / "word"
+        if not self.word_path.exists() or not self.word_path.is_dir():
+            raise ValueError(
+                "Missing required 'word' directory in DOCX unpacked content"
+            )
 
         # Generate RSID if not provided
         self.rsid = rsid if rsid else _generate_rsid()
@@ -701,20 +705,22 @@ class Document:
             # Get node from comments.xml
             comment = doc["word/comments.xml"].get_node(tag="w:comment", attrs={"w:id": "0"})
         """
-        if xml_path not in self._editors:
-            file_path = self.unpacked_path / xml_path
-            # Validate that the resolved path stays within the unpacked directory
-            try:
+        # Normalize the key to prevent aliased paths creating duplicate editors
+        file_path = self.unpacked_path / xml_path
+        try:
+            normalized_key = str(
                 file_path.resolve().relative_to(self.unpacked_path.resolve())
-            except ValueError:
-                raise ValueError(f"Path traversal detected: {xml_path}")
+            )
+        except ValueError:
+            raise ValueError(f"Path traversal detected: {xml_path}")
+        if normalized_key not in self._editors:
             if not file_path.exists():
                 raise ValueError(f"XML file not found: {xml_path}")
             # Use DocxXMLEditor with RSID, author, and initials for all editors
-            self._editors[xml_path] = DocxXMLEditor(
+            self._editors[normalized_key] = DocxXMLEditor(
                 file_path, rsid=self.rsid, author=self.author, initials=self.initials
             )
-        return self._editors[xml_path]
+        return self._editors[normalized_key]
 
     def add_comment(self, start, end, text: str) -> int:
         """
@@ -920,6 +926,14 @@ class Document:
             if not comment_id:
                 continue
 
+            # Defensively parse comment_id (mirrors _get_next_comment_id)
+            try:
+                comment_id_int = int(comment_id)
+            except ValueError:
+                continue
+            if comment_id_int < 0:
+                continue
+
             # Find para_id from the w:p element within the comment
             para_id = None
             for p_elem in comment_elem.getElementsByTagName("w:p"):
@@ -930,7 +944,7 @@ class Document:
             if not para_id:
                 continue
 
-            existing[int(comment_id)] = {"para_id": para_id}
+            existing[comment_id_int] = {"para_id": para_id}
 
         return existing
 
