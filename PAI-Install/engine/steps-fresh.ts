@@ -579,9 +579,20 @@ export async function runFreshInstall(
 
   // Step 2: Prerequisites
   await emit({ event: "step_start", step: "prerequisites" });
-  await stepPrerequisites(state, (percent, message) => {
+  const prereqResult = await stepPrerequisites(state, (percent, message) => {
     emit({ event: "progress", step: "prerequisites", percent, detail: message });
   });
+  // Emit tool check results to chat so user sees what was found
+  const gitStatus = prereqResult.git
+    ? `✓ Git ${prereqResult.gitVersion || "found"}`
+    : "✗ Git not found — install via xcode-select --install";
+  const bunStatus = prereqResult.bun
+    ? `✓ Bun ${prereqResult.bunVersion || "found"}`
+    : "✗ Bun not found — install via https://bun.sh/install";
+  await emit({ event: "message", content: `Prerequisites checked:\n  ${gitStatus}\n  ${bunStatus}` });
+  if (!prereqResult.git || !prereqResult.bun) {
+    await emit({ event: "message", content: "⚠ Missing prerequisites detected. Please install the tools listed above and re-run the installer." });
+  }
   await emit({ event: "step_complete", step: "prerequisites" });
 
   // Step 3: Provider Configuration (API Keys)
@@ -640,12 +651,19 @@ export async function runFreshInstall(
 
   // Step 5: Build OpenCode
   await emit({ event: "step_start", step: "repository" });
-  await buildOpenCodeBinary({
+  const buildResult = await buildOpenCodeBinary({
     onProgress: async (message, percent) => {
       emit({ event: "progress", step: "repository", percent, detail: message });
     },
-    skipIfExists: false,
+    skipIfExists: true, // Skip rebuild if binary already exists — prevents 20-30min hang on re-installs
   });
+  if (buildResult.skipped) {
+    await emit({ event: "message", content: `OpenCode binary already exists — skipping build (${buildResult.binaryPath || "found"}).` });
+  } else if (buildResult.success) {
+    await emit({ event: "message", content: `OpenCode binary built successfully (${buildResult.binaryPath || "installed"}).` });
+  } else {
+    await emit({ event: "message", content: `⚠ OpenCode build failed: ${buildResult.error || "unknown error"}. You can install it manually: bun install -g @opencode-ai/opencode` });
+  }
   await emit({ event: "step_complete", step: "repository" });
 
   // Step 6: Voice Setup
@@ -680,6 +698,25 @@ export async function runFreshInstall(
     emit({ event: "progress", step: "configuration", percent, detail: message });
   });
   await emit({ event: "step_complete", step: "configuration" });
+
+  // Step 8: Validation — run checks and broadcast results so the final step completes
+  await emit({ event: "step_start", step: "validation" });
+  try {
+    const { runValidation } = await import("./validate.ts");
+    const checks = await runValidation(state);
+    const passed = checks.filter(c => c.passed).length;
+    const total = checks.length;
+    const failed = checks.filter(c => !c.passed && c.critical);
+    await emit({ event: "validation_result", checks });
+    if (failed.length > 0) {
+      await emit({ event: "message", content: `⚠ ${failed.length} critical check(s) failed. Review the validation report above.` });
+    } else {
+      await emit({ event: "message", content: `✓ Validation complete: ${passed}/${total} checks passed.` });
+    }
+  } catch (err: any) {
+    await emit({ event: "message", content: `Validation skipped: ${err?.message || "unknown error"}` });
+  }
+  await emit({ event: "step_complete", step: "validation" });
 }
 
 // ═══════════════════════════════════════════════════════════

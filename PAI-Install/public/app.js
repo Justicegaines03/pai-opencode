@@ -66,6 +66,21 @@ function handleServerMessage(msg) {
     case 'step_update':
       updateStep(msg.step, msg.status);
       updateProgress();
+      // Remove the spinning progress bar for this step when it completes or is skipped
+      if (msg.status === 'completed' || msg.status === 'skipped' || msg.status === 'failed') {
+        const progressEl = document.getElementById('progress-' + msg.step);
+        if (progressEl) {
+          // Fill bar to 100% and stop spinner visually before removing
+          const fill = progressEl.querySelector('.mini-fill');
+          if (fill) fill.style.width = '100%';
+          const spinner = progressEl.querySelector('.spinner');
+          if (spinner) spinner.style.animationPlayState = 'paused';
+          // Fade out and remove after short delay so user sees completion
+          progressEl.style.transition = 'opacity 0.4s';
+          progressEl.style.opacity = '0';
+          setTimeout(() => { if (progressEl.parentNode) progressEl.parentNode.removeChild(progressEl); }, 450);
+        }
+      }
       break;
 
     case 'detection_result':

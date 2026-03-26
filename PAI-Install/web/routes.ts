@@ -85,6 +85,9 @@ function createWsEmitter(): (event: EngineEvent) => Promise<void> {
       case "message":
         broadcast({ type: "message", role: "assistant", content: event.content, speak: event.speak });
         break;
+      case "validation_result":
+        broadcast({ type: "validation_result", checks: event.checks });
+        break;
       case "error":
         broadcast({ type: "error", message: event.message });
         break;

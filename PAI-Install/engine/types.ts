@@ -196,6 +196,7 @@ export type EngineEvent =
   | { event: "message"; content: string; speak?: boolean }
   | { event: "input_needed"; id: string; prompt: string; type: "text" | "password" | "key"; placeholder?: string }
   | { event: "choice_needed"; id: string; prompt: string; choices: { label: string; value: string; description?: string }[] }
+  | { event: "validation_result"; checks: ValidationCheck[] }
   | { event: "complete"; summary: InstallSummary }
   | { event: "error"; message: string };
 
