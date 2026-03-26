@@ -411,9 +411,12 @@ ${providerEnvVar}=${state.collected.apiKey || ""}
 	};
 	const shellConfig = shellConfigMap[shellName] ?? join(homedir(), ".zshrc");
 
-	// Use a shell function so the subshell owns the cd — caller's $PWD is never changed.
-	// installDir is double-quoted inside the function body to handle paths with spaces.
-	const aliasBlock = `\n# PAI alias — added by PAI installer\npai() { (cd "${installDir}" && bun run .opencode/tools/pai.ts "$@"); }\n`;
+	// Build shell-specific alias/function block.
+	// POSIX shells use "$@"; fish uses $argv and function/end syntax.
+	const escapedInstallDir = installDir.replaceAll('"', '\\"');
+	const aliasBlock = shellName === "fish"
+		? `\n# PAI alias — added by PAI installer\nfunction pai\n\tset -l __pai_oldpwd (pwd)\n\tcd "${escapedInstallDir}"\n\tand bun run .opencode/tools/pai.ts $argv\n\tcd $__pai_oldpwd\nend\n`
+		: `\n# PAI alias — added by PAI installer\npai() { (cd "${escapedInstallDir}" && bun run .opencode/tools/pai.ts "$@"); }\n`;
 
 	try {
 		// Ensure parent directory exists (matters for fish: ~/.config/fish/ may be absent)
