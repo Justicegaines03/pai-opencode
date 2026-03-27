@@ -1,6 +1,6 @@
 # Installation Guide
 
-This guide will help you install PAI-OpenCode in under 5 minutes.
+This guide will help you install PAI OpenCode in under 5 minutes.
 
 ![Installation Flow](docs/images/installation-flow.jpg)
 
@@ -8,7 +8,7 @@ This guide will help you install PAI-OpenCode in under 5 minutes.
 
 ## Prerequisites
 
-Before running the wizard, ensure you have:
+Before running the installer, ensure you have:
 
 1. **Git** — For cloning the repository
    - macOS: `brew install git`
@@ -30,14 +30,17 @@ Before running the wizard, ensure you have:
 git clone https://github.com/Steffen025/pai-opencode.git
 cd pai-opencode
 
-# 2. Run the Installation Wizard
-bun run .opencode/PAIOpenCodeWizard.ts
+# 2. Run the CLI installer
+bash PAI-Install/install.sh --cli --help
+
+# Example: fresh install (Zen)
+bash PAI-Install/install.sh --cli --preset zen --name "Your Name" --ai-name "Jeremy"
 
 # 3. Start OpenCode
 opencode
 ```
 
-The wizard will:
+The installer will:
 1. ✅ Check prerequisites (git, bun 1.3.9+)
 2. ✅ **Build OpenCode from dev source** using Bun's native compiler (required for model tiers feature)
 3. ✅ Ask you to choose a preset:
@@ -68,8 +71,8 @@ mv ~/.opencode ~/.opencode.backup
 # 3. Symlink PAI-OpenCode to your home directory
 ln -s $(pwd)/.opencode ~/.opencode
 
-# 4. Run the wizard (copies nothing — works in place)
-bun run .opencode/PAIOpenCodeWizard.ts
+# 4. Run the CLI installer (works in place)
+bash PAI-Install/install.sh --cli --preset zen --name "Your Name" --ai-name "Jeremy"
 
 # 5. Start OpenCode
 opencode
@@ -134,8 +137,8 @@ cd ~
 git clone https://github.com/Steffen025/pai-opencode.git
 cd pai-opencode
 
-# Run the Installation Wizard
-bun run .opencode/PAIOpenCodeWizard.ts
+# Run the CLI installer
+bash PAI-Install/install.sh --cli --preset zen --name "Your Name" --ai-name "Jeremy"
 
 # Start OpenCode
 opencode
@@ -174,7 +177,7 @@ After installation, see [ADVANCED-SETUP.md](docs/ADVANCED-SETUP.md) for:
 
 ## Manual Installation
 
-If you prefer to install manually without the wizard:
+If you prefer to run the headless installer directly:
 
 **Step 1:** Build OpenCode from dev source (required for model tiers)
 ```bash
@@ -263,7 +266,7 @@ After installation, verify everything works:
 
 ### "Command not found: opencode"
 
-The wizard installs OpenCode to `~/.local/bin/opencode` (preferred) or `/usr/local/bin/opencode` (fallback).
+The installer builds/installs OpenCode depending on your selected preset and platform.
 
 **Check where it was installed:**
 ```bash
@@ -325,11 +328,11 @@ This means you have the **stable OpenCode installed** instead of the PAI-OpenCod
 # Remove the stable version
 rm $(which opencode)
 
-# Re-run the wizard which builds from our fork using Bun's native compiler
-bun run .opencode/PAIOpenCodeWizard.ts
+# Re-run the installer which builds from our fork using Bun's native compiler
+bash PAI-Install/install.sh --cli --preset anthropic --name "Your Name" --ai-name "Jeremy"
 ```
 
-> **Note:** The wizard builds OpenCode from our fork (`Steffen025/opencode`, branch `feature/model-tiers`) using `Bun.build({ compile: true })`. This produces a standalone native binary — no Go, no runtime dependencies.
+> **Note:** The installer can build OpenCode from our fork (`Steffen025/opencode`, branch `feature/model-tiers`) using `Bun.build({ compile: true })`. This produces a standalone native binary — no Go, no runtime dependencies.
 
 ---
 
@@ -366,8 +369,8 @@ PAI-OpenCode uses a **preset system** for simplicity:
 ### Switching Presets
 
 ```bash
-# Re-run the wizard to change preset
-bun run .opencode/PAIOpenCodeWizard.ts
+# Re-run the installer to change preset
+bash PAI-Install/install.sh --cli --preset openai --name "Your Name" --ai-name "Jeremy"
 ```
 
 ### Advanced Provider Setup

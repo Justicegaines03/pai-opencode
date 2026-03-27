@@ -3,7 +3,7 @@
 > ⚠️ **PREREQUISITE:** Model tiers require OpenCode dev build. Stable releases do not support `model_tiers` in `opencode.json`. See [INSTALL.md](../INSTALL.md) for build instructions.
 
 ## Overview
-The wizard configures 3 presets (Anthropic Max, ZEN PAID, ZEN FREE). This guide covers advanced configuration for power users who want fine-grained control over their AI infrastructure.
+The installer configures a preset for your initial provider routing. This guide covers advanced configuration for power users who want fine-grained control over their AI infrastructure.
 
 ## Custom Model Configuration
 

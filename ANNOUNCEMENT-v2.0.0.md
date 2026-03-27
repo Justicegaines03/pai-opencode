@@ -45,11 +45,11 @@ Pay exactly what the task requires.
 git clone https://github.com/Steffen025/pai-opencode
 cd pai-opencode
 bun install
-bun run .opencode/PAIOpenCodeWizard.ts
+bash PAI-Install/install.sh --cli --preset zen --name "Your Name" --ai-name "Jeremy"
 opencode
 ```
 
-Choose a provider preset (`zen-paid`, `openrouter`, `local-ollama`), configure your API keys, and you're running.
+Choose a provider preset (`zen`, `openrouter`, `openai`, `anthropic`), configure your API keys, and you're running.
 
 ## What Didn't Change
 

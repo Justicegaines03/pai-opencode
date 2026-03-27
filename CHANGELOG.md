@@ -148,31 +148,31 @@ Porting 14 upstream commits spanning Algorithm v1.3.0 through v1.8.0:
 
 ---
 
-## v2.0.1 — Wizard Build Process Fix (2026-02-20)
+## v2.0.1 — Legacy Installer Build Process Fix (2026-02-20)
 
 ### Fixed
 
-#### Critical: Wizard Build-from-Source Completely Broken
-- **Symptom:** `git clone` succeeds but wizard reports "Failed to clone repository" and aborts
+#### Critical: Legacy Installer Build-from-Source Completely Broken
+- **Symptom:** `git clone` succeeds but legacy installer reports "Failed to clone repository" and aborts
 - **Root cause:** `execCommand()` with `stdio: 'inherit'` returns `null` from `execSync()`. Calling `.trim()` on `null` throws TypeError, caught as failure. **Every non-silent command falsely reports failure.**
 - **Fix:** Null-safe guard: `output.trim()` → `(output ?? '').trim()`
 
 #### Go Prerequisite Removed (No Longer Needed)
 - **Context:** OpenCode was historically a Go project (BubbleTea TUI). It has been completely rewritten to Bun/TypeScript. The build now uses `Bun.build({ compile: true })` to produce native binaries — no Go toolchain needed.
-- **Fix:** Removed Go prerequisite check from wizard and all documentation
+- **Fix:** Removed Go prerequisite check from the legacy installer and all documentation
 - **Fix:** Strengthened Bun version check from 1.3+ to 1.3.9+ (matches OpenCode monorepo `packageManager` field)
 
 #### Binary Detection After Build
-- **Symptom:** After successful build, wizard couldn't find the binary
+- **Symptom:** After successful build, legacy installer couldn't find the binary
 - **Root cause:** Generic filename search didn't match `Bun.build()` output structure (`dist/opencode-{os}-{arch}/bin/opencode`)
 - **Fix:** Deterministic platform-based binary lookup using `process.platform` + `process.arch` with baseline fallback
 
 ### Changed
-- **Wizard messaging** updated to reflect Bun-based build (not Go)
+- **Legacy installer messaging** updated to reflect Bun-based build (not Go)
 - **INSTALL.md** — Prerequisites: removed Go, added Bun 1.3.9+ note. Manual install: complete rewrite with `bun run ./packages/opencode/script/build.ts --single`. WSL section: removed `golang-go` package.
-- **README.md** — Quick Start: added prerequisites line, updated wizard step description
-- **docs/MIGRATION.md** — Replaced `go install` with wizard command, replaced `$(go env GOPATH)/bin` with `~/.local/bin` in PATH troubleshooting
-- **EXPLORATION-SUMMARY.md** — Updated wizard flow description
+- **README.md** — Quick Start: added prerequisites line, updated installer step description
+- **docs/MIGRATION.md** — Replaced `go install` with installer command, replaced `$(go env GOPATH)/bin` with `~/.local/bin` in PATH troubleshooting
+- **EXPLORATION-SUMMARY.md (since removed)** — Updated wizard flow description
 
 ---
 
@@ -328,7 +328,7 @@ agents:
 - **3 presets** ready to use
 
 ### Migration Guide
-1. Re-run the wizard: `bun run .opencode/PAIOpenCodeWizard.ts`
+1. Re-run the installer: `bash PAI-Install/install.sh --cli --help`
 2. Or switch profile manually: `bun run .opencode/tools/switch-provider.ts zen-paid`
 3. Custom agent models → Edit `opencode.json` agent section directly
 
@@ -541,7 +541,7 @@ This release brings full PAI 2.5 Algorithm compatibility and adds 5 new handlers
 | `agent-capture.ts` | Captures agent outputs |
 
 #### Installation
-- `PAIOpenCodeWizard.ts` - Interactive setup wizard
+- Legacy interactive installer (removed; CLI installer is canonical)
 - 8 AI providers supported (Anthropic, OpenAI, Google, Groq, AWS Bedrock, Azure, ZEN, Ollama)
 - TELOS personalization framework
 
@@ -582,7 +582,7 @@ This release brings full PAI 2.5 Algorithm compatibility and adds 5 new handlers
 | Verify Completion Gate | No | No | No | No | No | **Yes** | Yes |
 | Effort-Scaled Gates | No | No | No | No | No | **Yes** | Yes |
 | **DB Health Tooling** | No | No | No | No | No | No | **Yes** |
-| **Electron GUI Installer** | No | No | No | No | No | No | **Yes** |
+| **Installer (CLI-only)** | No | No | No | No | No | No | **Yes** |
 | **v2→v3 Migration** | No | No | No | No | No | No | **Yes** |
 | **Security Hardening** | No | No | No | No | No | No | **Full** |
 
@@ -596,7 +596,7 @@ This release brings full PAI 2.5 Algorithm compatibility and adds 5 new handlers
 - Skills structure: flat → hierarchical (Category/Skill)
 - Config: single-file → dual-file (opencode.json + settings.json)
 - Paths: `.claude/` → `.opencode/`
-- New Electron GUI installer
+- New CLI-only installer
 
 **Recommended upgrade process:**
 
@@ -615,9 +615,9 @@ This release brings full PAI 2.5 Algorithm compatibility and adds 5 new handlers
    bun Tools/migration-v2-to-v3.ts
    ```
 
-4. **Alternative: Fresh install with the new GUI:**
+4. **Alternative: Fresh install (recommended for a clean setup):**
    ```bash
-   bash PAI-Install/install.sh
+   bash PAI-Install/install.sh --cli --help
    ```
 
 **See [UPGRADE.md](/UPGRADE.md) for detailed step-by-step instructions.**
@@ -628,10 +628,10 @@ This release brings full PAI 2.5 Algorithm compatibility and adds 5 new handlers
 git fetch origin
 git checkout main
 git pull origin main
-bun run .opencode/PAIOpenCodeWizard.ts
+bash PAI-Install/install.sh --cli --help
 ```
 
-Re-running the wizard is recommended — it generates the new profile format with dynamic tier routing.
+Re-running the installer is recommended — it generates the new profile format with dynamic tier routing.
 
 **Manual alternative:** `bun run .opencode/tools/switch-provider.ts zen-paid`
 

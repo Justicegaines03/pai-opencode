@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # PAI-OpenCode Installer Bootstrap
 #
-# WHY: Single entry point for both GUI and headless installation.
+# WHY: Single entry point for deterministic CLI installation.
 #
 # Usage:
-#   bash install.sh                    # Launch Electron GUI (default)
-#   bash install.sh --cli [args...]  # Headless installation
+#   bash install.sh [args...]          # CLI installation (default)
+#   bash install.sh --cli [args...]    # CLI installation (alias)
 #
 
 set -euo pipefail
@@ -51,31 +51,21 @@ else
   warn "OpenCode not found — will install during setup"
 fi
 
-# ─── Launch Installer ────────────────────────────────────
-# Resolve PAI-Install directory (may be sibling or child of script location)
-INSTALLER_DIR=""
-if [ -d "$SCRIPT_DIR/PAI-Install" ]; then
-  INSTALLER_DIR="$SCRIPT_DIR/PAI-Install"
-elif [ -f "$SCRIPT_DIR/main.ts" ]; then
-  INSTALLER_DIR="$SCRIPT_DIR"
-else
-  error "Cannot find PAI-Install directory. Expected at: $SCRIPT_DIR/PAI-Install/"
-  exit 1
-fi
+# ─── Launch Installer (CLI only) ─────────────────────────
+INSTALLER_DIR="$SCRIPT_DIR"
 
-info "Launching installer..."
+info "Launching CLI installer..."
 echo ""
 
-# Launch mode
+# Backwards-compatible alias
 if [ "${1:-}" = "--cli" ]; then
-	# Headless mode
 	shift
-	exec bun "$INSTALLER_DIR/cli/quick-install.ts" "$@"
-else
-	# GUI mode (default) - runs from electron subdirectory
-	cd "$INSTALLER_DIR/electron"
-	if ! bun install 2>&1 | tee /tmp/pai-install-deps.log; then
-		echo "⚠️  Warning: bun install had issues. Check /tmp/pai-install-deps.log"
-	fi
-	exec bunx electron .
 fi
+
+# Hard fail if someone tries to use the removed GUI mode
+if [ "${1:-}" = "--gui" ] || [ "${1:-}" = "--mode" ]; then
+	error "GUI mode was removed. Use CLI options."
+	exec bun "$INSTALLER_DIR/cli/quick-install.ts" --help
+fi
+
+exec bun "$INSTALLER_DIR/cli/quick-install.ts" "$@"

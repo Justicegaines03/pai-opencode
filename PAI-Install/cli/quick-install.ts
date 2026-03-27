@@ -96,7 +96,7 @@ MIGRATION OPTIONS:
 
 EXAMPLES:
   # Fresh install with Zen (FREE)
-  bun cli/quick-install.ts --preset zen --name "Steffen" --ai-name "Jeremy"
+	  bun cli/quick-install.ts --preset zen --name "Your Name" --ai-name "Jeremy"
 
   # Fresh install with Anthropic API key
   bun cli/quick-install.ts --preset anthropic --api-key "sk-ant-..."
@@ -107,7 +107,7 @@ EXAMPLES:
   # Update to latest
   bun cli/quick-install.ts --update
 
-For interactive GUI installation, run: bash install.sh
+  For installation via bootstrap script, run: bash PAI-Install/install.sh
 `);
 	process.exit(0);
 }

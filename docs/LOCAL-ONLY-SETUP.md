@@ -6,10 +6,9 @@ For users running PAI-OpenCode with Ollama or other local models without externa
 
 ## Quick Start
 
-1. Run the wizard and select **Ollama (Local)**:
-   ```bash
-   bun run .opencode/PAIOpenCodeWizard.ts
-   ```
+PAI OpenCode's installer currently supports cloud providers only (`zen`, `anthropic`, `openrouter`, `openai`).
+
+For a local-only (Ollama) setup you must configure `opencode.json` manually.
 
 2. Make sure Ollama is running:
    ```bash
@@ -69,12 +68,7 @@ This prevents the model from attempting to call tools that would fail without in
 
 Since v1.3.0 / v2.0.0, agent `.md` files contain metadata fields (`voiceId`, `color`, `voice` settings) that are **not** sent to the LLM API when using our patched OpenCode build.
 
-**If you're using the stable OpenCode release** (not the dev build from the wizard), these metadata fields may cause API errors with strict providers like Ollama. The recommended fix:
-
-1. Update to latest: `git pull origin main`
-2. Re-run the wizard: `bun run .opencode/PAIOpenCodeWizard.ts`
-3. Select **Ollama (Local)** — this uses the `local.yaml` profile
-4. Build OpenCode from dev source when prompted (the wizard guides you through this)
+If you use a strict local provider that rejects unknown fields, you may need to remove unsupported metadata from agent files or update your OpenCode build.
 
 ---
 
@@ -131,7 +125,7 @@ Adjust model names to match what you have pulled in Ollama (`ollama list` to see
 Add `"websearch": { "enabled": false }` to `opencode.json` under `tools`.
 
 ### "Sub-agent not found" errors
-Ensure you're running the dev build of OpenCode (built via the wizard). The stable release may not handle agent metadata correctly.
+Ensure you're running the dev build of OpenCode (built via the installer). The stable release may not handle agent metadata correctly.
 
 ### Model refuses to respond / API errors
 Check that Ollama is running (`ollama serve`) and the model is pulled (`ollama pull llama3.1:70b`).

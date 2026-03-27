@@ -157,7 +157,7 @@ Use external tools directly or via web interfaces.
 - ✅ MEMORY System (work, learning, state)
 - ✅ Unified Plugin (8 handlers)
 - ✅ Converter Tool (Claude Code → OpenCode)
-- ✅ Installation Wizard (PAIOpenCodeWizard.ts)
+- ❌ Installation wizard (removed; CLI installer only)
 
 ---
 

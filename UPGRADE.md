@@ -12,7 +12,7 @@ PAI-OpenCode v3.0 introduces significant architectural improvements:
 - **Hierarchical Skills** — Category/Skill structure (replaces flat)
 - **Model Tiers** — dynamic routing (quick/standard/advanced)
 - **Security Layer** — prompt injection protection
-- **GUI Installer** — Electron-based visual installation
+- **Installer** — CLI-only installation flow
 - **DB Archiving** — automated session management
 
 ---

@@ -188,7 +188,7 @@ When upgrading:
 
 - **Two Files to Maintain:** Must document both
   - *Mitigation:* Clear README section explaining purpose of each
-  - *Mitigation:* Wizard sets up both files
+  - *Mitigation:* Installer sets up both files
 
 - **Potential Confusion:** Users might edit wrong file
   - *Mitigation:* Comments in each file explaining purpose
@@ -201,7 +201,7 @@ When upgrading:
     ```
 
 - **Initial Learning Curve:** New users must understand two-file model
-  - *Mitigation:* Installation wizard explains during setup
+  - *Mitigation:* Installer explains during setup
   - *Mitigation:* FAQ in documentation
 
 ---
@@ -231,7 +231,7 @@ When upgrading:
 }
 ```
 
-**v1.3.0 Note:** Provider switching now uses **3 presets** (Anthropic Max, ZEN PAID, ZEN FREE) instead of 8 individual providers. Use the wizard or `switch-provider.ts` tool to change profiles. Agent-specific model routing is preserved across provider switches.
+**v1.3.0 Note:** Provider switching uses a small set of installer presets. Use the installer or `switch-provider.ts` to change profiles.
 
 ### Example: Adding Plugin
 
@@ -271,7 +271,7 @@ pai-opencode uses two configuration files:
 ```markdown
 ## Configuration
 
-The installation wizard creates two files:
+The installer creates two files:
 
 1. **settings.json** - Your PAI configuration (identity, preferences)
 2. **opencode.json** - OpenCode platform settings (provider, plugins)
@@ -305,7 +305,7 @@ jq '.provider.id' opencode.json  # Should output provider
 
 - **PAI Config:** `.opencode/settings.json`
 - **Platform Config:** `opencode.json`
-- **Wizard:** `.opencode/PAIOpenCodeWizard.ts` (sets up both)
+- **Installer:** `PAI-Install/install.sh` (sets up both)
 - **Examples:** Documented in README.md
 
 ---

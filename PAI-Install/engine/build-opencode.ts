@@ -5,7 +5,7 @@
  * Builds custom OpenCode binary from Steffen025/opencode fork
  * with feature/model-tiers branch for 60x cost optimization.
  * 
- * Based on: PAIOpenCodeWizard.ts (port)
+ * Based on a legacy interactive installer implementation (removed).
  * Reference: ~/.opencode/tools/opencode-wrapper (bash implementation)
  */
 

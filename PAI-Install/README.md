@@ -1,71 +1,51 @@
-# PAI-OpenCode Installer
+# PAI OpenCode Installer
 
-> GUI and CLI installer for PAI-OpenCode v3.0
+CLI-only installer for PAI OpenCode.
 
 ## Quick Start
 
 ```bash
-# Run the installer
-bash PAI-Install/install.sh
+bash PAI-Install/install.sh --cli --help
+
+# Example: fresh install (Zen)
+bash PAI-Install/install.sh --cli --preset zen --name "Your Name" --ai-name "Jeremy"
 ```
 
 ## What This Installer Does
 
-1. **Detects** your environment (macOS/Linux)
-2. **Installs** Bun runtime if not present
-3. **Creates** `~/.opencode/` directory structure
-4. **Copies** PAI core files (skills, plugins, handlers)
-5. **Configures** `opencode.json` with Model Tiers
-6. **Sets up** the Electron GUI (optional)
+1. Checks prerequisites (git, bun)
+2. Optionally builds a custom OpenCode binary (model tiers)
+3. Generates/updates `opencode.json` and `~/.opencode/*`
+4. Installs PAI files into `~/.opencode/`
 
 ## Directory Structure
 
 ```
 PAI-Install/
-├── install.sh           # Main bootstrap script
-├── main.ts              # TypeScript entry point
-├── generate-welcome.ts  # Welcome screen generator
-├── cli/                 # CLI installer module
-│   ├── index.ts
-│   ├── display.ts
-│   └── prompts.ts
-├── engine/              # Install engine
-│   ├── index.ts
+├── install.sh              # Bootstrap (Bun + CLI entrypoint)
+├── cli/
+│   └── quick-install.ts    # Headless/CLI installer
+├── engine/                 # Install engine (fresh/migrate/update)
 │   ├── actions.ts
+│   ├── build-opencode.ts
 │   ├── config-gen.ts
 │   ├── detect.ts
+│   ├── index.ts
+│   ├── migrate.ts
+│   ├── provider-models.ts
 │   ├── state.ts
-│   ├── steps.ts
+│   ├── steps-fresh.ts
+│   ├── steps-migrate.ts
+│   ├── steps-update.ts
 │   ├── types.ts
+│   ├── update.ts
 │   └── validate.ts
-├── electron/            # Electron GUI app
-│   ├── main.js
-│   ├── package.json
-│   └── package-lock.json
-├── web/                   # Web UI for Electron
-│   ├── server.ts
-│   └── routes.ts
-└── public/                # Static assets
-    ├── index.html
-    ├── styles.css
-    ├── app.js
-    └── assets/
-        ├── pai-logo.png
-        ├── banner.png
-        ├── fonts/
-        └── audio/
+└── wrapper-template.sh      # Optional OpenCode wrapper script template
 ```
 
-## Installation Modes
+## Notes
 
-### CLI Mode (Default)
-Terminal-based interactive installation.
-
-### GUI Mode
-```bash
-bash PAI-Install/install.sh --gui
-```
-Launches Electron installer with visual step-by-step setup.
+- GUI installer was removed. `install.sh` always runs the CLI installer.
 
 ## Post-Installation
 
@@ -75,7 +55,7 @@ After installation, you'll have:
 - `~/.opencode/plugins/` — Event handlers
 - `~/.opencode/commands/` — Custom OpenCode commands
 - `~/.opencode/MEMORY/` — Working memory and state
-- `~opencode.json` — Configuration with Model Tiers
+- `~/.opencode/opencode.json` — OpenCode config with model tiers
 
 ## Upgrade from v2.x
 
@@ -87,7 +67,6 @@ See [UPGRADE.md](/UPGRADE.md) for migration instructions.
 |-------|----------|
 | Bun not found | Installer will auto-install Bun |
 | Permission denied | Run with `bash` not `sh` |
-| Electron fails | Use CLI mode: `install.sh --cli` |
 
 ## Requirements
 

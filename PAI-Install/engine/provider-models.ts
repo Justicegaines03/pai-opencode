@@ -44,7 +44,7 @@ export const PROVIDER_MODELS: Record<ProviderName, ModelTierMap> = {
 };
 
 /**
- * Human-readable labels shown in the installer wizard.
+ * Human-readable labels shown in the installer.
  */
 export const PROVIDER_LABELS: Record<ProviderName, { label: string; description: string }> = {
 	anthropic: {

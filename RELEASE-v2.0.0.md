@@ -110,7 +110,7 @@ While the Algorithm evolved dramatically, **stability remains**: all 39 skills, 
 4. **Verify skills**: `bun GenerateSkillIndex.ts` (regenerate index with symlink support)
 5. **Test with simple prompt**: Verify effort level assignment and phase progression work
 
-**New users**: Follow the [Quick Start](README.md#quick-start) — the wizard handles everything.
+**New users**: Follow the [Quick Start](README.md#quick-start) — the installer handles everything.
 
 ---
 
