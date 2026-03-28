@@ -28,6 +28,6 @@ Scraping skills respect robots.txt and rate limits. They prioritize reliable dat
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Scraping/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Scraping/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there.

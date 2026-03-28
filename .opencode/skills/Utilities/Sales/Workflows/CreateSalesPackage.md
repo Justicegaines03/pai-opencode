@@ -44,7 +44,7 @@ Invoke StoryExplanation Skill with 24-item length for [product documentation]
 
 **Match the product/value proposition to an emotional register.**
 
-Read `~/.opencode/skills/PAI/Aesthetic.md` for the full vocabulary.
+Read `~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Art/PREFERENCES.md` for the full vocabulary.
 
 | Value Proposition Type | Emotional Register | Warm:Cool |
 |------------------------|-------------------|-----------|

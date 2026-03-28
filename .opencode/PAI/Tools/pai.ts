@@ -10,7 +10,7 @@
  *   pai -m bd            Launch with Bright Data MCP
  *   pai -m bd,ap         Launch with multiple MCPs
  *   pai -r / --resume    Resume last session
- *   pai --local          Stay in current directory (don't cd to ~/.claude)
+ *   pai --local          Stay in current directory (don't cd to ~/.opencode)
  *   pai update           Update Claude Code
  *   pai version          Show version info
  *   pai profiles         List available profiles
@@ -28,10 +28,10 @@ import { join, basename } from "path";
 // Configuration
 // ============================================================================
 
-const CLAUDE_DIR = join(homedir(), ".claude");
-const MCP_DIR = join(CLAUDE_DIR, "MCPs");
-const ACTIVE_MCP = join(CLAUDE_DIR, ".mcp.json");
-const BANNER_SCRIPT = join(CLAUDE_DIR, "PAI", "Tools", "Banner.ts");
+const OPENCODE_DIR = process.env.OPENCODE_DIR || join(homedir(), ".opencode");
+const MCP_DIR = join(OPENCODE_DIR, "MCPs");
+const ACTIVE_MCP = join(OPENCODE_DIR, ".mcp.json");
+const BANNER_SCRIPT = join(OPENCODE_DIR, "PAI", "Tools", "Banner.ts");
 const VOICE_SERVER = "http://localhost:8888/notify/personality";
 const WALLPAPER_DIR = join(homedir(), "Projects", "Wallpaper");
 // Note: RAW archiving removed - Claude Code handles its own cleanup (30-day retention in projects/)
@@ -417,7 +417,7 @@ async function cmdLaunch(options: { mcp?: string; resume?: boolean; skipPerms?: 
 
   // Change to PAI directory unless --local flag is set
   if (!options.local) {
-    process.chdir(CLAUDE_DIR);
+    process.chdir(OPENCODE_DIR);
   }
 
   // Voice notification (using focused marker for calmer tone)
@@ -559,7 +559,7 @@ async function cmdPrompt(prompt: string) {
   // NOTE: No --dangerously-skip-permissions - rely on settings.json permissions
   const args = ["claude", "-p", prompt];
 
-  process.chdir(CLAUDE_DIR);
+  process.chdir(OPENCODE_DIR);
 
   const proc = spawn(args, {
     stdio: ["inherit", "inherit", "inherit"],
@@ -579,7 +579,7 @@ USAGE:
   k -m <mcp>               Launch with specific MCP(s)
   k -m bd,ap               Launch with multiple MCPs
   k -r, --resume           Resume last session
-  k -l, --local            Stay in current directory (don't cd to ~/.claude)
+  k -l, --local            Stay in current directory (don't cd to ~/.opencode)
 
 COMMANDS:
   k update                 Update Claude Code to latest version

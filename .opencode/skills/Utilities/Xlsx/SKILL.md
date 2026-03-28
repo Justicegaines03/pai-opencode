@@ -9,7 +9,7 @@ description: Excel file processing. USE WHEN xlsx, Excel, spreadsheet. SkillSear
 
 **Before starting any task with this skill, load complete PAI context:**
 
-`read ~/.opencode/skills/PAI/SKILL.md`
+`read ~/.opencode/PAI/SKILL.md`
 
 This provides access to:
 - Complete contact list (Angela, Bunny, Saša, Greg, team members)

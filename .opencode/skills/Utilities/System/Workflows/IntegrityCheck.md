@@ -41,11 +41,11 @@ Use the Task tool to launch agents in a SINGLE message (parallel execution). Eac
 
 | # | Focus Area | Scope | Check For |
 |---|------------|-------|-----------|
-| 1 | PAI SKILL.md | `skills/PAI/SKILL.md` | Broken file references, outdated paths |
+| 1 | PAI SKILL.md | `PAI/SKILL.md` | Broken file references, outdated paths |
 | 2 | Identity System | `plugins/lib/identity.ts`, `settings.json` | Config consistency |
 | 3 | Plugin Scripts | `plugins/*.ts` | Imports, identity usage, TypeScript validity |
-| 4 | System Docs | `skills/PAI/SYSTEM/*.md` | Cross-references, broken links |
-| 5 | User Docs | `skills/PAI/USER/*.md` | Personal config references |
+| 4 | System Docs | `PAI/*.md` | Cross-references, broken links |
+| 5 | User Docs | `PAI/USER/*.md` | Personal config references |
 | 6 | Workflows | `skills/*/Workflows/*.md` | File paths, tool references |
 | 7 | Tools | `skills/*/Tools/*.ts` | Imports, hardcoded paths |
 | 8 | Settings | `settings.json` | Schema validity, env vars |

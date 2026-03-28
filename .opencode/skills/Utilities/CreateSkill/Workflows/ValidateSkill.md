@@ -20,7 +20,7 @@ Running the **ValidateSkill** workflow in the **CreateSkill** skill to validate 
 **REQUIRED FIRST:** Read the canonical structure:
 
 ```
-~/.opencode/skills/CORE/SkillSystem.md
+~/.opencode/PAI/SKILLSYSTEM.md
 ```
 
 ---
@@ -187,7 +187,7 @@ grep -l "Intent-to-Flag" ~/.opencode/skills/[SkillName]/Workflows/*.md
 | (default) | `--model sonnet` | Balanced |
 ```
 
-**Reference:** `~/.opencode/skills/CORE/CliFirstArchitecture.md`
+**Reference:** `~/.opencode/PAI/CLIFIRSTARCHITECTURE.md`
 
 ---
 

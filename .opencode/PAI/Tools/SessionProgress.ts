@@ -6,7 +6,7 @@
  * Based on Anthropic's claude-progress.txt pattern.
  *
  * Usage:
- *   bun run ~/.claude/PAI/Tools/SessionProgress.ts <command> [options]
+ *   bun run ~/.opencode/PAI/Tools/SessionProgress.ts <command> [options]
  */
 
 import { existsSync, readFileSync, writeFileSync, readdirSync, mkdirSync } from 'fs';
@@ -52,7 +52,7 @@ interface SessionProgress {
 }
 
 // Progress files are now in STATE/progress/ (consolidated from MEMORY/PROGRESS/)
-const PROGRESS_DIR = join(HOME, '.claude', 'MEMORY', 'STATE', 'progress');
+const PROGRESS_DIR = join(process.env.OPENCODE_DIR || join(HOME, '.opencode'), 'MEMORY', 'STATE', 'progress');
 
 function getProgressPath(project: string): string {
   // Validate project name to prevent path traversal

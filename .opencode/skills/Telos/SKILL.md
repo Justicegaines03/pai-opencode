@@ -27,6 +27,6 @@ Telos treats life as a system to be managed with intention. It connects daily ac
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Telos/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Telos/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there.

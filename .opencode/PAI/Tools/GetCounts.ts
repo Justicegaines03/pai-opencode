@@ -37,7 +37,7 @@ import { readdirSync, existsSync, statSync } from "fs";
 import { join } from "path";
 
 const HOME = process.env.HOME!;
-const PAI_DIR = process.env.PAI_DIR || join(HOME, ".claude");
+const PAI_DIR = process.env.OPENCODE_DIR || join(HOME, ".opencode");
 
 interface Counts {
   skills: number;

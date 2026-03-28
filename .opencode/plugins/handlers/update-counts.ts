@@ -20,7 +20,7 @@
  * - getPaiDir() → getOpenCodeDir()
  * - hooks/ → plugins/
  * - console.error → fileLog (TUI-safe)
- * - .claude/ → .opencode/
+ * - Legacy directory references migrated to .opencode/
  */
 
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -145,7 +145,7 @@ function getCounts(openCodeDir: string): Counts {
 		workflows: countWorkflowFiles(join(openCodeDir, "skills")),
 		plugins: countPlugins(openCodeDir), // Changed from 'hooks'
 		signals: countRatingsLines(join(openCodeDir, "MEMORY/LEARNING/SIGNALS/ratings.jsonl")),
-		files: countFilesRecursive(join(openCodeDir, "skills/PAI/USER")),
+		files: countFilesRecursive(join(openCodeDir, "PAI/USER")),
 		updatedAt: getISOTimestamp(), // Using time.ts utility
 	};
 }
@@ -189,4 +189,4 @@ export async function handleUpdateCounts(): Promise<void> {
 
 // NOTE: In OpenCode, this module is always imported (never run directly).
 // import.meta.main is always false — standalone execution not supported.
-// Run: bun .opencode/skills/PAI/Tools/GetCounts.ts to update counts manually.
+// Run: bun .opencode/PAI/Tools/GetCounts.ts to update counts manually.

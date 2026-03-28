@@ -37,7 +37,7 @@ USMetrics provides focused tracking for US-specific data points and trends.
 ## Customization
 
 **MANDATORY:** Before executing, check for user customizations at:
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/USMetrics/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/USMetrics/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there. These override default behavior. If the directory does not exist, proceed with skill defaults.
 

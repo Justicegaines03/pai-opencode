@@ -24,7 +24,7 @@
  *   - Links to all changes
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { createHash } from 'crypto';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -79,7 +79,7 @@ interface State {
 
 // Config
 const HOME = homedir();
-const SKILL_DIR = join(HOME, '.opencode', 'skills', 'PAIUpgrade');
+const SKILL_DIR = join(HOME, '.opencode', 'skills', 'Utilities', 'PAIUpgrade');
 const STATE_DIR = join(SKILL_DIR, 'State');
 const STATE_FILE = join(STATE_DIR, 'last-check.json');
 const SOURCES_FILE = join(SKILL_DIR, 'sources.json');
@@ -127,6 +127,9 @@ function loadState(): State {
 
 function saveState(state: State): void {
   try {
+    if (!existsSync(STATE_DIR)) {
+      mkdirSync(STATE_DIR, { recursive: true });
+    }
     writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
   } catch (error) {
     console.error('❌ Failed to save state:', error);

@@ -6,11 +6,11 @@
  * Use this when you need to find which skill handles a specific task.
  *
  * Usage:
- *   bun run ~/.opencode/skills/PAI/Tools/SkillSearch.ts <query>
- *   bun run ~/.opencode/skills/PAI/Tools/SkillSearch.ts "scrape instagram"
- *   bun run ~/.opencode/skills/PAI/Tools/SkillSearch.ts --list           # List all skills
- *   bun run ~/.opencode/skills/PAI/Tools/SkillSearch.ts --tier always    # List always-loaded skills
- *   bun run ~/.opencode/skills/PAI/Tools/SkillSearch.ts --tier deferred  # List deferred skills
+ *   bun run ~/.opencode/PAI/Tools/SkillSearch.ts <query>
+ *   bun run ~/.opencode/PAI/Tools/SkillSearch.ts "scrape instagram"
+ *   bun run ~/.opencode/PAI/Tools/SkillSearch.ts --list           # List all skills
+ *   bun run ~/.opencode/PAI/Tools/SkillSearch.ts --tier always    # List always-loaded skills
+ *   bun run ~/.opencode/PAI/Tools/SkillSearch.ts --tier deferred  # List deferred skills
  *
  * Output: Matching skills with full descriptions and workflows
  */
@@ -149,7 +149,7 @@ async function main() {
   // Check if index exists
   if (!existsSync(INDEX_FILE)) {
     console.error('❌ Skill index not found. Run GenerateSkillIndex.ts first:');
-    console.error('   bun run ~/.opencode/skills/PAI/Tools/GenerateSkillIndex.ts');
+    console.error('   bun run ~/.opencode/PAI/Tools/GenerateSkillIndex.ts');
     process.exit(1);
   }
 

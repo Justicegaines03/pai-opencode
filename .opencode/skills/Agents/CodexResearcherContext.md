@@ -11,8 +11,8 @@
 ## Required Knowledge (Pre-load from Skills)
 
 ### Core Foundations
-- **skills/CORE/CoreStack.md** - Stack preferences (TypeScript > Python!) and tooling
-- **skills/CORE/CONSTITUTION.md** - Constitutional principles
+- **PAI/README.md** - Stack preferences (TypeScript > Python!) and tooling
+- **PAI/AISTEERINGRULES.md** - Constitutional principles
 
 ### Research Standards
 - **skills/Research/SKILL.md** - Research skill workflows and methodologies

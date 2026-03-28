@@ -29,7 +29,7 @@ Create professional videos programmatically with React.
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Remotion/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Remotion/`
 
 ## Workflow Routing
 

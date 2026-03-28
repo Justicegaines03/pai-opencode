@@ -20,7 +20,7 @@ Running the **UpdateSkill** workflow in the **CreateSkill** skill to modify exis
 **REQUIRED FIRST:** Read the canonical structure:
 
 ```
-~/.opencode/skills/CORE/SkillSystem.md
+~/.opencode/PAI/SKILLSYSTEM.md
 ```
 
 ---

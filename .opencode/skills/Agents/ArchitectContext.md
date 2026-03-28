@@ -9,8 +9,8 @@
 ## Required Knowledge (Pre-load from Skills)
 
 ### Constitutional Foundation
-- **skills/CORE/CONSTITUTION.md** - Foundational architectural principles
-- **skills/CORE/CoreStack.md** - Stack preferences (TypeScript > Python, bun > npm, etc.)
+- **PAI/AISTEERINGRULES.md** - Foundational architectural principles
+- **PAI/README.md** - Stack preferences (TypeScript > Python, bun > npm, etc.)
 
 ### Development Methodology
 - **skills/Development/METHODOLOGY.md** - Spec-driven, test-driven development approach

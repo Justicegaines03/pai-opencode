@@ -210,7 +210,7 @@ Rembrandt lighting pattern. Looking at camera. Ultra-tight crop on face only.
 ### Remove Background
 
 ```bash
-bun ~/.opencode/skills/CORE/Tools/RemoveBg.ts ~/Downloads/yt-headshot-${TIMESTAMP}.png
+bun ~/.opencode/PAI/Tools/RemoveBg.ts ~/Downloads/yt-headshot-${TIMESTAMP}.png
 ```
 
 ---

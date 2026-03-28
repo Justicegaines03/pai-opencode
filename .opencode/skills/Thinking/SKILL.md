@@ -35,6 +35,6 @@ Thinking skills enhance human cognition. They don't replace thinking—they exte
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Thinking/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Thinking/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there.

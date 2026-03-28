@@ -155,7 +155,7 @@ Task(prompt="You are Dr. Nova...", subagent_type="general-purpose")
 
 ## Named Agent Architecture
 
-- **Location**: `~/.opencode/skills/CORE/AgentPersonalities.md` (this file)
+- **Location**: `~/.opencode/skills/Agents/AgentPersonalities.md` (this file)
 - **Consumer**: `~/.opencode/VoiceServer/server.ts` extracts JSON config from this file
 - **Format**: Human-readable markdown with embedded JSON configuration
 

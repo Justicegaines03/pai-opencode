@@ -30,7 +30,7 @@ import { join, basename } from 'path';
 import { homedir } from 'os';
 import { inference } from './Inference';
 
-const PAI_DIR = process.env.PAI_DIR || join(process.env.HOME ?? homedir(), '.claude');
+const PAI_DIR = process.env.OPENCODE_DIR || join(process.env.HOME ?? homedir(), '.opencode');
 
 interface FailureCaptureInput {
   transcriptPath: string;

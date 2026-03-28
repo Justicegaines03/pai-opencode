@@ -6,7 +6,7 @@ description: Dynamic wisdom extraction that adapts sections to content. USE WHEN
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/ExtractWisdom/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/ExtractWisdom/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there. These override default behavior. If the directory does not exist, proceed with skill defaults.
 
@@ -60,7 +60,7 @@ The output should feel like your smartest friend watched/read the thing and is t
 
 ## Tone Rules (CRITICAL)
 
-**Canonical voice reference: `skills/PAI/USER/WRITINGSTYLE.md`** — read this file for the full voice definition. The bullets should sound like {PRINCIPAL.NAME} telling a friend about it over coffee. Not compressed info nuggets. Not clever one-liners. Actual spoken observations.
+**Canonical voice reference: `PAI/USER/WRITINGSTYLE.md`** — read this file for the full voice definition. The bullets should sound like {PRINCIPAL.NAME} telling a friend about it over coffee. Not compressed info nuggets. Not clever one-liners. Actual spoken observations.
 
 **THREE LEVELS — we're aiming for Level 3:**
 

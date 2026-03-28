@@ -6,7 +6,7 @@ description: Document processing. USE WHEN document, process file. SkillSearch('
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Documents/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Documents/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there. These override default behavior. If the directory does not exist, proceed with skill defaults.
 
@@ -36,7 +36,7 @@ If this directory exists, load and apply any PREFERENCES.md, configurations, or 
 
 **Before starting any task with this skill, load complete PAI context:**
 
-`read ~/.opencode/skills/PAI/SKILL.md`
+`read ~/.opencode/PAI/SKILL.md`
 
 
 ## When to Activate This Skill
