@@ -6,7 +6,7 @@ description: Universal thinking and iteration engine based on the scientific met
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Science/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Science/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there. These override default behavior. If the directory does not exist, proceed with skill defaults.
 

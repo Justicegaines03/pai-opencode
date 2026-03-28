@@ -6,7 +6,7 @@ description: PAI-OpenCode system self-awareness. USE WHEN asking about tools, co
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/OpenCodeSystem/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/OpenCodeSystem/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there. These override default behavior. If the directory does not exist, proceed with skill defaults.
 

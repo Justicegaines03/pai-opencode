@@ -20,7 +20,7 @@ Running the **CanonicalizeSkill** workflow in the **CreateSkill** skill to restr
 **REQUIRED FIRST:** Read the canonical structure:
 
 ```
-~/.opencode/skills/CORE/SkillSystem.md
+~/.opencode/PAI/SKILLSYSTEM.md
 ```
 
 This defines exactly what "canonicalize" means.

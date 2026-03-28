@@ -7,7 +7,7 @@ context: fork
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Apify/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Apify/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there. These override default behavior. If the directory does not exist, proceed with skill defaults.
 
@@ -41,7 +41,7 @@ This skill is a **file-based MCP** - a code-first API wrapper that replaces toke
 
 **Why file-based?** Filter data in code BEFORE returning to model context = 97.5% token savings.
 
-**Architecture:** See `~/.opencode/skills/PAI/SYSTEM/DOCUMENTATION/FileBasedMCPs.md`
+**Architecture:** See `~/.opencode/PAI/THEPLUGINSYSTEM.md`
 
 ## 🎯 Overview
 

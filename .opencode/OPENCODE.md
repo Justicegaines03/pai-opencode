@@ -7,7 +7,7 @@ When you start in this directory, determine the installation state:
 ### If settings.json exists and is configured:
 This is an established PAI installation. Read and follow the PAI skill:
 ```
-read skills/PAI/SKILL.md
+read PAI/SKILL.md
 ```
 
 ### If this is a fresh installation:
@@ -21,7 +21,7 @@ Welcome to PAI-OpenCode v1.0!
 
 1. **Just start**: `opencode` - everything works with defaults
 2. **Customize**: Edit `settings.json` for identity and preferences
-3. **Learn more**: Read `skills/PAI/SKILL.md`
+3. **Learn more**: Read `PAI/SKILL.md`
 
 For full documentation, see the README.md in the repository root.
 

@@ -32,6 +32,6 @@ Security skills operate with explicit authorization. They follow responsible dis
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Security/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Security/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there.

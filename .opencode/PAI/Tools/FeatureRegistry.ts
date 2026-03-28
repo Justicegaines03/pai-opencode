@@ -7,7 +7,7 @@
  * than Markdown because models are less likely to corrupt structured data.
  *
  * Usage:
- *   bun run ~/.claude/Tools/FeatureRegistry.ts <command> [options]
+ *   bun run ~/.opencode/PAI/Tools/FeatureRegistry.ts <command> [options]
  *
  * Commands:
  *   init <project>              Initialize feature registry for project
@@ -29,7 +29,7 @@ if (!HOME) {
   process.exit(1);
 }
 
-const REGISTRY_DIR = join(HOME, '.claude', 'MEMORY', 'progress');
+const REGISTRY_DIR = join(process.env.OPENCODE_DIR || join(HOME, '.opencode'), 'MEMORY', 'progress');
 
 interface TestStep {
   step: string;

@@ -225,6 +225,6 @@ const browser = new PlaywrightBrowser()
 
 ## Related
 
-- [File-Based MCP Architecture](~/.opencode/skills/CORE/SYSTEM/DOCUMENTATION/FileBasedMCPs.md)
+- [Plugin System Architecture](~/.opencode/PAI/THEPLUGINSYSTEM.md)
 - [Apify Code-First](../Apify/README.md)
 - [Playwright Docs](https://playwright.dev)

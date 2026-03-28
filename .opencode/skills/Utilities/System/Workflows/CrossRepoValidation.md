@@ -355,7 +355,7 @@ Generated: {timestamp}
 ### ⚠️ Personal Data Check
 - Files scanned: 247
 - Potential issues: 2
-  - .opencode/skills/PAI/SKILL.md:15 - Contains "Steffen" (approved - variable def)
+  - .opencode/PAI/SKILL.md:15 - Contains "Steffen" (approved - variable def)
   - docs/README.md:42 - Contains example with specific name (review)
 - Status: WARNING
 

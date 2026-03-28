@@ -84,4 +84,4 @@ curl -s -X POST http://localhost:8888/notify \
 ## Customization Check
 
 Before execution, check for user customizations at:
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/WorldThreatModelHarness/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/WorldThreatModelHarness/`

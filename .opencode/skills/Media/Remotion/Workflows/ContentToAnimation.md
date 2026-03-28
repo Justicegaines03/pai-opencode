@@ -551,6 +551,6 @@ User: animate this content: "The three pillars of AI safety are..."
 ## Integration with Art Skill
 
 This workflow inherits visual theming from Art preferences:
-- Load: `~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Art/PREFERENCES.md`
+- Load: `~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Art/PREFERENCES.md`
 - Apply: Charcoal aesthetic, purple accents, organic animations
 - Reference: `~/.opencode/skills/Remotion/theme.ts`

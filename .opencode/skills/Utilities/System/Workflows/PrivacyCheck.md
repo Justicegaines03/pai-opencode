@@ -149,7 +149,7 @@ function validateUserReference(file: string, match: string): Issue | null {
   }
 
   // Allow PAI skill (it's private context loader)
-  if (file.includes("skills/PAI/")) {
+  if (file.includes("PAI/")) {
     return null;
   }
 

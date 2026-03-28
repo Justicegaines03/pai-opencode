@@ -29,7 +29,7 @@ Layered fiction writing system that constructs stories across seven simultaneous
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/WriteStory/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/WriteStory/`
 
 If this directory exists, load and apply:
 - `PREFERENCES.md` - User preferences, default genre, aesthetic, voice

@@ -29,6 +29,6 @@ Media skills bridge the gap between technical execution and creative vision. The
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Media/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Media/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there.

@@ -461,7 +461,7 @@ PAI actions and pipelines run in two environments with identical behavior:
 ### Repository Separation
 
 ```
-PRIVATE: ~/.claude/                    PUBLIC: ${PROJECTS_DIR}/PAI/
+PRIVATE: ~/.opencode/                  PUBLIC: ${PROJECTS_DIR}/PAI/
 ├── Personal data                      ├── Sanitized examples
 ├── API keys (.env)                    ├── Generic templates
 ├── Session history                    └── Community sharing
@@ -487,7 +487,7 @@ The System skill is the centralized mechanism for PAI self-management. It ensure
 
 | Function | Description | Workflow |
 |----------|-------------|----------|
-| **Integrity Audits** | 16 parallel agents verify broken references across ~/.claude | `PrivateSystemAudit.md` |
+| **Integrity Audits** | 16 parallel agents verify broken references across ~/.opencode | `PrivateSystemAudit.md` |
 | **Secret Scanning** | TruffleHog credential detection in any directory | `SecretScanning.md` |
 | **Privacy Validation** | Ensures USER/WORK content isolation from regular skills | `PrivacyCheck.md` |
 | **Cross-Repo Validation** | Verifies private/public repository separation | `CrossRepoValidation.md` |

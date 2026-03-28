@@ -4,4 +4,4 @@ Configure what appears in your Claude Code status line. PAI uses the status line
 
 ## Configuration
 
-Create a `config.md` or modify the `statusline-command.sh` in the `.claude/` root to customize display elements.
+Create a `config.md` or modify the `statusline-command.sh` in the `.opencode/` root to customize display elements.

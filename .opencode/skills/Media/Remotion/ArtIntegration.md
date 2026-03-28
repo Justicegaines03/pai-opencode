@@ -6,7 +6,7 @@
 
 1. **Load Art preferences:**
    ```text
-   ~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Art/PREFERENCES.md
+   ~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Art/PREFERENCES.md
    ```
 
 2. **Apply the PAI Theme** derived from Art preferences:

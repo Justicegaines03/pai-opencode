@@ -23,7 +23,7 @@ import { spawnSync } from "child_process";
 import { homedir } from "os";
 
 const HOME = process.env.HOME ?? homedir();
-const CLAUDE_DIR = join(HOME, ".claude");
+const CLAUDE_DIR = process.env.OPENCODE_DIR || join(HOME, ".opencode");
 
 // =============================================================================
 // Terminal Width Detection

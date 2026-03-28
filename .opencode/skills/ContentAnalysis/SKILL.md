@@ -27,6 +27,6 @@ ContentAnalysis skills adapt to the content they process. Instead of static extr
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/ContentAnalysis/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/ContentAnalysis/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there.

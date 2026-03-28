@@ -29,6 +29,6 @@ Investigation skills operate within strict ethical frameworks. They gather publi
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Investigation/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Investigation/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there.

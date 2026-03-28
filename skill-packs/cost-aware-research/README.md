@@ -24,9 +24,9 @@ cp skill-packs/cost-aware-research/.env.example .opencode/
 
 ```bash
 # From your PAI directory
-cp -r skill-packs/cost-aware-research/.opencode/skills/Research ~/.claude/skills/
-cp skill-packs/cost-aware-research/Agents/*.md ~/.claude/agents/
-cp skill-packs/cost-aware-research/.env.example ~/.claude/
+cp -r skill-packs/cost-aware-research/.opencode/skills/Research ~/.opencode/skills/
+cp skill-packs/cost-aware-research/Agents/*.md ~/.opencode/agents/
+cp skill-packs/cost-aware-research/.env.example ~/.opencode/
 ```
 
 ## Research Tiers

@@ -42,6 +42,6 @@ Utility skills are the infrastructure layer. They handle the "plumbing" that ena
 ## Customization
 
 **Before executing, check for user customizations at:**
-`~/.opencode/skills/PAI/USER/SKILLCUSTOMIZATIONS/Utilities/`
+`~/.opencode/PAI/USER/SKILLCUSTOMIZATIONS/Utilities/`
 
 If this directory exists, load and apply any PREFERENCES.md, configurations, or resources found there.

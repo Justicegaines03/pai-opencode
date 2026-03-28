@@ -5,7 +5,7 @@
  * Validates the skill directory structure for consistency and correctness.
  * Run this to check for common issues after reorganizing skills.
  *
- * Usage: bun run ~/.opencode/skills/PAI/Tools/ValidateSkillStructure.ts
+ * Usage: bun run ~/.opencode/PAI/Tools/ValidateSkillStructure.ts
  *
  * Checks:
  * - All skills have valid SKILL.md with frontmatter
