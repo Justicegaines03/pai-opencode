@@ -24,7 +24,7 @@
  *   - Links to all changes
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { createHash } from 'crypto';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -127,6 +127,9 @@ function loadState(): State {
 
 function saveState(state: State): void {
   try {
+    if (!existsSync(STATE_DIR)) {
+      mkdirSync(STATE_DIR, { recursive: true });
+    }
     writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
   } catch (error) {
     console.error('❌ Failed to save state:', error);

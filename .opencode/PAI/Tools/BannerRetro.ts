@@ -356,11 +356,20 @@ function countHooks(): number {
   if (!existsSync(targetDir)) return 0;
 
   let count = 0;
-  try {
-    for (const entry of readdirSync(targetDir, { withFileTypes: true })) {
-      if (entry.isFile() && entry.name.endsWith(".ts")) count++;
-    }
-  } catch {}
+  const countRecursive = (dir: string) => {
+    try {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          countRecursive(fullPath);
+        } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+          count++;
+        }
+      }
+    } catch {}
+  };
+
+  countRecursive(targetDir);
   return count;
 }
 
