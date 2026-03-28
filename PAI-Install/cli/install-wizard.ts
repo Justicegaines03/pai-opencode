@@ -160,23 +160,77 @@ function ask(question: string, defaultValue?: string): Promise<string> {
 	});
 }
 
+function askHidden(question: string, defaultValue?: string): Promise<string> {
+	const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+	const suffix = defaultValue ? ` ${COLOR.gray}[${defaultValue}]${COLOR.reset}` : "";
+
+	return new Promise((resolve) => {
+		let settled = false;
+
+		const cleanup = (): void => {
+			process.off("SIGINT", onSigint);
+		};
+
+		const finalize = (value: string): void => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			cleanup();
+			resolve(value);
+		};
+
+		const onSigint = (): void => {
+			cleanup();
+			rl.close();
+			print("");
+			printError("Installation cancelled by user (Ctrl+C).");
+			process.exit(1);
+		};
+
+		process.once("SIGINT", onSigint);
+
+		(
+			rl as readline.Interface & {
+				_writeToOutput?: (value: string) => void;
+			}
+		)._writeToOutput = (value: string) => {
+			if (value.includes("\n") || value.includes("\r")) {
+				(rl.output as NodeJS.WriteStream).write(value);
+				return;
+			}
+			(rl.output as NodeJS.WriteStream).write("*");
+		};
+
+		rl.question(`${question}${suffix}: `, (answer) => {
+			rl.close();
+			print("");
+			const value = answer.trim();
+			finalize(value || defaultValue || "");
+		});
+	});
+}
+
 async function askBoolean(question: string, defaultYes = true): Promise<boolean> {
 	const defaultLabel = defaultYes ? "Y/n" : "y/N";
-	const answer = (await ask(`${question} (${defaultLabel})`)).toLowerCase();
 
-	if (!answer) {
-		return defaultYes;
+	while (true) {
+		const answer = (await ask(`${question} (${defaultLabel})`)).toLowerCase();
+
+		if (!answer) {
+			return defaultYes;
+		}
+
+		if (["y", "yes"].includes(answer)) {
+			return true;
+		}
+
+		if (["n", "no"].includes(answer)) {
+			return false;
+		}
+
+		printWarning("Please enter y/yes/n/no or press Enter for default.");
 	}
-
-	if (["y", "yes"].includes(answer)) {
-		return true;
-	}
-
-	if (["n", "no"].includes(answer)) {
-		return false;
-	}
-
-	return defaultYes;
 }
 
 async function askChoice(
@@ -194,14 +248,19 @@ async function askChoice(
 		}
 	}
 
-	const raw = await ask(`Choose 1-${options.length}`, String(defaultIndex + 1));
-	const parsed = Number(raw);
+	while (true) {
+		const raw = await ask(`Choose 1-${options.length}`, String(defaultIndex + 1));
+		if (!raw.trim()) {
+			return options[defaultIndex].value;
+		}
 
-	if (!Number.isInteger(parsed) || parsed < 1 || parsed > options.length) {
-		return options[defaultIndex].value;
+		const parsed = Number(raw);
+		if (Number.isInteger(parsed) && parsed >= 1 && parsed <= options.length) {
+			return options[parsed - 1].value;
+		}
+
+		printWarning(`Please enter a valid number between 1 and ${options.length}.`);
 	}
-
-	return options[parsed - 1].value;
 }
 
 async function detectMode(): Promise<Mode | null> {
@@ -328,7 +387,7 @@ async function runFreshWizard(): Promise<void> {
 			printInfo(`Detected ${envCandidates.join("/")} in environment.`);
 		}
 
-		apiKey = await ask(
+		apiKey = await askHidden(
 			`Enter ${provider} API key${hasEnvKey ? " (press Enter to use env key)" : ""}`,
 			"",
 		);
@@ -378,9 +437,9 @@ async function runFreshWizard(): Promise<void> {
 	} else {
 		const voiceApiKey =
 			voiceProvider === "google"
-				? await ask("Google TTS API key (optional)", "")
+				? await askHidden("Google TTS API key (optional)", "")
 				: voiceProvider === "elevenlabs"
-					? await ask("ElevenLabs API key (optional)", "")
+					? await askHidden("ElevenLabs API key (optional)", "")
 					: "";
 		const voiceId = await ask("Voice ID (optional)", "");
 
@@ -427,22 +486,27 @@ async function runMigrationWizard(): Promise<void> {
 		return;
 	}
 
-	const backupDir = await ask("Backup directory (blank = auto)", "");
-	const backup = await stepCreateBackup(state, backupDir, progress);
-	if (!backup.success) {
-		printError(`Backup failed: ${backup.error || "unknown error"}`);
-		process.exit(1);
+	const dryRun = await askBoolean("Dry run migration only?", false);
+
+	if (!dryRun) {
+		const backupDir = await ask("Backup directory (blank = auto)", "");
+		const backup = await stepCreateBackup(state, backupDir, progress);
+		if (!backup.success) {
+			printError(`Backup failed: ${backup.error || "unknown error"}`);
+			process.exit(1);
+		}
+
+		printSuccess(`Backup created: ${backup.backupPath}`);
 	}
 
-	printSuccess(`Backup created: ${backup.backupPath}`);
-
-	const dryRun = await askBoolean("Dry run migration only?", false);
 	const result = await stepMigrate(state, progress, dryRun);
 
-	if (result.errors.length > 0) {
-		printError("Migration reported errors:");
-		for (const error of result.errors) {
-			print(`  - ${error}`);
+	if (!result.success) {
+		if (result.errors.length > 0) {
+			printError("Migration reported errors:");
+			for (const error of result.errors) {
+				print(`  - ${error}`);
+			}
 		}
 		process.exit(1);
 	}
