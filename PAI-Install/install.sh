@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # PAI-OpenCode Installer Bootstrap
 #
-# WHY: Single entry point for both GUI and headless installation.
+# WHY: Single entry point for deterministic CLI installation.
 #
 # Usage:
-#   bash install.sh                    # Launch Electron GUI (default)
-#   bash install.sh --cli [args...]  # Headless installation
+#   bash install.sh [args...]          # CLI installation (default)
+#   bash install.sh --cli [args...]    # CLI installation (--cli flag accepted for backward compatibility)
 #
 
 set -euo pipefail
@@ -51,31 +51,43 @@ else
   warn "OpenCode not found — will install during setup"
 fi
 
-# ─── Launch Installer ────────────────────────────────────
-# Resolve PAI-Install directory (may be sibling or child of script location)
-INSTALLER_DIR=""
-if [ -d "$SCRIPT_DIR/PAI-Install" ]; then
-  INSTALLER_DIR="$SCRIPT_DIR/PAI-Install"
-elif [ -f "$SCRIPT_DIR/main.ts" ]; then
-  INSTALLER_DIR="$SCRIPT_DIR"
-else
-  error "Cannot find PAI-Install directory. Expected at: $SCRIPT_DIR/PAI-Install/"
-  exit 1
-fi
+# ─── Launch Installer (CLI only) ─────────────────────────
+INSTALLER_DIR="$SCRIPT_DIR"
 
-info "Launching installer..."
+info "Launching CLI installer..."
 echo ""
 
-# Launch mode
-if [ "${1:-}" = "--cli" ]; then
-	# Headless mode
-	shift
-	exec bun "$INSTALLER_DIR/cli/quick-install.ts" "$@"
-else
-	# GUI mode (default) - runs from electron subdirectory
-	cd "$INSTALLER_DIR/electron"
-	if ! bun install 2>&1 | tee /tmp/pai-install-deps.log; then
-		echo "⚠️  Warning: bun install had issues. Check /tmp/pai-install-deps.log"
+# Scan all args so removed flags cannot slip through
+args=("$@")
+stripLeadingCli=0
+
+for ((i = 0; i < ${#args[@]}; i++)); do
+	arg="${args[$i]}"
+	next="${args[$((i + 1))]:-}"
+
+	if [ "$arg" = "--cli" ]; then
+		if [ $i -eq 0 ]; then
+			stripLeadingCli=1
+		else
+			error "Flag --cli is no longer required. Remove it and re-run."
+			exit 2
+		fi
 	fi
-	exec bunx electron .
+
+	if [ "$arg" = "--gui" ] || [ "$arg" = "--mode=gui" ] || { [ "$arg" = "--mode" ] && [ "$next" = "gui" ]; }; then
+		error "Requested GUI mode was removed. Use CLI options."
+		exit 2
+	fi
+
+	if [ "$arg" = "--mode" ] || [[ "$arg" == --mode=* ]]; then
+		error "Flag --mode is not supported. Use --migrate or --update."
+		exit 2
+	fi
+done
+
+# Backwards-compatible alias
+if [ $stripLeadingCli -eq 1 ]; then
+	shift
 fi
+
+exec bun "$INSTALLER_DIR/cli/quick-install.ts" "$@"

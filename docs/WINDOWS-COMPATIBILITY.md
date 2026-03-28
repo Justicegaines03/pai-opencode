@@ -115,7 +115,8 @@ const STATE_FILE = path.join(tmpdir(), 'browser-session.json')
 
 ### Affected Files
 
-- `PAIOpenCodeWizard.ts`
+  - Installer engine: `PAI-Install/engine/actions.ts`, `PAI-Install/engine/steps-fresh.ts`, `PAI-Install/engine/steps-migrate.ts`
+  - CLI entrypoint: `PAI-Install/cli/quick-install.ts`
 - `Telos/Tools/UpdateTelos.ts`
 - `CORE/Tools/Banner*.ts`
 - `CORE/Tools/FeatureRegistry.ts`
@@ -138,7 +139,7 @@ const HOME = homedir()
 
 ### Problem
 
-Installation wizard assumes `.zshrc` or `.bashrc` exists.
+Installer code assumes `process.env.SHELL` is set and may modify `.bashrc`/`.zshrc`.
 
 ### Fix Pattern
 
@@ -228,7 +229,7 @@ curl -fsSL https://bun.sh/install | bash
 source ~/.bashrc
 
 # 5. Run installer
-bun run .opencode/PAIOpenCodeWizard.ts
+bash PAI-Install/install.sh --preset zen --name "Your Name" --ai-name "Jeremy"
 ```
 
 ---
@@ -260,7 +261,7 @@ OpenCode (the base tool) has known Windows issues:
 - [ ] Update tilde (`~`) expansions
 
 ### Phase 3: Platform Detection
-- [ ] Add platform detection to `PAIOpenCodeWizard.ts`
+- [ ] Ensure installer + tools avoid hardcoded Unix-only paths
 - [ ] Create Windows-specific shell configuration logic
 - [ ] Add symlink alternative for Windows
 
@@ -281,7 +282,7 @@ OpenCode (the base tool) has known Windows issues:
 | Test | Windows Native | WSL2 | macOS | Linux |
 |------|----------------|------|-------|-------|
 | git clone | ❌ BLOCKED | ⏳ | ✅ | ✅ |
-| Installation wizard | ⏳ | ⏳ | ✅ | ✅ |
+| Installer (CLI) | ⏳ | ⏳ | ✅ | ✅ |
 | Browser skill | ⏳ | ⏳ | ✅ | ✅ |
 | CORE skill | ⏳ | ⏳ | ✅ | ✅ |
 | Art skill | ⏳ | ⏳ | ✅ | ✅ |

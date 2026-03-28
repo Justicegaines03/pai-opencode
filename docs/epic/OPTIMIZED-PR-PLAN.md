@@ -27,7 +27,7 @@ tags: [architecture, migration, v3.0, PR-strategy, native-transformation]
 | **WP-B** | Security Hardening / Prompt Injection | #43 | ✅ **Merged** | injection-guard + sanitizer + patterns |
 | **WP-C** | Core PAI System + Skill Fixes | #45 | ✅ **Merged** | PAI docs, skill structure fixes, BuildOpenCode.ts |
 | **WP-D** | Installer & Migration | #47 | ✅ **Merged** | PAI-Install, migration script, DB health |
-| **WP-E** | Installer Refactor (Electron-first) | #48 | ✅ **Merged** | Symlink architecture, Google TTS, Electron flows |
+| **WP-E** | Installer Refactor (CLI-only) | #48 | ✅ **Merged** | Symlink architecture, Google TTS, cleanup |
 | **WP-N1** | Session Registry | #50 | ✅ **Merged** | Custom tools: session_registry + session_results |
 | **WP-N2** | Compaction Intelligence | #51 | ✅ **Merged** | experimental.session.compacting hook + context injection |
 | **WP-N3** | Algorithm Awareness | #52+#53 | ✅ **Merged** | SKILL.md context recovery, PRD parent_session_id |
@@ -151,9 +151,9 @@ PAI-Install/ (port from v4.0.3, adapt for OpenCode):
 ├── install.sh           (~/.claude/ → ~/.opencode/, CLAUDE.md → AGENTS.md)
 ├── cli/
 ├── engine/
-├── electron/            ← Required for v3.0 + DB Health tab integrated here
-├── web/
-└── main.ts
+├── electron/            ← Removed (installer is CLI-only)
+├── web/                 ← Removed (installer is CLI-only)
+└── main.ts              ← Removed (installer is CLI-only)
 
 DB Health (WP-F — integrated):
 ├── plugins/handlers/session-cleanup.ts  (extend: checkDbHealth())
@@ -170,7 +170,7 @@ Migration & Docs:
 ```
 
 > [!IMPORTANT]
-> **Electron GUI is required for v3.0** — CLI installer AND Electron GUI both required
+> **Installer is CLI-only** — GUI installer removed
 
 ---
 

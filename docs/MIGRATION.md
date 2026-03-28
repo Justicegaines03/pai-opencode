@@ -1,6 +1,6 @@
 # Migration Guide
 
-**Migrating from Claude Code PAI to PAI-OpenCode**
+**Migrating from Claude Code PAI to PAI OpenCode**
 
 ---
 
@@ -27,12 +27,7 @@ This guide helps you migrate an existing PAI 2.x installation from Claude Code t
   ```
 
 - **OpenCode** (AI coding assistant)
-   ```bash
-   # For model tiers and agent routing, build from our fork:
-   # The PAI-OpenCode wizard handles this automatically!
-   bun run .opencode/PAIOpenCodeWizard.ts
-   ```
-   > **Note:** Model tiers and agent-specific routing require a build from our fork (`Steffen025/opencode`, branch `feature/model-tiers`). The wizard builds this automatically using Bun's native compiler. See [INSTALL.md](../INSTALL.md) for manual build instructions.
+   > **Note:** Model tiers and agent-specific routing may require a build from our fork (`Steffen025/opencode`, branch `feature/model-tiers`). The CLI installer handles this.
 
 ---
 
@@ -46,7 +41,10 @@ cd pai-opencode
 # 2. Install dependencies
 bun install
 
-# 3. Start OpenCode
+# 3. Run the installer
+bash PAI-Install/install.sh --preset zen --name "Your Name" --ai-name "Jeremy"
+
+# 4. Start OpenCode
 opencode
 ```
 
@@ -79,7 +77,15 @@ git clone https://github.com/Steffen025/pai-opencode.git
 cd pai-opencode
 ```
 
-### Step 3: Preview Migration (Dry Run)
+### Step 3: Run CLI Installer (Baseline Config)
+
+This normalizes your `opencode.json` and `~/.opencode/` before migration.
+
+```bash
+bash PAI-Install/install.sh --preset zen --name "Your Name" --ai-name "Jeremy"
+```
+
+### Step 4: Preview Migration (Dry Run)
 
 ```bash
 bun Tools/pai-to-opencode-converter.ts \
@@ -93,7 +99,7 @@ bun Tools/pai-to-opencode-converter.ts \
 - What will be transformed
 - What requires manual work
 
-### Step 4: Run Migration
+### Step 5: Run Migration
 
 ```bash
 bun Tools/pai-to-opencode-converter.ts \
@@ -101,7 +107,7 @@ bun Tools/pai-to-opencode-converter.ts \
   --target .opencode
 ```
 
-### Step 5: Verify Migration
+### Step 6: Verify Migration
 
 ```bash
 # Check structure
@@ -111,7 +117,7 @@ ls -la .opencode/
 grep -r "\.claude" .opencode/ --exclude-dir=node_modules
 ```
 
-### Step 6: Test OpenCode
+### Step 7: Test OpenCode
 
 ```bash
 opencode
@@ -196,7 +202,7 @@ See **PLUGIN-SYSTEM.md** for full guide.
 
 ### "opencode: command not found"
 
-The wizard installs OpenCode to `~/.local/bin/`. Make sure it's in your PATH:
+The installer installs OpenCode to `~/.local/bin/`. Make sure it's in your PATH:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
@@ -369,20 +375,6 @@ After successful migration:
 3. **Secure** - Review `.opencode/PAISECURITYSYSTEM/patterns.yaml`
 4. **Learn** - Read skill documentation in `.opencode/skills/*/SKILL.md`
 
-### Migrating from pre-v1.3
-
-If migrating from a pre-v1.3 installation:
-
-```bash
-# Re-run the wizard to update provider profiles and agent model routing
-bun run .opencode/PAIOpenCodeWizard.ts
-```
-
-This will update your `opencode.json` with:
-- New provider preset system (3 presets instead of 8 providers)
-- Agent-specific model tier routing (quick/standard/advanced)
-- 16 agents with updated researcher mappings
-
 ---
 
-**PAI-OpenCode v1.0** - Your PAI, Your Way
+**PAI OpenCode** - Your PAI, your way

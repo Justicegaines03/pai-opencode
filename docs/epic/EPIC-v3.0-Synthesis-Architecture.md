@@ -212,7 +212,7 @@ Based on [opencode.ai/docs](https://opencode.ai/docs/) and GitHub research:
 |---------|-------------|-------------------------|--------|
 | **Algorithm v3.7.0** | ✅ Released | ✅ Port | Core DNA |
 | **Hierarchical Skills (11 cat)** | ✅ Released | ✅ Adopt | Better organization |
-| **Full Installer (Electron)** | ✅ Released | ✅ Create | OpenCode-native |
+| **Installer (CLI-only)** | ✅ Released | ✅ Create | OpenCode-native |
 | **Loop Mode** | ✅ v3.0+ | ✅ Implement | Parallel workers |
 | **Constraint Extraction** | ✅ v3.7.0 | ✅ Integrate | Quality gate |
 | **Build Drift Prevention** | ✅ v3.7.0 | ✅ Implement | Anti-criteria |
@@ -254,7 +254,7 @@ Based on [opencode.ai/docs](https://opencode.ai/docs/) and GitHub research:
 - **GitHub** — github.com/danielmiessler/Personal_AI_Infrastructure
 - **Cognitive Revolution Podcast** — Interview Source
 - **Bun** — JavaScript Runtime
-- **Electron** — Cross-platform GUI
+- **Electron** — OpenCode desktop app (not an installer requirement)
 
 ---
 
@@ -861,15 +861,14 @@ EBENE 2 — CLI Tool (manuell, standalone):
 EBENE 3 — Custom Command (OpenCode-native):
 └── /db-archive Command: Status + Archivierung direkt im TUI
 
-EBENE 4 — Electron GUI (visuell):
-└── PAI-Install DB Health Tab: Dashboard + Archiv-Browser
+EBENE 4 — GUI (visuell):
+└── Not shipped — installer is CLI-only in this repo
 ```
 
 **Output:**
 - `plugins/lib/db-utils.ts` (Size/Session Utilities)
 - `Tools/db-archive.ts` (Standalone Bun Tool)
 - `.opencode/commands/db-archive.ts` (Custom Command)
-- `PAI-Install/electron/` — DB Health Tab
 - `docs/DB-MAINTENANCE.md`
 
 **Verification:**

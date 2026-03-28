@@ -11,7 +11,7 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > [!note]
-> **v3.0 Release** — Plugin event bus, security hardening (prompt injection protection), Electron GUI installer, DB health tooling, hierarchical skills structure, and 52 skills. See [CHANGELOG.md](CHANGELOG.md) and [UPGRADE.md](UPGRADE.md).
+> **v3.0 Release** — Plugin event bus, security hardening (prompt injection protection), CLI installer, DB health tooling, hierarchical skills structure, and 52 skills. See [CHANGELOG.md](CHANGELOG.md) and [UPGRADE.md](UPGRADE.md).
 
 > **🎯 Scope Note:** PAI-OpenCode is a **community port** of PAI to OpenCode. For the future vision (Voice-to-Voice, Ambient AI, OMI integration), see **[Open Arc](https://github.com/jeremaiah-ai/openark)**.
 
@@ -30,7 +30,7 @@ PAI-OpenCode is the complete port of **Daniel Miessler's Personal AI Infrastruct
 - **Agents** — Dynamic multi-agent orchestration with model tier routing (60x cost optimization)
 - **Memory** — Session history, project context, learning loops, PRD system
 - **Plugins** — Event-driven lifecycle automation (security validation, observability, algorithm tracking, DB health)
-- **Installer** — Electron GUI + CLI installer for easy setup
+- **Installer** — CLI-only installer for easy setup
 - **Security** — Prompt injection protection with 200+ patterns
 - **DB Health** — Automated session archiving and maintenance
 
@@ -93,16 +93,15 @@ PAI-OpenCode is the complete port of **Daniel Miessler's Personal AI Infrastruct
 
 ## Quick Start
 
-### New Users (GUI Installer)
+### New Users (Installer)
 
 ```bash
-# Run the installer (automatically uses GUI if display available, else CLI)
-bash PAI-Install/install.sh
-```
+# Run the installer
+bash PAI-Install/install.sh --help
 
-The installer automatically detects your environment:
-- **GUI mode**: Used when a display is available (opens Electron installer)
-- **CLI mode**: Used in headless environments (terminal wizard)
+# Example: fresh install (Zen)
+bash PAI-Install/install.sh --preset zen --name "Your Name" --ai-name "Jeremy"
+```
 
 ### Manual Setup
 
@@ -114,8 +113,8 @@ cd pai-opencode
 # 2. Install dependencies
 bun install
 
-# 3. Run the Installation Wizard
-bun run .opencode/PAIOpenCodeWizard.ts
+# 3. Run the installer
+bash PAI-Install/install.sh --preset zen --name "Your Name" --ai-name "Jeremy"
 
 # 4. Start OpenCode
 opencode
@@ -125,9 +124,9 @@ opencode
 
 **Prerequisites:** [Git](https://git-scm.com/) and [Bun 1.3.9+](https://bun.sh/) (no Go needed).
 
-The wizard will:
+The installer will:
 - **Build OpenCode** from our fork with model tier support (using Bun's native compiler)
-- **Choose your preset** — Anthropic (recommended), ZEN PAID, ZEN FREE, or Ollama (local)
+- **Choose your preset** — zen (recommended), anthropic, openrouter, or openai
 - Set your name and timezone
 - Name your AI assistant
 
@@ -137,7 +136,7 @@ The wizard will:
 
 ## Switch Providers Anytime
 
-The wizard installs with one preset, but you can switch to **any provider** after installation:
+The installer configures one preset, but you can switch to **any provider** after installation:
 
 ```bash
 # See all available provider profiles
@@ -159,7 +158,7 @@ Available profiles: `anthropic`, `openai`, `zen-paid`, `zen` (free), `local` (Ol
 
 ## Deep Personalization (Recommended)
 
-After running the wizard, start OpenCode and paste this prompt for full personalization:
+After running the installer, start OpenCode and paste this prompt for full personalization:
 
 ```
 Let's do the onboarding. Guide me through setting up my personal context -
@@ -278,9 +277,11 @@ This is what PAI on OpenCode can do that PAI on Claude Code cannot — Claude Co
 
 ### Switching Presets
 
+Use the provider switcher tool after install:
+
 ```bash
-# Re-run the wizard to change preset
-bun run .opencode/PAIOpenCodeWizard.ts
+bun run .opencode/tools/switch-provider.ts --list
+bun run .opencode/tools/switch-provider.ts openai
 ```
 
 ---
@@ -344,11 +345,9 @@ PAI-OpenCode includes a **3-tier research system** that optimizes for both quali
 
 ### Setup
 
-**Option 1: Wizard** — The installation wizard asks about research configuration during setup.
-
-**Option 2: CLI** — Add research agents anytime:
+Enable multi-provider research routing anytime:
 ```bash
-bun run .opencode/tools/switch-provider.ts --add-researchers
+bun run .opencode/tools/switch-provider.ts anthropic --multi-research
 ```
 
 **Required API keys** (add to `~/.opencode/.env`):
@@ -438,7 +437,10 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ```bash
 git clone https://github.com/Steffen025/pai-opencode.git
-cd pai-opencode && bun run .opencode/PAIOpenCodeWizard.ts && opencode
+cd pai-opencode
+bun install
+bash PAI-Install/install.sh --preset zen --name "Your Name" --ai-name "Jeremy"
+opencode
 ```
 
 **Welcome to Personal AI Infrastructure, your way.**

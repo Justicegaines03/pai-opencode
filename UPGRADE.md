@@ -12,7 +12,7 @@ PAI-OpenCode v3.0 introduces significant architectural improvements:
 - **Hierarchical Skills** — Category/Skill structure (replaces flat)
 - **Model Tiers** — dynamic routing (quick/standard/advanced)
 - **Security Layer** — prompt injection protection
-- **GUI Installer** — Electron-based visual installation
+- **Installer** — CLI-only installation flow
 - **DB Archiving** — automated session management
 
 ---
@@ -209,7 +209,7 @@ cd ~/.opencode && git checkout v2.x-branch
 | Plugin Event Bus | Cleaner code, better testability |
 | Model Tiers | 60x cost optimization (quick/standard/advanced) |
 | Prompt Injection Guard | Security against adversarial attacks |
-| Electron GUI | Visual installer, no CLI needed |
+| Installer (CLI-only) | Deterministic install flow (no GUI path) |
 | DB Archiving | Automated session cleanup |
 | Hierarchical Skills | Better organization, lazy loading |
 

@@ -241,15 +241,13 @@ Reference: `.../Releases/v4.0.3/.claude/PAI-Install/`
   - `CLAUDE.md` → `AGENTS.md`
 - [x] `PAI-Install/cli/` — port
 - [x] `PAI-Install/engine/` — port
-- [x] `PAI-Install/electron/` — port + adapt for OpenCode (**required for v3.0**)
-  - Electron app as GUI installer: step-by-step "Install PAI-OpenCode" UI
-  - Replace all Claude Code references → OpenCode
-- [x] `PAI-Install/web/` — port (Electron web UI)
-- [x] `PAI-Install/main.ts` — adapt for OpenCode
+- [x] `PAI-Install/electron/` — removed (CLI-only installer)
+- [x] `PAI-Install/web/` — removed (CLI-only installer)
+- [x] `PAI-Install/main.ts` — removed (CLI-only installer)
 - [x] `PAI-Install/README.md` — write
 
 > [!IMPORTANT]
-> **Electron GUI is required for v3.0** — both CLI installer AND Electron GUI
+> **Installer is CLI-only** — GUI installer removed
 
 ### Migration Script
 
@@ -275,7 +273,7 @@ Reference: `.../Releases/v4.0.3/.claude/PAI-Install/`
   - `bun db-archive.ts --vacuum` — VACUUM after archiving (requires OpenCode to be stopped)
   - `bun db-archive.ts --restore archive-2025-Q4.db` — restore from archive
 - [x] Create `.opencode/commands/db-archive.ts` — OpenCode custom command `/db-archive`
-- [x] Add "DB Health" tab to `PAI-Install/electron/`
+- [x] DB Health lives in CLI/TUI tooling (no installer GUI)
 - [x] Create `docs/DB-MAINTENANCE.md`
 
 ### Documentation
