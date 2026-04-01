@@ -2,16 +2,16 @@
 /**
  * pai - Personal AI CLI Tool
  *
- * Comprehensive CLI for managing Claude Code with dynamic MCP loading,
+ * Comprehensive CLI for managing OpenCode with dynamic MCP loading,
  * updates, version checking, and profile management.
  *
  * Usage:
- *   pai                  Launch Claude (default profile)
+ *   pai                  Launch OpenCode (default profile)
  *   pai -m bd            Launch with Bright Data MCP
  *   pai -m bd,ap         Launch with multiple MCPs
  *   pai -r / --resume    Resume last session
  *   pai --local          Stay in current directory (don't cd to ~/.opencode)
- *   pai update           Update Claude Code
+ *   pai update           Update OpenCode
  *   pai version          Show version info
  *   pai profiles         List available profiles
  *   pai mcp list         List available MCPs
@@ -36,7 +36,7 @@ const ACTIVE_MCP = join(OPENCODE_DIR, ".mcp.json");
 const BANNER_SCRIPT = join(OPENCODE_DIR, "PAI", "Tools", "Banner.ts");
 const VOICE_SERVER = "http://localhost:8888/notify/personality";
 const WALLPAPER_DIR = join(homedir(), "Projects", "Wallpaper");
-// Note: RAW archiving removed - Claude Code handles its own cleanup (30-day retention in projects/)
+// Note: RAW archiving removed - OpenCode handles its own cleanup (30-day retention in projects/)
 
 // MCP shorthand mappings
 const MCP_SHORTCUTS: Record<string, string> = {
@@ -130,17 +130,17 @@ function displayBanner() {
 }
 
 function resolveOpenCodeExecutable(): string {
-  const opencodeOnPath = spawnSync(["opencode", "--version"]);
-  if (opencodeOnPath.exitCode === 0) {
-    return "opencode";
-  }
-
   if (existsSync(LOCAL_OPENCODE_BIN)) {
     return LOCAL_OPENCODE_BIN;
   }
 
   if (existsSync(COMPAT_OPENCODE_BIN)) {
     return COMPAT_OPENCODE_BIN;
+  }
+
+  const opencodeOnPath = spawnSync(["opencode", "--version"]);
+  if (opencodeOnPath.exitCode === 0) {
+    return "opencode";
   }
 
   error("OpenCode executable not found. Re-run installer or ensure ~/.local/bin is in PATH.");
@@ -165,12 +165,10 @@ function compareVersions(a: string, b: string): number {
 
 async function getLatestVersion(): Promise<string | null> {
   try {
-    const response = await fetch(
-      "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/latest"
-    );
-    const version = (await response.text()).trim();
-    if (/^[0-9]+\.[0-9]+\.[0-9]+/.test(version)) {
-      return version;
+    const response = await fetch("https://registry.npmjs.org/opencode-ai/latest");
+    const data = (await response.json()) as { version?: string };
+    if (data?.version && /^[0-9]+\.[0-9]+\.[0-9]+/.test(data.version)) {
+      return data.version;
     }
   } catch {
     return null;
@@ -248,7 +246,7 @@ function setMcpProfile(profile: string) {
   // Create symlink
   symlinkSync(profileFile, ACTIVE_MCP);
   log(`Switched to '${profile}' profile`, "✅");
-  log("Restart Claude Code to apply", "⚠️");
+  log("Restart OpenCode to apply", "⚠️");
 }
 
 function setMcpCustom(mcpNames: string[]) {
@@ -448,7 +446,7 @@ async function cmdLaunch(options: { mcp?: string; resume?: boolean; skipPerms?: 
     env: { ...process.env },
   });
 
-  // Wait for Claude to exit
+  // Wait for OpenCode to exit
   await proc.exited;
 }
 
@@ -473,7 +471,7 @@ async function cmdUpdate() {
     return;
   }
 
-  log("Updating Claude Code...", "🔄");
+  log("Updating OpenCode...", "🔄");
 
   // Step 1: Update Bun
   log("Step 1/2: Updating Bun...", "📦");
@@ -484,13 +482,17 @@ async function cmdUpdate() {
     log("Bun updated", "✅");
   }
 
-  // Step 2: Update Claude Code
-  log("Step 2/2: Installing latest Claude Code...", "🤖");
-  const claudeResult = spawnSync(["bash", "-c", "curl -fsSL https://claude.ai/install.sh | bash"]);
-  if (claudeResult.exitCode !== 0) {
-    error("Claude Code installation failed");
+  // Step 2: Update OpenCode
+  log("Step 2/2: Upgrading OpenCode...", "🤖");
+  const opencodeResult = spawnSync([resolveOpenCodeExecutable(), "upgrade"], {
+    stdin: "inherit",
+    stdout: "inherit",
+    stderr: "inherit",
+  });
+  if (opencodeResult.exitCode !== 0) {
+    error("OpenCode upgrade failed");
   }
-  log("Claude Code updated", "✅");
+  log("OpenCode updated", "✅");
 
   // Show final version
   const newVersion = getCurrentVersion();
@@ -628,7 +630,7 @@ EXAMPLES:
   k -m bd,ap,chrome        Start with multiple MCPs
   k -r                     Resume last session
   k mcp set research       Switch to research profile
-  k update                 Update Claude Code
+  k update                 Update OpenCode
   k prompt "What time is it?"   One-shot prompt
   k -w                     List available wallpapers
   k -w circuit-board       Switch wallpaper (Kitty + macOS)

@@ -226,7 +226,7 @@ export async function runValidation(state: InstallState): Promise<ValidationChec
       try {
         const content = readFileSync(shell.path, "utf-8");
         // Check for PAI alias marker
-        if (!content.includes("# PAI alias")) continue;
+        if (!content.includes("# PAI shell setup")) continue;
         
         // POSIX syntax: alias pai=... or pai() { ... }
         const hasPosixAlias = content.includes("alias pai=");
