@@ -790,11 +790,11 @@ export async function runConfiguration(
   const isFish = userShell.includes("fish");
   const rcFile = userShell.includes("bash") ? ".bashrc" : isFish ? ".config/fish/config.fish" : ".zshrc";
   const rcPath = join(homedir(), rcFile);
-  // Fish uses function/end; bash/zsh use function wrapper to ensure cwd safety
+  // Fish uses function/end; bash/zsh use function wrappers.
   const aliasLine = isFish
-    ? `function pai\n\tset -l __pai_oldpwd (pwd)\n\tcd "${paiDir}"\n\tand bun run .opencode/PAI/Tools/pai.ts $argv\n\tcd $__pai_oldpwd\nend`
-    : `pai() { (cd "${paiDir}" && bun run .opencode/PAI/Tools/pai.ts "$@"); }`;
-  const marker = "# PAI alias";
+    ? `set -gx PATH $HOME/.bun/bin $HOME/.local/bin $PATH\n\nfunction opencode\n\tif test -x \"$HOME/.local/bin/opencode\"\n\t\t$HOME/.local/bin/opencode $argv\n\telse if test -x \"$HOME/.opencode/tools/opencode\"\n\t\t$HOME/.opencode/tools/opencode $argv\n\telse\n\t\tcommand opencode $argv\n\tend\nend\n\nfunction pai\n\tset -l __pai_oldpwd (pwd)\n\tset -l __pai_bun \"$HOME/.bun/bin/bun\"\n\tcd "${paiDir}"\n\tif test -x $__pai_bun\n\t\tand $__pai_bun run .opencode/PAI/Tools/pai.ts $argv\n\telse\n\t\tand bun run .opencode/PAI/Tools/pai.ts $argv\n\tend\n\tcd $__pai_oldpwd\nend`
+    : `export PATH=\"$HOME/.bun/bin:$HOME/.local/bin:$PATH\"\n\nopencode() {\n  if [ -x \"$HOME/.local/bin/opencode\" ]; then\n    \"$HOME/.local/bin/opencode\" \"$@\"\n  elif [ -x \"$HOME/.opencode/tools/opencode\" ]; then\n    \"$HOME/.opencode/tools/opencode\" \"$@\"\n  else\n    command opencode \"$@\"\n  fi\n}\n\npai() {\n  (cd "${paiDir}" &&\n    if [ -x \"$HOME/.bun/bin/bun\" ]; then\n      \"$HOME/.bun/bin/bun\" run .opencode/PAI/Tools/pai.ts \"$@\"\n    else\n      bun run .opencode/PAI/Tools/pai.ts \"$@\"\n    fi\n  )\n}`;
+  const marker = "# PAI shell setup";
 
   if (isFish) {
     // Ensure fish config directory exists
@@ -804,17 +804,19 @@ export async function runConfiguration(
   if (existsSync(rcPath)) {
     let content = readFileSync(rcPath, "utf-8");
     // Remove any existing pai alias/function (old CORE/PAI paths, legacy markers)
-    content = content.replace(/\n?# PAI alias — added by PAI installer[\s\S]*?(?=\n#|\n$|$)/g, "");
+    content = content.replace(/\n?# PAI (?:alias|shell setup)(?: — added by PAI installer)?[\s\S]*?(?=\n#|\n$|$)/g, "");
     content = content.replace(/^#\s*(?:PAI|CORE)\s*alias.*\n.*alias pai=.*\n?/gm, "");
     content = content.replace(/^alias pai=.*\n?/gm, "");
     content = content.replace(/^alias pai\s+.*\n?/gm, ""); // Fish syntax
     content = content.replace(/^pai\(\)\s*\{[\s\S]*?^\}\s*\n?/gm, "");
+    content = content.replace(/^opencode\(\)\s*\{[\s\S]*?^\}\s*\n?/gm, "");
     content = content.replace(/^function pai\s*$[\s\S]*?^end\s*\n?/gm, "");
+    content = content.replace(/^function opencode\s*$[\s\S]*?^end\s*\n?/gm, "");
     // Add fresh alias
-    content = content.trimEnd() + `\n\n${marker}\n${aliasLine}\n`;
+    content = content.trimEnd() + `\n\n${marker} — added by PAI installer\n${aliasLine}\n`;
     writeFileSync(rcPath, content);
   } else {
-    writeFileSync(rcPath, `${marker}\n${aliasLine}\n`);
+    writeFileSync(rcPath, `${marker} — added by PAI installer\n${aliasLine}\n`);
   }
 
   // Fix permissions - only make scripts executable, not everything

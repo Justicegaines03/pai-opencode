@@ -29,6 +29,8 @@ import { join, basename } from "path";
 // ============================================================================
 
 const OPENCODE_DIR = process.env.OPENCODE_DIR || join(homedir(), ".opencode");
+const LOCAL_OPENCODE_BIN = join(homedir(), ".local", "bin", "opencode");
+const COMPAT_OPENCODE_BIN = join(OPENCODE_DIR, "tools", "opencode");
 const MCP_DIR = join(OPENCODE_DIR, "MCPs");
 const ACTIVE_MCP = join(OPENCODE_DIR, ".mcp.json");
 const BANNER_SCRIPT = join(OPENCODE_DIR, "PAI", "Tools", "Banner.ts");
@@ -127,8 +129,25 @@ function displayBanner() {
   }
 }
 
+function resolveOpenCodeExecutable(): string {
+  const opencodeOnPath = spawnSync(["opencode", "--version"]);
+  if (opencodeOnPath.exitCode === 0) {
+    return "opencode";
+  }
+
+  if (existsSync(LOCAL_OPENCODE_BIN)) {
+    return LOCAL_OPENCODE_BIN;
+  }
+
+  if (existsSync(COMPAT_OPENCODE_BIN)) {
+    return COMPAT_OPENCODE_BIN;
+  }
+
+  error("OpenCode executable not found. Re-run installer or ensure ~/.local/bin is in PATH.");
+}
+
 function getCurrentVersion(): string | null {
-  const result = spawnSync(["claude", "--version"]);
+  const result = spawnSync([resolveOpenCodeExecutable(), "--version"]);
   const output = result.stdout.toString();
   const match = output.match(/([0-9]+\.[0-9]+\.[0-9]+)/);
   return match ? match[1] : null;
@@ -399,7 +418,7 @@ async function cmdLaunch(options: { mcp?: string; resume?: boolean; skipPerms?: 
   // (InstantiatePAI.ts is retired — kept for reference only)
 
   displayBanner();
-  const args = ["claude"];
+  const args = [resolveOpenCodeExecutable()];
 
   // Handle MCP configuration
   if (options.mcp) {
@@ -423,7 +442,7 @@ async function cmdLaunch(options: { mcp?: string; resume?: boolean; skipPerms?: 
   // Voice notification (using focused marker for calmer tone)
   notifyVoice(`[🎯 focused] ${getDAName()} here, ready to go.`);
 
-  // Launch Claude
+  // Launch OpenCode
   const proc = spawn(args, {
     stdio: ["inherit", "inherit", "inherit"],
     env: { ...process.env },
@@ -557,7 +576,7 @@ function cmdMcpList() {
 async function cmdPrompt(prompt: string) {
   // One-shot prompt execution
   // NOTE: No --dangerously-skip-permissions - rely on settings.json permissions
-  const args = ["claude", "-p", prompt];
+  const args = [resolveOpenCodeExecutable(), "-p", prompt];
 
   process.chdir(OPENCODE_DIR);
 
@@ -575,14 +594,14 @@ function cmdHelp() {
 pai - Personal AI CLI Tool (v2.0.0)
 
 USAGE:
-  k                        Launch Claude (no MCPs, max performance)
+  k                        Launch OpenCode (no MCPs, max performance)
   k -m <mcp>               Launch with specific MCP(s)
   k -m bd,ap               Launch with multiple MCPs
   k -r, --resume           Resume last session
   k -l, --local            Stay in current directory (don't cd to ~/.opencode)
 
 COMMANDS:
-  k update                 Update Claude Code to latest version
+  k update                 Update runtime dependencies
   k version, -v            Show version information
   k profiles               List available MCP profiles
   k mcp list               List all available MCPs
