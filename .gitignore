@@ -16,6 +16,9 @@ node_modules/
 .opencode/USER/*
 !.opencode/USER/README.md
 !.opencode/USER/.gitkeep
+.opencode/PAI/USER/*
+!.opencode/PAI/USER/README.md
+!.opencode/PAI/USER/.gitkeep
 
 # Security patterns (user customizes)
 .opencode/PAISECURITYSYSTEM/patterns.yaml
