@@ -15,11 +15,14 @@ Before running the installer, ensure you have:
    - Linux: `sudo apt install git`
    - Usually pre-installed on most systems
 
-2. **Bun** (1.3.9+) — JavaScript/TypeScript runtime and native compiler
+2. **Bun** (1.3.9+) — JavaScript/TypeScript runtime used by PAI-OpenCode's tooling
    ```bash
    curl -fsSL https://bun.sh/install | bash
    ```
-   > **Note:** Bun 1.3.9+ is required because OpenCode is built using Bun's native compiler (`Bun.build({ compile: true })`). Earlier versions will not work.
+   > [!NOTE]
+   > Bun 1.3.9+ is required only for PAI-OpenCode's own tooling (installer, plugins, skills, MCP servers). It is **not** used to compile OpenCode itself — since v3.0, PAI-OpenCode ships against vanilla OpenCode from `opencode.ai`, which provides its own pre-built binary.
+   >
+   > Check your version with `bun --version` and upgrade with `bun upgrade` if needed.
 
 ---
 
@@ -187,7 +190,8 @@ If you prefer to run the headless installer directly:
 curl -fsSL https://opencode.ai/install | bash
 ```
 
-> **Note:** Bun 1.3.9+ is still required for PAI-OpenCode's own tooling. Run `bun --version` to check, `bun upgrade` to update.
+> [!NOTE]
+> Bun 1.3.9+ is required only for PAI-OpenCode's tooling (installer, plugins, skills, MCP servers) — **not** to compile OpenCode itself. PAI-OpenCode v3.0+ ships against the vanilla `opencode.ai` binary. Verify with `bun --version` and update with `bun upgrade` if needed.
 
 **Step 2:** Clone the PAI-OpenCode repository
 ```bash

@@ -24,7 +24,10 @@ PAI is model-agnostic. You can run the same skills, agents, and workflows on Cla
 
 This is the key differentiator: **each agent has its own configured model, and you route work by choosing the appropriate agent for the task**.
 
-| Agent | Configured Model | Best For |
+> [!NOTE]
+> **Source of truth:** actual model names per agent live in [`opencode.json`](../opencode.json) under the `agent` key, and vary per provider profile (Anthropic / Zen / OpenAI / Local). See [`docs/architecture/ToolReference.md`](architecture/ToolReference.md) for the runtime contract. The table below shows **one illustrative profile** — treat the "Example Model" column as a sample, not a contract.
+
+| Agent | Example Model | Best For |
 |-------|---------|---------|
 | **Architect** | Kimi K2.5 | System design, complex architecture |
 | **Engineer** | Kimi K2.5 | Implementation, debugging |

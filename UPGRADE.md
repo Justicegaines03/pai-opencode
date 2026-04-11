@@ -77,8 +77,8 @@ v3.0 uses **dual-file configuration**:
 The migration script preserves your settings. Verify:
 
 ```bash
-# Confirm no legacy model_tiers remain (should return nothing)
-cat ~/.opencode/opencode.json | grep model_tiers
+# Confirm no legacy model_tiers / model_tier keys remain (should return nothing)
+grep -E 'model_tiers|model_tier' ~/.opencode/opencode.json
 cat ~/.opencode/settings.json | grep daidentity
 ```
 

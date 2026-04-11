@@ -27,19 +27,43 @@ AI_NAME="{AI_NAME}"
 
 # Detect OpenCode location. Prefer the official installer output, then
 # fall back to common alternatives (~/.local/bin, Homebrew).
+#
+# Note on symlinks: when the user runs `{AI_NAME}-wrapper --fix-symlink`,
+# `~/.opencode` becomes a symlink to the PAI install repo (not a real
+# directory containing a `bin/` subdir). In that case `~/.opencode/bin/opencode`
+# resolves through the symlink into the repo, which does NOT contain the
+# vanilla binary. We therefore resolve the real target of `~/.opencode`
+# first and only trust `${HOME}/.opencode/bin/opencode` when the real
+# target is itself a directory (i.e. the vanilla installer layout).
 OPENCODE_BIN=""
-for candidate in \
-    "${HOME}/.opencode/bin/opencode" \
-    "${HOME}/.local/bin/opencode" \
-    "/opt/homebrew/bin/opencode" \
-    "/usr/local/bin/opencode"; do
-    if [[ -x "${candidate}" ]]; then
-        OPENCODE_BIN="${candidate}"
-        break
-    fi
-done
 
-# Fallback: whatever is on PATH
+_pai_real_opencode_dir=""
+if [[ -L "${HOME}/.opencode" ]]; then
+    _pai_real_opencode_dir=$(readlink -f "${HOME}/.opencode" 2>/dev/null || readlink "${HOME}/.opencode" 2>/dev/null || true)
+elif [[ -d "${HOME}/.opencode" ]]; then
+    _pai_real_opencode_dir="${HOME}/.opencode"
+fi
+
+# Only consider ~/.opencode/bin/opencode if the real target looks like the
+# vanilla installer layout (has a bin/opencode). The symlink-to-repo case
+# will fall through to the other candidates.
+if [[ -n "${_pai_real_opencode_dir}" ]] && [[ -x "${_pai_real_opencode_dir}/bin/opencode" ]]; then
+    OPENCODE_BIN="${_pai_real_opencode_dir}/bin/opencode"
+fi
+
+if [[ -z "${OPENCODE_BIN}" ]]; then
+    for candidate in \
+        "${HOME}/.local/bin/opencode" \
+        "/opt/homebrew/bin/opencode" \
+        "/usr/local/bin/opencode"; do
+        if [[ -x "${candidate}" ]]; then
+            OPENCODE_BIN="${candidate}"
+            break
+        fi
+    done
+fi
+
+# Fallback: whatever is on PATH (skipping any alias that points back at us).
 if [[ -z "${OPENCODE_BIN}" ]] && command -v opencode &>/dev/null; then
     OPENCODE_BIN="$(command -v opencode)"
 fi

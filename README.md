@@ -199,26 +199,29 @@ Modular, reusable capabilities invoked by name:
 ### 🤖 Agent Orchestration (16 Agents)
 Dynamic multi-agent composition — each agent is configured with exactly one model in `opencode.json`. Match the right agent to the task for cost optimization:
 
-| Agent | Model | Best For |
-|-------|-------|----------|
-| **Algorithm** | Claude Opus 4.6 | Algorithm orchestration |
-| **Architect** | Kimi K2.5 | Architecture design |
-| **Engineer** | Kimi K2.5 | Feature implementation, bug fixes |
-| **DeepResearcher** | GLM 4.7 | Academic depth, scholarly synthesis |
-| **GeminiResearcher** | Gemini 3 Flash | Multi-perspective analysis |
-| **PerplexityResearcher** | Sonar | Real-time news, breaking events |
-| **GrokResearcher** | Grok 4.1 Fast | Contrarian, social media, X access |
-| **CodexResearcher** | GPT-5.1 Codex Mini | Technical, TypeScript-focused |
-| **Writer** | Gemini 3 Flash | Content creation, documentation |
-| **Pentester** | Kimi K2.5 | Security audits |
-| **Intern** | MiniMax M2.1 | Lightweight tasks, simple edits |
-| **Explore** | MiniMax M2.1 | Fast file/codebase exploration |
-| **QATester** | GLM 4.7 | Quality assurance |
-| **Designer** | Kimi K2.5 | UX/UI design |
-| **Artist** | Kimi K2.5 | Visual content |
-| **General** | GLM 4.7 | General-purpose tasks |
+| Agent (runtime ID) | Best For |
+|---|---|
+| **`Algorithm`** | Full PAI Algorithm runs, orchestration |
+| **`Architect`** | Architecture design, ADRs |
+| **`Engineer`** | Feature implementation, bug fixes |
+| **`DeepResearcher`** | Academic depth, scholarly synthesis |
+| **`GeminiResearcher`** | Multi-perspective analysis |
+| **`PerplexityResearcher`** | Real-time news, breaking events |
+| **`GrokResearcher`** | Contrarian, social media, X access |
+| **`CodexResearcher`** | Technical, TypeScript-focused research |
+| **`Writer`** | Content creation, documentation |
+| **`Pentester`** | Security audits |
+| **`Intern`** | Lightweight tasks, simple edits |
+| **`explore`** | Fast file/codebase exploration |
+| **`QATester`** | Quality assurance |
+| **`Designer`** | UX/UI design |
+| **`Artist`** | Visual content |
+| **`general`** | General-purpose fallback |
 
-For cost optimization, match the task to the right agent — use `Intern` or `Explore` for lightweight work; use `Architect` or `Algorithm` for heavy reasoning. All model assignments are in `opencode.json`.
+> [!NOTE]
+> **Source of truth:** actual model assignments live in [`opencode.json`](./opencode.json) under the `agent` key. They vary per provider profile (Anthropic, Zen, OpenAI, Local). See [`.opencode/profiles/*.yaml`](./.opencode/profiles/) for the example presets the installer ships with.
+
+For cost optimization, match the task to the right agent — use `Intern` or `explore` for lightweight work; use `Architect` or `Algorithm` for heavy reasoning.
 
 ### 🧠 Memory & Learning
 Persistent context across sessions:

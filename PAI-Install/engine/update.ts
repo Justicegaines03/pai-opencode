@@ -184,8 +184,17 @@ async function updateCoreFiles(
 async function updateBinaryIfNeeded(
 	onProgress?: (message: string) => void
 ): Promise<boolean> {
-	// Vanilla OpenCode binary updates are handled by the official
-	// opencode.ai installer or the user's package manager — not by PAI.
+	// Since v3.0, PAI no longer manages the OpenCode binary. Vanilla
+	// OpenCode is installed/updated by the official opencode.ai installer
+	// or by the user's package manager.
+	//
+	// This function intentionally returns `false` to signal "no binary
+	// update happened *by PAI*" — which is factually correct. Downstream
+	// version-advancement logic in updateV3 correctly interprets this as
+	// "no binary change", and still advances the PAI version marker when
+	// `skillsUpdated` or `coreUpdated` is true. The only case where the
+	// version does not advance is when there is literally nothing to
+	// apply, which is the desired behavior.
 	onProgress?.("OpenCode binary managed by vanilla installer — skipping");
 	return false;
 }

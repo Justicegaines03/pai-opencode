@@ -107,6 +107,26 @@ function pickCanonicalModel(
 
 // ─── Main Migration ────────────────────────────────────────
 
+/**
+ * Find a backup path that does not yet exist. If the default
+ * `<config>.pre-v3.0.bak` is free, use it. Otherwise append an
+ * incrementing suffix (`.bak.1`, `.bak.2`, ...) so repeated runs never
+ * overwrite an earlier backup.
+ */
+function resolveUniqueBackupPath(configPath: string): string {
+	const base = `${configPath}.pre-v3.0.bak`;
+	if (!existsSync(base)) return base;
+
+	for (let i = 1; i < 1000; i++) {
+		const candidate = `${base}.${i}`;
+		if (!existsSync(candidate)) return candidate;
+	}
+
+	// Extremely unlikely: fall back to a timestamp so we still produce a
+	// unique filename instead of overwriting something.
+	return `${base}.${Date.now()}`;
+}
+
 export function migrateLegacyConfig(configPath: string): MigrationResult {
 	const result: MigrationResult = {
 		success: false,
@@ -137,7 +157,9 @@ export function migrateLegacyConfig(configPath: string): MigrationResult {
 		return result;
 	}
 
-	// Create backup before any mutation
+	// Create backup before any mutation. Never overwrite an existing backup —
+	// a prior run's backup must be preserved as the "original" recovery point.
+	result.backupPath = resolveUniqueBackupPath(configPath);
 	try {
 		copyFileSync(configPath, result.backupPath);
 	} catch (err) {

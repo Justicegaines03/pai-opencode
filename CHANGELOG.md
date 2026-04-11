@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Manual:** Delete all `model_tiers` blocks from your `opencode.json`. Keep only the top-level `"model"` field per agent. Example:
 
-```json
+```jsonc
 // BEFORE (v2.x — no longer supported)
 "Engineer": {
   "model": "anthropic/claude-sonnet-4-5",

@@ -58,10 +58,11 @@
 - ✅ Agent-based routing (match task complexity to the right agent)
 - ✅ Standard vanilla install — no custom build required
 
-**Agent Model Matrix (Production):**
-```
+**Agent Model Matrix (illustrative example — actual models live in `opencode.json`):**
+
+```text
 ┌─────────────────┬──────────────────────────────────────┐
-│ Agent           │ Configured Model                     │
+│ Agent           │ Example Configured Model             │
 ├─────────────────┼──────────────────────────────────────┤
 │ Engineer        │ Kimi K2.5                            │
 │ Architect       │ Claude Sonnet 4.6                    │
@@ -76,6 +77,8 @@
 │ ...             │ ...                                  │
 └─────────────────┴──────────────────────────────────────┘
 ```
+
+*Source of truth:* `opencode.json`. The example column above reflects one profile; other profiles (zen, anthropic, openai, local) may assign different models.
 
 **Usage in PAI Algorithm:**
 ```typescript
@@ -105,7 +108,7 @@ Based on [opencode.ai/docs](https://opencode.ai/docs/) and GitHub research:
 
 | Feature | Current Usage | Potential | Implementation |
 |---------|--------------|-----------|----------------|
-| **Agent-Based Routing** | ✅ **IMPLEMENTED** via vanilla opencode.json | 🚀 **READY** | Each agent has one model; match agent to task complexity | ~~REMOVED: Dynamic Model Tiers (April 2026 vanilla migration)~~ |
+| **Agent-Based Routing** | ✅ **IMPLEMENTED** via vanilla opencode.json | 🚀 **READY** | Each agent has one model; match agent to task complexity (replaced the removed Dynamic Model Tiers feature — April 2026 vanilla migration) |
 | **Lazy Loading** | ⚠️ Native in OpenCode, not used in PAI | 🚀 HIGH | Native skill discovery + on-demand loading |
 | **Native Skill System** | ⚠️ Partial | ✅ Native since v1.0.190 | `skill` tool with pattern-based permissions |
 | **MCP Server Ecosystem** | ✅ Used | 🚀 HIGH | Dynamic skill discovery via MCP |
@@ -365,8 +368,9 @@ Task({
 });
 ```
 
-**Production Agent Models:**
-| Agent | Configured Model | Use Case |
+**Example Agent Models (illustrative — actual values live in `opencode.json`):**
+
+| Agent | Example Configured Model | Use Case |
 |-------|-----------------|----------|
 | **Engineer** | Kimi K2.5 | Standard implementation work |
 | **Architect** | Claude Sonnet 4.6 | Complex design decisions |

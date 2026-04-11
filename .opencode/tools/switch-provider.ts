@@ -225,10 +225,26 @@ export function applyProfile(profileName: string, multiResearch = false): {
 
   opencodeJson.model = default_model;
 
-  const agentBlock: Record<string, { model: string }> = {};
+  // Merge new model into any existing per-agent config so non-model fields
+  // (permission overrides, prompts, tool restrictions, etc.) are preserved.
+  const existingAgentBlock: Record<string, Record<string, unknown>> =
+    (opencodeJson.agent && typeof opencodeJson.agent === "object"
+      ? (opencodeJson.agent as Record<string, Record<string, unknown>>)
+      : {});
+
+  const agentBlock: Record<string, Record<string, unknown>> = {};
 
   for (const [agentName, agentConfig] of Object.entries(finalAgentModels)) {
-    agentBlock[agentName] = { model: agentConfig.model };
+    const existing = existingAgentBlock[agentName] ?? {};
+    // Drop any legacy `model_tiers` block if it survived a previous run —
+    // the migration script handles this but we're defensive here.
+    const { model_tiers: _drop, ...preserved } = existing as Record<string, unknown> & {
+      model_tiers?: unknown;
+    };
+    agentBlock[agentName] = {
+      ...preserved,
+      model: agentConfig.model,
+    };
   }
 
   opencodeJson.agent = agentBlock;

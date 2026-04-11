@@ -349,7 +349,7 @@ export const sessionRegistryTool = tool({
 export const sessionResultsTool = tool({
   description:
     "Get registry metadata for a specific subagent session by session_id. " +
-    "Returns: agent type, description, model tier, status, and resume instructions. " + // *(Note: model_tiers removed in the April 2026 vanilla migration — see ADR-019.)*
+    "Returns: agent type, description, status, and resume instructions. " + // *(Historical note: this string previously returned "model tier" which was removed in the April 2026 vanilla migration — see ADR-019.)*
     "Use this to identify what a subagent worked on and how to access its full results. " +
     "The full conversation history is in OpenCode's database — use Task tool with session_id to retrieve it.",
   args: {

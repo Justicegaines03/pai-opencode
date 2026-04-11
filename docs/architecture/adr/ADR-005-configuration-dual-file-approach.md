@@ -109,8 +109,6 @@
 }
 ```
 
-*(Note: model_tiers removed in the April 2026 vanilla migration — see ADR-019.)*
-
 **Key Changes:**
 - `default_model` → `model` at provider level
 - New `agent` section with per-agent model routing

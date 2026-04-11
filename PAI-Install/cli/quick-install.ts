@@ -259,28 +259,38 @@ async function runMigration(): Promise<void> {
 	
 	console.log(`Found ${detection.flatSkills?.length || 0} skills to migrate`);
 	
-	if (values["dry-run"]) {
+	const isDryRun = Boolean(values["dry-run"]);
+
+	if (isDryRun) {
 		console.log("\n🧪 DRY RUN MODE — No changes will be made\n");
 	}
-	
-	// Step 2: Backup
-	onProgress(10, "Creating backup...");
-	const backupResult = await stepCreateBackup(
-		state,
-		values["backup-dir"] || "",
-		onProgress
-	);
-	
-	if (!backupResult.success) {
-		console.error("❌ Backup failed:", backupResult.error);
-		process.exit(1);
+
+	// Step 2: Backup — skipped in dry-run mode (no filesystem side-effects).
+	let backupResult: { success: boolean; backupPath: string; error?: string } = {
+		success: true,
+		backupPath: "(dry-run — no backup created)",
+	};
+	if (!isDryRun) {
+		onProgress(10, "Creating backup...");
+		backupResult = await stepCreateBackup(
+			state,
+			values["backup-dir"] || "",
+			onProgress
+		);
+
+		if (!backupResult.success) {
+			console.error("❌ Backup failed:", backupResult.error);
+			process.exit(1);
+		}
+
+		console.log("📦 Backup created:", backupResult.backupPath);
+	} else {
+		onProgress(10, "Dry-run: skipping backup step");
 	}
-	
-	console.log("📦 Backup created:", backupResult.backupPath);
-	
-	// Step 3: Migrate
-	const migrationResult = await stepMigrate(state, onProgress, values["dry-run"]);
-	
+
+	// Step 3: Migrate — stepMigrate already honors the dry-run flag internally.
+	const migrationResult = await stepMigrate(state, onProgress, isDryRun);
+
 	if (migrationResult.errors.length > 0) {
 		console.error("❌ Migration errors:");
 		for (const error of migrationResult.errors) {
@@ -288,20 +298,27 @@ async function runMigration(): Promise<void> {
 		}
 		process.exit(1);
 	}
-	
+
 	console.log(`✅ Migrated ${migrationResult.migrated.length} skills`);
 
 	// Step 4: OpenCode install is handled by vanilla opencode.ai installer
-	if (!values["dry-run"]) {
+	if (!isDryRun) {
 		onProgress(70, "OpenCode install managed by vanilla opencode.ai installer");
 	}
 
-	// Step 5: Done
-	await stepMigrationDone(state, migrationResult, onProgress);
-	
-	onProgress(100, "✅ Migration complete!");
-	
-	if (!values["dry-run"]) {
+	// Step 5: Done — in dry-run mode we also skip the finalization step,
+	// which writes the version marker, installs the CLI wrapper, updates the
+	// shell rc file, and runs `bun install`. None of that should happen in
+	// a preview.
+	if (!isDryRun) {
+		await stepMigrationDone(state, migrationResult, onProgress);
+	} else {
+		onProgress(95, "Dry-run: skipping finalization (no files written)");
+	}
+
+	onProgress(100, isDryRun ? "✅ Dry-run complete!" : "✅ Migration complete!");
+
+	if (!isDryRun) {
 		console.log("\nBackup location:", backupResult.backupPath);
 		console.log("If anything went wrong, restore with:");
 		console.log(`  rm -rf ~/.opencode && cp -R ${backupResult.backupPath} ~/.opencode`);

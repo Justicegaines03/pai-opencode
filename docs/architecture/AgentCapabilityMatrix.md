@@ -34,22 +34,24 @@ Orchestrator (Algorithm)
 
 ```mermaid
 graph TD
-    ORC[Algorithm<br/><i>advanced — orchestrates</i>]
-    ORC --> ENG[Engineer<br/><i>standard — implements</i>]
-    ORC --> ARC[Architect<br/><i>standard — designs</i>]
-    ORC --> EXP[explore<br/><i>quick — codebase search</i>]
-    ORC --> INT[Intern<br/><i>quick — simple tasks</i>]
-    ORC --> WRT[Writer<br/><i>standard — docs</i>]
-    ORC --> QA[QATester<br/><i>standard — testing</i>]
-    ORC --> PEN[Pentester<br/><i>standard — security</i>]
-    ORC --> DSG[Designer<br/><i>standard — UI/UX</i>]
-    ORC --> ART[Artist<br/><i>standard — visuals</i>]
-    ORC --> DRS[DeepResearcher<br/><i>standard — orchestrates research</i>]
+    ORC[Algorithm<br/><i>heavy — orchestrator</i>]
+    ORC --> ENG[Engineer<br/><i>implementation</i>]
+    ORC --> ARC[Architect<br/><i>design</i>]
+    ORC --> EXP[explore<br/><i>codebase search</i>]
+    ORC --> INT[Intern<br/><i>simple tasks</i>]
+    ORC --> WRT[Writer<br/><i>docs</i>]
+    ORC --> QA[QATester<br/><i>testing</i>]
+    ORC --> PEN[Pentester<br/><i>security</i>]
+    ORC --> DSG[Designer<br/><i>UI/UX</i>]
+    ORC --> ART[Artist<br/><i>visuals</i>]
+    ORC --> DRS[DeepResearcher<br/><i>research orchestrator</i>]
     DRS --> GMR[GeminiResearcher]
     DRS --> GRK[GrokResearcher]
     DRS --> PPX[PerplexityResearcher]
     DRS --> CDX[CodexResearcher]
 ```
+
+*Each agent has exactly one model configured in `opencode.json`. Labels above describe the agent's role, not a runtime tier — there are no runtime tier overrides.*
 
 </details>
 

@@ -66,7 +66,11 @@ const { values } = parseArgs({
 		fresh: { type: "boolean", default: false },
 		migrate: { type: "boolean", default: false },
 		update: { type: "boolean", default: false },
+		// Deprecated build-related flags. Both are silently accepted as a no-op
+		// so legacy invocations from pre-v3.0 scripts/CI don't crash. PAI no
+		// longer builds OpenCode from source — vanilla opencode.ai is used.
 		"skip-build": { type: "boolean", default: false },
+		rebuild: { type: "boolean", default: false },
 	},
 	strict: true,
 });
@@ -102,6 +106,7 @@ function showHelp(): void {
 	print("");
 	print("Options:");
 	print("  --skip-build   Deprecated — PAI no longer builds OpenCode (uses vanilla)");
+	print("  --rebuild      Deprecated alias of --skip-build — also ignored");
 	print("  --help         Show this help");
 }
 
@@ -349,8 +354,9 @@ async function runFreshWizard(): Promise<void> {
 	// PAI no longer builds OpenCode from source — vanilla OpenCode is installed
 	// via the official opencode.ai installer. stepBuildOpenCode is kept as a
 	// no-op to preserve step numbering for legacy flows.
-	if (values["skip-build"]) {
-		printWarning("--skip-build is deprecated (PAI now uses vanilla OpenCode). Ignoring.");
+	if (values["skip-build"] || values.rebuild) {
+		const flag = values.rebuild ? "--rebuild" : "--skip-build";
+		printWarning(`${flag} is deprecated (PAI now uses vanilla OpenCode). Ignoring.`);
 	}
 	await stepBuildOpenCode(state, progress, true);
 	printInfo("OpenCode install is managed by the vanilla opencode.ai installer.");
