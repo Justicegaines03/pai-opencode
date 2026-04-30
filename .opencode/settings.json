@@ -1,53 +1,37 @@
 {
-  "paiVersion": "4.0.3-opencode",
-  "env": {
-    "PAI_DIR": ".opencode",
-    "OPENCODE_MAX_OUTPUT_TOKENS": "80000",
-    "BASH_DEFAULT_TIMEOUT_MS": "600000"
-  },
-  "contextFiles": [
-    "PAI/SKILL.md",
-    "PAI/AISTEERINGRULES.md",
-    "PAI/README.md",
-    "PAI/USER/README.md"
-  ],
-  "daidentity": {
-    "name": "PAI",
-    "fullName": "Personal AI Assistant",
-    "displayName": "PAI",
-    "color": "#3B82F6",
-    "voiceId": "",
-    "voice": {
-      "stability": 0.5,
-      "similarity_boost": 0.75,
-      "style": 0,
-      "speed": 1,
-      "use_speaker_boost": true,
-      "volume": 0.8
-    },
-    "startupCatchphrase": "PAI ready."
-  },
   "principal": {
-    "name": "User",
-    "timezone": "UTC"
+    "name": "Justice Gaines",
+    "timezone": "America/Los_Angeles"
+  },
+  "daidentity": {
+    "name": "Rovert",
+    "voiceId": "",
+    "voices": {
+      "main": {
+        "voiceId": ""
+      }
+    }
   },
   "pai": {
-    "source": "github.com/Steffen025/pai-opencode",
-    "upstream": "github.com/danielmiessler/PAI",
-    "version": "4.0.3",
-    "algorithm": "v3.7.0"
+    "version": "4.0.3"
   },
-  "techStack": {
-    "browser": "chrome",
-    "terminal": "terminal",
-    "packageManager": "bun",
-    "language": "TypeScript"
+  "providers": {
+    "default": "zen",
+    "zen": {}
+  },
+  "counts": {
+    "skills": 11,
+    "workflows": 169,
+    "plugins": 1,
+    "signals": 0,
+    "files": 12,
+    "updatedAt": "2026-04-30T06:28:00.368Z"
   },
   "provider": {
-    "id": "anthropic",
-    "name": "Anthropic Claude models - recommended for best quality",
-    "model": "anthropic/claude-sonnet-4-5",
-    "profile": "anthropic",
-    "multiResearch": true
+    "id": "openai",
+    "name": "OpenAI GPT models - premium alternative provider",
+    "model": "openai/gpt-4.1",
+    "profile": "openai",
+    "multiResearch": false
   }
 }

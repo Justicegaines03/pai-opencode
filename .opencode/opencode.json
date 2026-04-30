@@ -1,8 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "openai/gpt-5.5",
+  "model": "opencode/big-pickle",
   "snapshot": true,
-  "username": "User",
+  "username": "Justice Gaines",
   "permission": {
     "*": "allow",
     "websearch": "allow",
@@ -21,52 +21,52 @@
   },
   "agent": {
     "Algorithm": {
-      "model": "openai/o3"
+      "model": "opencode/big-pickle"
     },
     "Architect": {
-      "model": "openai/o3"
+      "model": "opencode/big-pickle"
     },
     "Engineer": {
-      "model": "openai/gpt-5.5"
+      "model": "opencode/big-pickle"
     },
     "general": {
-      "model": "openai/gpt-5.5"
+      "model": "opencode/big-pickle"
     },
     "explore": {
-      "model": "openai/gpt-4o-mini"
+      "model": "opencode/big-pickle"
     },
     "Intern": {
-      "model": "openai/gpt-4o-mini"
+      "model": "opencode/big-pickle"
     },
     "Writer": {
-      "model": "openai/gpt-5.5"
+      "model": "opencode/big-pickle"
     },
     "DeepResearcher": {
-      "model": "openai/o3"
+      "model": "opencode/big-pickle"
     },
     "GeminiResearcher": {
-      "model": "google/gemini-3.1-pro"
+      "model": "opencode/big-pickle"
     },
     "GrokResearcher": {
-      "model": "xai/grok-2"
+      "model": "opencode/big-pickle"
     },
     "PerplexityResearcher": {
-      "model": "perplexity/sonar-reasoning"
+      "model": "opencode/big-pickle"
     },
     "CodexResearcher": {
-      "model": "openai/gpt-5.5"
+      "model": "opencode/big-pickle"
     },
     "QATester": {
-      "model": "openai/gpt-5.5"
+      "model": "opencode/big-pickle"
     },
     "Pentester": {
-      "model": "openai/gpt-5.5"
+      "model": "opencode/big-pickle"
     },
     "Designer": {
-      "model": "google/gemini-3-flash-image"
+      "model": "opencode/big-pickle"
     },
     "Artist": {
-      "model": "google/gemini-3-flash-image"
+      "model": "opencode/big-pickle"
     }
   }
 }
