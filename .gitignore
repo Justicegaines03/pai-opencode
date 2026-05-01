@@ -11,6 +11,9 @@ node_modules/
 # Runtime artifacts
 *.log
 .DS_Store
+.opencode/bin/
+.opencode/package-lock.json
+*.tui-migration.bak
 
 # Personal content (user customizes)
 .opencode/USER/*
