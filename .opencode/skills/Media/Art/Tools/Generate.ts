@@ -23,33 +23,51 @@ import { extname, resolve } from "node:path";
 // ============================================================================
 
 /**
- * Load environment variables from ${PAI_DIR}/.env
- * This ensures API keys are available regardless of how the CLI is invoked
+ * Load environment variables from .env files.
+ * Order: (1) ~/.opencode/.env — canonical user secrets; (2) ${PAI_DIR}/.env if
+ * different — fills keys not already set. This avoids a global PAI_DIR (often
+ * pointing at a different repo's `.claude`) shadowing ~/.opencode/.env entirely.
  */
 async function loadEnv(): Promise<void> {
-  const paiDir = process.env.PAI_DIR || resolve(process.env.HOME!, '.opencode');
-  const envPath = resolve(paiDir, '.env');
-  try {
-    const envContent = await readFile(envPath, 'utf-8');
-    for (const line of envContent.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eqIndex = trimmed.indexOf('=');
-      if (eqIndex === -1) continue;
-      const key = trimmed.slice(0, eqIndex).trim();
-      let value = trimmed.slice(eqIndex + 1).trim();
-      // Remove surrounding quotes if present
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1);
+  const home = process.env.HOME!;
+  const canonicalEnv = resolve(home, '.opencode', '.env');
+  const paiDir = process.env.PAI_DIR || resolve(home, '.opencode');
+  const paiEnv = resolve(paiDir, '.env');
+
+  const paths: string[] = [canonicalEnv];
+  if (paiEnv !== canonicalEnv) {
+    paths.push(paiEnv);
+  }
+
+  for (const envPath of paths) {
+    try {
+      let envContent = await readFile(envPath, 'utf-8');
+      if (envContent.charCodeAt(0) === 0xfeff) {
+        envContent = envContent.slice(1);
       }
-      // Only set if not already defined (allow overrides from shell)
-      if (!process.env[key]) {
-        process.env[key] = value;
+      for (const line of envContent.split('\n')) {
+        let trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        if (trimmed.startsWith('export ')) {
+          trimmed = trimmed.slice(7).trim();
+        }
+        const eqIndex = trimmed.indexOf('=');
+        if (eqIndex === -1) continue;
+        const key = trimmed.slice(0, eqIndex).trim();
+        let value = trimmed.slice(eqIndex + 1).trim();
+        // Remove surrounding quotes if present
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        // Only set if not already defined (allow overrides from shell)
+        if (!process.env[key]) {
+          process.env[key] = value;
+        }
       }
+    } catch {
+      // Silently continue if .env doesn't exist - rely on shell env vars
     }
-  } catch (error) {
-    // Silently continue if .env doesn't exist - rely on shell env vars
   }
 }
 

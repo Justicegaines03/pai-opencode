@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/big-pickle",
+  "model": "openai/gpt-5.5",
   "snapshot": true,
   "username": "Justice Gaines",
   "permission": {
@@ -21,52 +21,52 @@
   },
   "agent": {
     "Algorithm": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "Architect": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "Engineer": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "general": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "explore": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "Intern": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "Writer": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "DeepResearcher": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "GeminiResearcher": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "GrokResearcher": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "PerplexityResearcher": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "CodexResearcher": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "QATester": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "Pentester": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "Designer": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     },
     "Artist": {
-      "model": "opencode/big-pickle"
+      "model": "openai/gpt-5.5"
     }
   }
 }
